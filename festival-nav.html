@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GroundMap — Festival Navigator</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131a;
+    --surface2: #1c1c28;
+    --border: #2a2a3d;
+    --accent: #7c3aed;
+    --accent-glow: rgba(124,58,237,0.3);
+    --neon: #a78bfa;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --text: #f1f0ff;
+    --muted: #6b6b8a;
+    --stage: rgba(124,58,237,0.15);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* HEADER */
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    z-index: 100;
+    flex-shrink: 0;
+  }
+
+  .logo {
+    font-family: 'Space Mono', monospace;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--neon);
+    letter-spacing: -0.5px;
+  }
+
+  .logo span { color: var(--muted); }
+
+  .event-badge {
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--accent-glow);
+    color: var(--neon);
+    border: 1px solid var(--accent);
+    padding: 4px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .header-signal {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--green);
+    font-family: 'Space Mono', monospace;
+  }
+
+  .signal-dot {
+    width: 7px; height: 7px;
+    background: var(--green);
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.5; transform: scale(0.8); }
+  }
+
+  /* MAIN LAYOUT */
+  .app-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    width: 280px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+  }
+
+  .sidebar-section {
+    padding: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 12px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  /* GROUP CODE */
+  .group-box {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+
+  .group-code {
+    font-family: 'Space Mono', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--neon);
+    letter-spacing: 6px;
+    text-align: center;
+    margin: 8px 0;
+  }
+
+  .group-hint {
+    font-size: 11px;
+    color: var(--muted);
+    text-align: center;
+  }
+
+  .share-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 8px;
+    background: var(--accent);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .share-btn:hover { opacity: 0.85; }
+
+  /* FRIENDS LIST */
+  .friend-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    cursor: pointer;
+    transition: opacity 0.2s;
+  }
+
+  .friend-item:last-child { border-bottom: none; }
+  .friend-item:hover { opacity: 0.8; }
+
+  .friend-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+    border: 2px solid;
+  }
+
+  .friend-info { flex: 1; min-width: 0; }
+
+  .friend-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .friend-loc {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 1px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .friend-dist {
+    font-size: 12px;
+    font-family: 'Space Mono', monospace;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .nav-to-btn {
+    padding: 5px 10px;
+    border: 1px solid currentColor;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  /* REPORT SYSTEM */
+  .report-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+
+  .report-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 8px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s;
+    color: var(--text);
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .report-btn:hover {
+    border-color: var(--amber);
+    background: rgba(245,158,11,0.1);
+  }
+
+  .report-btn.sent {
+    border-color: var(--green);
+    background: rgba(16,185,129,0.1);
+  }
+
+  .report-icon { font-size: 20px; margin-bottom: 4px; }
+
+  .report-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+  }
+
+  /* PANIC BUTTON */
+  .panic-btn {
+    width: 100%;
+    padding: 12px;
+    background: rgba(239,68,68,0.15);
+    border: 1px solid var(--red);
+    color: var(--red);
+    border-radius: 10px;
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  .panic-btn:hover {
+    background: rgba(239,68,68,0.3);
+  }
+
+  .panic-btn.active {
+    background: var(--red);
+    color: white;
+    animation: panic-pulse 1s infinite;
+  }
+
+  @keyframes panic-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+    50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+  }
+
+  /* MAP AREA */
+  .map-container {
+    flex: 1;
+    position: relative;
+    background: #0d0d14;
+    overflow: hidden;
+  }
+
+  canvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+  }
+
+  /* MAP CONTROLS */
+  .map-controls {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .map-btn {
+    width: 40px; height: 40px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-family: 'Space Grotesk', sans-serif;
+  }
+
+  .map-btn:hover {
+    border-color: var(--neon);
+    color: var(--neon);
+  }
+
+  /* LEGEND */
+  .legend {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    z-index: 10;
+  }
+
+  .legend-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+    font-family: 'Space Mono', monospace;
+  }
+
+  .legend-items {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text);
+  }
+
+  .legend-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* TOAST */
+  .toast {
+    position: fixed;
+    top: 70px;
+    left: 50%;
+    transform: translateX(-50%) translateY(-10px);
+    background: var(--surface);
+    border: 1px solid var(--green);
+    color: var(--green);
+    padding: 10px 20px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 1000;
+    opacity: 0;
+    transition: all 0.3s;
+    white-space: nowrap;
+  }
+
+  .toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+
+  /* NAV OVERLAY */
+  .nav-overlay {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 12px;
+    padding: 12px 16px;
+    z-index: 10;
+    display: none;
+    min-width: 200px;
+    box-shadow: 0 0 20px var(--accent-glow);
+  }
+
+  .nav-overlay.active { display: block; }
+
+  .nav-header {
+    font-size: 11px;
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+
+  .nav-dest {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--neon);
+    margin-bottom: 4px;
+  }
+
+  .nav-dist-big {
+    font-size: 13px;
+    color: var(--text);
+    margin-bottom: 10px;
+  }
+
+  .nav-cancel {
+    font-size: 12px;
+    color: var(--red);
+    cursor: pointer;
+    background: none;
+    border: none;
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 600;
+    padding: 0;
+  }
+
+  /* MOBILE */
+  @media (max-width: 640px) {
+    .sidebar { display: none; }
+    .mobile-bar {
+      display: flex !important;
+    }
+  }
+
+  .mobile-bar {
+    display: none;
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    padding: 12px 20px;
+    gap: 8px;
+    z-index: 20;
+  }
+
+  .mobile-tab {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 8px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .mobile-tab.active {
+    border-color: var(--accent);
+    color: var(--neon);
+    background: var(--accent-glow);
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Ground<span>Map</span></div>
+  <div class="event-badge">Horizon Festival 2026</div>
+  <div class="header-signal">
+    <div class="signal-dot"></div>
+    LIVE
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+
+    <div class="sidebar-section">
+      <div class="section-label">Your Group</div>
+      <div class="group-box">
+        <div style="font-size:11px;color:var(--muted);">Session code</div>
+        <div class="group-code" id="groupCode">HZ-4829</div>
+        <div class="group-hint">Share this code so friends can join</div>
+        <button class="share-btn" onclick="copyCode()">Copy & Share Code</button>
+      </div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Friends (3 online)</div>
+      <div id="friendsList"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Report an Issue</div>
+      <div class="report-grid" id="reportGrid"></div>
+    </div>
+
+    <div class="sidebar-section">
+      <div class="section-label">Emergency</div>
+      <button class="panic-btn" id="panicBtn" onclick="triggerPanic()">
+        🆘 Send My Location to Group
+      </button>
+    </div>
+
+  </div>
+
+  <!-- MAP -->
+  <div class="map-container">
+    <canvas id="venueMap"></canvas>
+
+    <div class="map-controls">
+      <button class="map-btn" onclick="zoomIn()" title="Zoom in">+</button>
+      <button class="map-btn" onclick="zoomOut()" title="Zoom out">−</button>
+      <button class="map-btn" onclick="centerMe()" title="Center on me">◎</button>
+    </div>
+
+    <div class="nav-overlay" id="navOverlay">
+      <div class="nav-header">Navigating to</div>
+      <div class="nav-dest" id="navDest">—</div>
+      <div class="nav-dist-big" id="navDistBig">—</div>
+      <button class="nav-cancel" onclick="cancelNav()">✕ Cancel navigation</button>
+    </div>
+
+    <div class="legend">
+      <div class="legend-title">Map Key</div>
+      <div class="legend-items">
+        <div class="legend-item"><div class="legend-dot" style="background:#7c3aed"></div> Stage</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#06b6d4"></div> Toilets</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#10b981"></div> Water</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#ef4444"></div> Medical</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#f59e0b"></div> Food</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#fff"></div> You / Friends</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── DATA ───────────────────────────────────────────────────────────────────
+
+const FRIENDS = [
+  { id: 1, name: 'Maya', emoji: '🦋', color: '#f472b6', x: 0.42, y: 0.38, loc: 'Near Main Stage', dist: '45m' },
+  { id: 2, name: 'Jordan', emoji: '🔥', color: '#fb923c', x: 0.61, y: 0.55, loc: 'Food Village', dist: '120m' },
+  { id: 3, name: 'Sam', emoji: '⚡', color: '#facc15', x: 0.29, y: 0.62, loc: 'West Toilets', dist: '210m' },
+];
+
+const POI = [
+  { type: 'stage', label: 'MAIN STAGE', x: 0.5, y: 0.22, w: 0.22, h: 0.1, color: '#7c3aed', icon: '🎵' },
+  { type: 'stage', label: 'EAST STAGE', x: 0.75, y: 0.45, w: 0.14, h: 0.08, color: '#7c3aed', icon: '🎵' },
+  { type: 'stage', label: 'WEST STAGE', x: 0.15, y: 0.45, w: 0.14, h: 0.08, color: '#7c3aed', icon: '🎵' },
+  { type: 'toilet', label: 'TOILETS', x: 0.28, y: 0.62, w: 0.07, h: 0.06, color: '#06b6d4', icon: '🚻' },
+  { type: 'toilet', label: 'TOILETS', x: 0.66, y: 0.62, w: 0.07, h: 0.06, color: '#06b6d4', icon: '🚻' },
+  { type: 'toilet', label: 'TOILETS', x: 0.47, y: 0.78, w: 0.07, h: 0.06, color: '#06b6d4', icon: '🚻' },
+  { type: 'water', label: 'WATER', x: 0.38, y: 0.50, w: 0.05, h: 0.05, color: '#10b981', icon: '💧' },
+  { type: 'water', label: 'WATER', x: 0.58, y: 0.50, w: 0.05, h: 0.05, color: '#10b981', icon: '💧' },
+  { type: 'medical', label: 'MEDICAL', x: 0.50, y: 0.60, w: 0.08, h: 0.06, color: '#ef4444', icon: '🏥' },
+  { type: 'food', label: 'FOOD VILLAGE', x: 0.60, y: 0.54, w: 0.12, h: 0.07, color: '#f59e0b', icon: '🍔' },
+  { type: 'food', label: 'FOOD', x: 0.25, y: 0.38, w: 0.08, h: 0.06, color: '#f59e0b', icon: '🍔' },
+];
+
+const REPORTS = [
+  { id: 'toilet_dirty', icon: '🚻', label: 'Dirty Toilet' },
+  { id: 'long_queue', icon: '⏳', label: 'Long Queue' },
+  { id: 'no_water', icon: '💧', label: 'No Water' },
+  { id: 'medical_needed', icon: '🏥', label: 'Need Medical' },
+  { id: 'litter', icon: '🗑️', label: 'Litter Issue' },
+  { id: 'security', icon: '🛡️', label: 'Security Alert' },
+];
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+
+let zoom = 1;
+let panX = 0, panY = 0;
+let navigatingTo = null;
+let myX = 0.50, myY = 0.67;
+let panicActive = false;
+let reportSent = {};
+
+// Friend animation
+let friendOffsets = FRIENDS.map(() => ({ dx: 0, dy: 0, t: Math.random() * 100 }));
+
+// ─── CANVAS ──────────────────────────────────────────────────────────────────
+
+const canvas = document.getElementById('venueMap');
+const ctx = canvas.getContext('2d');
+
+function resize() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+
+window.addEventListener('resize', () => { resize(); draw(); });
+resize();
+
+function toScreen(rx, ry) {
+  const cx = canvas.width / 2 + panX;
+  const cy = canvas.height / 2 + panY;
+  const vw = canvas.width * 0.85 * zoom;
+  const vh = canvas.height * 0.85 * zoom;
+  return {
+    x: cx - vw / 2 + rx * vw,
+    y: cy - vh / 2 + ry * vh
+  };
+}
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Background grid
+  ctx.strokeStyle = 'rgba(42,42,61,0.5)';
+  ctx.lineWidth = 1;
+  for (let x = 0; x < canvas.width; x += 40) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, canvas.height); ctx.stroke();
+  }
+  for (let y = 0; y < canvas.height; y += 40) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(canvas.width, y); ctx.stroke();
+  }
+
+  // Venue boundary
+  const tl = toScreen(0.05, 0.08);
+  const br = toScreen(0.95, 0.92);
+  ctx.strokeStyle = 'rgba(124,58,237,0.4)';
+  ctx.lineWidth = 2;
+  ctx.setLineDash([8, 4]);
+  ctx.strokeRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+  ctx.setLineDash([]);
+  ctx.fillStyle = 'rgba(124,58,237,0.04)';
+  ctx.fillRect(tl.x, tl.y, br.x - tl.x, br.y - tl.y);
+
+  // Paths / walkways
+  drawPath([[0.2,0.35],[0.5,0.35],[0.8,0.35]]);
+  drawPath([[0.5,0.35],[0.5,0.85]]);
+  drawPath([[0.2,0.35],[0.2,0.75],[0.5,0.85]]);
+  drawPath([[0.8,0.35],[0.8,0.75],[0.5,0.85]]);
+  drawPath([[0.2,0.55],[0.5,0.55],[0.8,0.55]]);
+
+  // Navigation line
+  if (navigatingTo) {
+    const me = toScreen(myX, myY);
+    const dest = navigatingTo;
+    const d = toScreen(dest.x, dest.y);
+    ctx.strokeStyle = 'rgba(167,139,250,0.8)';
+    ctx.lineWidth = 2.5;
+    ctx.setLineDash([10, 6]);
+    ctx.beginPath();
+    ctx.moveTo(me.x, me.y);
+    ctx.lineTo(d.x, d.y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // POIs
+  POI.forEach(poi => {
+    const tl = toScreen(poi.x - poi.w / 2, poi.y - poi.h / 2);
+    const br = toScreen(poi.x + poi.w / 2, poi.y + poi.h / 2);
+    const w = br.x - tl.x, h = br.y - tl.y;
+
+    ctx.fillStyle = poi.color + '22';
+    ctx.strokeStyle = poi.color + 'aa';
+    ctx.lineWidth = 1.5;
+    roundRect(ctx, tl.x, tl.y, w, h, 6);
+    ctx.fill(); ctx.stroke();
+
+    const center = toScreen(poi.x, poi.y);
+    ctx.font = `${Math.max(10, 14 * zoom)}px Space Grotesk, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = poi.color;
+    ctx.fillText(poi.icon, center.x, center.y - 4);
+
+    ctx.font = `bold ${Math.max(7, 9 * zoom)}px Space Grotesk, sans-serif`;
+    ctx.fillStyle = poi.color + 'cc';
+    ctx.fillText(poi.label, center.x, center.y + 10);
+  });
+
+  // Friends
+  FRIENDS.forEach((f, i) => {
+    friendOffsets[i].t += 0.005;
+    const wobX = Math.sin(friendOffsets[i].t * 2.3) * 0.008;
+    const wobY = Math.cos(friendOffsets[i].t * 1.7) * 0.006;
+    const p = toScreen(f.x + wobX, f.y + wobY);
+
+    // glow
+    const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, 24 * zoom);
+    grad.addColorStop(0, f.color + '55');
+    grad.addColorStop(1, 'transparent');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 24 * zoom, 0, Math.PI * 2);
+    ctx.fill();
+
+    // circle
+    ctx.fillStyle = '#1c1c28';
+    ctx.strokeStyle = f.color;
+    ctx.lineWidth = 2.5;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, 16 * zoom, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+
+    ctx.font = `${14 * zoom}px serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(f.emoji, p.x, p.y);
+
+    ctx.font = `bold ${10 * zoom}px Space Grotesk, sans-serif`;
+    ctx.fillStyle = f.color;
+    ctx.textBaseline = 'top';
+    ctx.fillText(f.name, p.x, p.y + 18 * zoom);
+  });
+
+  // ME
+  const me = toScreen(myX, myY);
+  const grad = ctx.createRadialGradient(me.x, me.y, 0, me.x, me.y, 28 * zoom);
+  grad.addColorStop(0, 'rgba(255,255,255,0.25)');
+  grad.addColorStop(1, 'transparent');
+  ctx.fillStyle = grad;
+  ctx.beginPath();
+  ctx.arc(me.x, me.y, 28 * zoom, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = '#0a0a0f';
+  ctx.strokeStyle = '#f1f0ff';
+  ctx.lineWidth = 3;
+  ctx.beginPath();
+  ctx.arc(me.x, me.y, 14 * zoom, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+
+  ctx.font = `${12 * zoom}px serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('📍', me.x, me.y);
+
+  ctx.font = `bold ${10 * zoom}px Space Grotesk, sans-serif`;
+  ctx.fillStyle = '#f1f0ff';
+  ctx.textBaseline = 'top';
+  ctx.fillText('You', me.x, me.y + 16 * zoom);
+
+  requestAnimationFrame(draw);
+}
+
+function drawPath(points) {
+  ctx.strokeStyle = 'rgba(100,100,140,0.3)';
+  ctx.lineWidth = 8 * zoom;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.beginPath();
+  points.forEach(([rx, ry], i) => {
+    const p = toScreen(rx, ry);
+    i === 0 ? ctx.moveTo(p.x, p.y) : ctx.lineTo(p.x, p.y);
+  });
+  ctx.stroke();
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+}
+
+draw();
+
+// ─── UI RENDERING ─────────────────────────────────────────────────────────────
+
+function renderFriends() {
+  const el = document.getElementById('friendsList');
+  el.innerHTML = FRIENDS.map(f => `
+    <div class="friend-item" onclick="navigateToFriend(${f.id})">
+      <div class="friend-avatar" style="background:${f.color}22;border-color:${f.color};color:${f.color}">
+        ${f.emoji}
+      </div>
+      <div class="friend-info">
+        <div class="friend-name">${f.name}</div>
+        <div class="friend-loc">${f.loc}</div>
+      </div>
+      <div class="friend-dist" style="color:${f.color}">${f.dist}</div>
+      <button class="nav-to-btn" style="color:${f.color};border-color:${f.color}40"
+        onclick="event.stopPropagation();navigateToFriend(${f.id})">
+        Go →
+      </button>
+    </div>
+  `).join('');
+}
+
+function renderReports() {
+  const el = document.getElementById('reportGrid');
+  el.innerHTML = REPORTS.map(r => `
+    <button class="report-btn ${reportSent[r.id] ? 'sent' : ''}"
+      onclick="sendReport('${r.id}','${r.label}')">
+      <div class="report-icon">${reportSent[r.id] ? '✅' : r.icon}</div>
+      <div class="report-label">${r.label}</div>
+    </button>
+  `).join('');
+}
+
+renderFriends();
+renderReports();
+
+// ─── INTERACTIONS ─────────────────────────────────────────────────────────────
+
+function navigateToFriend(id) {
+  const f = FRIENDS.find(x => x.id === id);
+  if (!f) return;
+  navigatingTo = { x: f.x, y: f.y, name: f.name };
+  document.getElementById('navOverlay').classList.add('active');
+  document.getElementById('navDest').textContent = `${f.emoji} ${f.name}`;
+  document.getElementById('navDistBig').textContent = `Walking distance: ~${f.dist}`;
+  showToast(`Navigating to ${f.name}`);
+}
+
+function cancelNav() {
+  navigatingTo = null;
+  document.getElementById('navOverlay').classList.remove('active');
+}
+
+function sendReport(id, label) {
+  if (reportSent[id]) return;
+  reportSent[id] = true;
+  renderReports();
+  showToast(`📨 Report sent: ${label}`);
+  setTimeout(() => {
+    delete reportSent[id];
+    renderReports();
+  }, 5000);
+}
+
+function triggerPanic() {
+  const btn = document.getElementById('panicBtn');
+  panicActive = !panicActive;
+  if (panicActive) {
+    btn.classList.add('active');
+    btn.textContent = '🆘 Location Sent — Friends Notified';
+    showToast('🆘 Your location has been shared with your group');
+  } else {
+    btn.classList.remove('active');
+    btn.innerHTML = '🆘 Send My Location to Group';
+  }
+}
+
+function copyCode() {
+  const code = document.getElementById('groupCode').textContent;
+  navigator.clipboard.writeText(`Join my group on GroundMap! Code: ${code}`).catch(() => {});
+  showToast('Code copied to clipboard!');
+}
+
+function zoomIn() { zoom = Math.min(zoom * 1.25, 3); }
+function zoomOut() { zoom = Math.max(zoom / 1.25, 0.5); }
+function centerMe() { panX = 0; panY = 0; zoom = 1; }
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── PAN / DRAG ───────────────────────────────────────────────────────────────
+
+let dragging = false, lastX, lastY;
+
+canvas.addEventListener('mousedown', e => { dragging = true; lastX = e.clientX; lastY = e.clientY; });
+canvas.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  panX += e.clientX - lastX;
+  panY += e.clientY - lastY;
+  lastX = e.clientX; lastY = e.clientY;
+});
+canvas.addEventListener('mouseup', () => dragging = false);
+canvas.addEventListener('mouseleave', () => dragging = false);
+
+// Touch
+canvas.addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  dragging = true; lastX = t.clientX; lastY = t.clientY;
+}, { passive: true });
+canvas.addEventListener('touchmove', e => {
+  if (!dragging) return;
+  const t = e.touches[0];
+  panX += t.clientX - lastX;
+  panY += t.clientY - lastY;
+  lastX = t.clientX; lastY = t.clientY;
+}, { passive: true });
+canvas.addEventListener('touchend', () => dragging = false);
+
+// Scroll to zoom
+canvas.addEventListener('wheel', e => {
+  e.preventDefault();
+  zoom = e.deltaY < 0 ? Math.min(zoom * 1.1, 3) : Math.max(zoom / 1.1, 0.5);
+}, { passive: false });
+</script>
+</body>
+</html>
