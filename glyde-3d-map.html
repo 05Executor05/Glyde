@@ -3,161 +3,302 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<title>Glyde — 3D Map</title>
+<title>Glyde — Live Map</title>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-:root {
-  --bg:#0a0a0f;--surface:#13131a;--surface2:#1c1c28;--border:#2a2a3d;
-  --accent:#7c3aed;--neon:#a78bfa;--green:#10b981;--amber:#f59e0b;
-  --red:#ef4444;--text:#f1f0ff;--muted:#6b6b8a;
-}
-*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;user-select:none;}
 
-/* HEADER */
-.header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;z-index:50;}
-.logo{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--neon);}
-.logo span{color:var(--muted);}
-.live-pill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;}
-.live-dot{width:7px;height:7px;border-radius:50%;animation:blink 2s infinite;}
+:root {
+  --bg:#07070f;
+  --surface:#11111c;
+  --surface2:#181826;
+  --border:#252538;
+  --accent:#7c3aed;
+  --neon:#a78bfa;
+  --green:#10b981;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --text:#f0efff;
+  --muted:#6060a0;
+}
+
+* { margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent; }
+
+body {
+  font-family:'Space Grotesk',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  height:100dvh;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+  user-select:none;
+}
+
+/* ── HEADER ── */
+.header {
+  display:flex;align-items:center;justify-content:space-between;
+  padding:12px 16px;
+  background:rgba(11,11,20,0.95);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:50;
+  backdrop-filter:blur(12px);
+}
+.logo { font-family:'Space Mono',monospace;font-size:17px;font-weight:700;color:var(--neon); }
+.logo span { color:var(--muted); }
+.live-pill { display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace; }
+.live-dot { width:7px;height:7px;border-radius:50%;animation:blink 2s infinite; }
 @keyframes blink{0%,100%{opacity:1}50%{opacity:0.3}}
 
-/* JOIN OVERLAY */
-.join-overlay{position:fixed;inset:0;background:rgba(10,10,15,0.97);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:200;padding:24px;}
-.join-logo{font-family:'Space Mono',monospace;font-size:36px;font-weight:700;color:var(--neon);margin-bottom:6px;}
-.join-logo span{color:var(--muted);}
-.join-sub{font-size:13px;color:var(--muted);margin-bottom:40px;}
-.join-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;align-self:flex-start;font-family:'Space Mono',monospace;}
-.join-input{width:100%;max-width:320px;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Mono',monospace;font-size:22px;font-weight:700;letter-spacing:4px;text-align:center;outline:none;margin-bottom:12px;}
-.join-input:focus{border-color:var(--accent);}
-.join-name-input{width:100%;max-width:320px;padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:16px;outline:none;margin-bottom:20px;text-align:center;}
-.join-name-input:focus{border-color:var(--accent);}
-.join-btn{width:100%;max-width:320px;padding:16px;background:var(--accent);color:white;border:none;border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity 0.2s;margin-bottom:12px;}
-.join-btn:hover{opacity:0.85;}
-.join-create{font-size:13px;color:var(--neon);cursor:pointer;text-decoration:underline;}
-.join-emoji-row{display:flex;gap:10px;margin-bottom:24px;}
-.emoji-pick{width:44px;height:44px;background:var(--surface2);border:2px solid var(--border);border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all 0.15s;}
-.emoji-pick.selected{border-color:var(--accent);background:rgba(124,58,237,0.2);}
+/* ── JOIN OVERLAY ── */
+.join-overlay {
+  position:fixed;inset:0;
+  background:rgba(7,7,15,0.98);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:200;padding:28px;
+}
+.join-logo { font-family:'Space Mono',monospace;font-size:40px;font-weight:700;color:var(--neon);margin-bottom:4px; }
+.join-logo span { color:var(--muted); }
+.join-tagline { font-size:13px;color:var(--muted);margin-bottom:36px; }
+.field-label { font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;align-self:flex-start;font-family:'Space Mono',monospace; }
+.field-input {
+  width:100%;max-width:320px;
+  padding:13px 16px;
+  background:var(--surface2);
+  border:1px solid var(--border);
+  border-radius:12px;
+  color:var(--text);
+  font-family:'Space Grotesk',sans-serif;
+  font-size:15px;
+  outline:none;
+  margin-bottom:16px;
+}
+.field-input:focus { border-color:var(--accent); }
+.code-input {
+  font-family:'Space Mono',monospace;
+  font-size:24px;font-weight:700;
+  letter-spacing:6px;text-align:center;
+}
+.emoji-row { display:flex;gap:10px;margin-bottom:20px; }
+.emoji-pick {
+  width:46px;height:46px;
+  background:var(--surface2);
+  border:2px solid var(--border);
+  border-radius:50%;
+  font-size:20px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;transition:all 0.15s;
+}
+.emoji-pick.sel { border-color:var(--accent);background:rgba(124,58,237,0.2); }
+.join-btn {
+  width:100%;max-width:320px;
+  padding:15px;
+  background:var(--accent);color:white;
+  border:none;border-radius:12px;
+  font-family:'Space Grotesk',sans-serif;
+  font-size:16px;font-weight:700;
+  cursor:pointer;margin-bottom:12px;
+  transition:opacity 0.2s;
+}
+.join-btn:hover { opacity:0.88; }
+.join-create { font-size:13px;color:var(--neon);cursor:pointer; }
 
-/* MAP */
-.map-wrap{flex:1;position:relative;overflow:hidden;background:#06060c;perspective:900px;}
-canvas{position:absolute;top:0;left:0;transform-origin:50% 30%;transform:rotateX(52deg) translateY(60px);cursor:grab;}
-canvas:active{cursor:grabbing;}
+/* ── MAP ── */
+.map-wrap {
+  flex:1;position:relative;overflow:hidden;
+  background:var(--bg);
+}
+canvas {
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  cursor:grab;
+}
+canvas:active { cursor:grabbing; }
+
+/* ── HUD ELEMENTS ── */
+.map-controls {
+  position:absolute;top:14px;left:14px;
+  display:flex;flex-direction:column;gap:6px;z-index:20;
+}
+.map-btn {
+  width:38px;height:38px;
+  background:rgba(17,17,28,0.9);
+  border:1px solid var(--border);
+  border-radius:10px;color:var(--text);
+  font-size:16px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;backdrop-filter:blur(8px);
+}
+.map-btn:hover { border-color:var(--neon);color:var(--neon); }
 
 /* COMPASS */
-.compass{position:absolute;top:16px;right:16px;width:54px;height:54px;background:var(--surface);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;box-shadow:0 4px 16px rgba(0,0,0,0.4);}
-.compass-inner{width:36px;height:36px;position:relative;}
-.compass-n{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--red);font-family:'Space Mono',monospace;}
-.compass-needle{position:absolute;top:50%;left:50%;width:3px;height:16px;background:linear-gradient(var(--red) 50%,#555 50%);transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);border-radius:2px;transition:transform 0.3s ease;}
+.compass {
+  position:absolute;top:14px;right:14px;
+  width:48px;height:48px;
+  background:rgba(17,17,28,0.9);
+  border:1px solid var(--border);
+  border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  z-index:20;backdrop-filter:blur(8px);
+}
+.c-inner { width:32px;height:32px;position:relative; }
+.c-n { position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--red);font-family:'Space Mono',monospace; }
+.c-needle {
+  position:absolute;top:50%;left:50%;
+  width:3px;height:14px;
+  background:linear-gradient(var(--red) 50%,#444 50%);
+  transform-origin:50% 100%;
+  transform:translate(-50%,-100%) rotate(0deg);
+  border-radius:2px;transition:transform 0.4s ease;
+}
 
 /* NAV CARD */
-.nav-card{position:absolute;bottom:100px;left:16px;right:16px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:14px 16px;z-index:20;display:none;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
-.nav-card.active{display:block;}
-.nav-card-top{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
-.nav-avatar{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid;flex-shrink:0;}
-.nav-info{flex:1;}
-.nav-name{font-size:15px;font-weight:700;}
-.nav-sublabel{font-size:11px;color:var(--muted);margin-top:1px;}
-.nav-dist-badge{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(124,58,237,0.15);color:var(--neon);border:1px solid rgba(124,58,237,0.3);}
-.direction-arrow{display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
-.arrow-wrap{position:relative;width:64px;height:64px;display:flex;align-items:center;justify-content:center;}
-.arrow-ring{position:absolute;width:64px;height:64px;border-radius:50%;border:2px solid rgba(167,139,250,0.2);}
-.arrow-svg{transition:transform 0.4s ease;filter:drop-shadow(0 0 8px rgba(167,139,250,0.6));}
-.nav-cancel-btn{width:100%;padding:9px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all 0.2s;}
-.nav-cancel-btn:hover{border-color:var(--red);color:var(--red);}
+.nav-card {
+  position:absolute;bottom:88px;left:14px;right:14px;
+  background:rgba(17,17,28,0.96);
+  border:1px solid var(--border);
+  border-radius:16px;padding:14px;
+  z-index:20;display:none;
+  backdrop-filter:blur(12px);
+  box-shadow:0 8px 40px rgba(0,0,0,0.6);
+}
+.nav-card.on { display:block; }
+.nav-top { display:flex;align-items:center;gap:10px;margin-bottom:12px; }
+.nav-avatar {
+  width:40px;height:40px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;border:2px solid;flex-shrink:0;
+}
+.nav-name { font-size:15px;font-weight:700; }
+.nav-sub { font-size:11px;color:var(--muted);margin-top:2px; }
+.nav-dist {
+  font-family:'Space Mono',monospace;font-size:14px;font-weight:700;
+  padding:4px 10px;border-radius:20px;
+  background:rgba(124,58,237,0.15);color:var(--neon);
+  border:1px solid rgba(124,58,237,0.3);
+  margin-left:auto;
+}
+.arrow-row { display:flex;align-items:center;justify-content:center;margin-bottom:10px; }
+.arrow-svg { transition:transform 0.4s ease;filter:drop-shadow(0 0 10px rgba(167,139,250,0.7)); }
+.cancel-btn {
+  width:100%;padding:9px;
+  background:transparent;border:1px solid var(--border);
+  border-radius:10px;color:var(--muted);
+  font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;
+  cursor:pointer;transition:all 0.2s;
+}
+.cancel-btn:hover { border-color:var(--red);color:var(--red); }
 
 /* BOTTOM BAR */
-.bottom-bar{position:absolute;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);padding:10px 12px;display:flex;gap:8px;z-index:20;overflow-x:auto;}
-.friend-chip{flex-shrink:0;display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:8px 12px;cursor:pointer;transition:all 0.2s;min-width:100px;}
-.friend-chip:hover,.friend-chip.active{border-color:var(--accent);background:rgba(124,58,237,0.1);}
-.chip-emoji{font-size:18px;}
-.chip-name{font-size:12px;font-weight:700;white-space:nowrap;}
-.chip-dist{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;}
+.bottom-bar {
+  position:absolute;bottom:0;left:0;right:0;
+  background:rgba(11,11,20,0.97);
+  border-top:1px solid var(--border);
+  padding:10px 12px;
+  display:flex;gap:8px;z-index:20;
+  overflow-x:auto;backdrop-filter:blur(12px);
+}
+.bottom-bar::-webkit-scrollbar { display:none; }
 
-/* MY INFO CHIP */
-.my-chip{flex-shrink:0;display:flex;align-items:center;gap:8px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:12px;padding:8px 12px;min-width:80px;}
-.my-chip-label{font-size:10px;color:var(--green);font-family:'Space Mono',monospace;font-weight:700;}
-
-/* MAP CONTROLS */
-.map-controls{position:absolute;top:16px;left:16px;display:flex;flex-direction:column;gap:6px;z-index:20;}
-.map-btn{width:38px;height:38px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 0.15s;font-family:'Space Grotesk',sans-serif;}
-.map-btn:hover{border-color:var(--neon);color:var(--neon);}
+.my-chip {
+  flex-shrink:0;display:flex;align-items:center;gap:8px;
+  background:rgba(16,185,129,0.08);
+  border:1px solid rgba(16,185,129,0.25);
+  border-radius:12px;padding:8px 12px;
+}
+.peer-chip {
+  flex-shrink:0;display:flex;align-items:center;gap:8px;
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:12px;padding:8px 12px;cursor:pointer;
+  transition:all 0.15s;min-width:100px;
+}
+.peer-chip:hover,.peer-chip.on { border-color:var(--accent);background:rgba(124,58,237,0.1); }
+.chip-emoji { font-size:18px; }
+.chip-name { font-size:12px;font-weight:700; }
+.chip-dist { font-size:10px;color:var(--muted);font-family:'Space Mono',monospace; }
+.chip-live { font-size:10px;color:var(--green);font-family:'Space Mono',monospace; }
+.waiting-txt { display:flex;align-items:center;padding:8px 4px;font-size:12px;color:var(--muted); }
 
 /* TOAST */
-.toast{position:fixed;top:66px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--surface);border:1px solid var(--green);color:var(--green);padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all 0.25s;white-space:nowrap;pointer-events:none;}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
-.toast.warn{border-color:var(--amber);color:var(--amber);}
-.toast.err{border-color:var(--red);color:var(--red);}
-
-/* USERS COUNT */
-.users-badge{font-size:11px;background:rgba(16,185,129,0.15);color:var(--green);border:1px solid rgba(16,185,129,0.3);padding:3px 8px;border-radius:20px;font-family:'Space Mono',monospace;}
+.toast {
+  position:fixed;top:66px;left:50%;
+  transform:translateX(-50%) translateY(-8px);
+  background:var(--surface);border:1px solid var(--green);
+  color:var(--green);padding:8px 16px;border-radius:10px;
+  font-size:13px;font-weight:600;z-index:999;opacity:0;
+  transition:all 0.25s;white-space:nowrap;pointer-events:none;
+}
+.toast.show { opacity:1;transform:translateX(-50%) translateY(0); }
+.toast.w { border-color:var(--amber);color:var(--amber); }
 </style>
 </head>
 <body>
 
-<!-- JOIN SCREEN -->
+<!-- JOIN -->
 <div class="join-overlay" id="joinOverlay">
   <div class="join-logo">Glyde<span>.app</span></div>
-  <div class="join-sub">Festival Navigation · Safety · Chat</div>
+  <div class="join-tagline">Festival navigation · safety · live</div>
 
-  <div class="join-label">Pick your avatar</div>
-  <div class="join-emoji-row" id="emojiRow"></div>
+  <div class="field-label" style="margin-top:4px">Your avatar</div>
+  <div class="emoji-row" id="emojiRow"></div>
 
-  <div class="join-label">Your name</div>
-  <input class="join-name-input" id="nameInput" placeholder="e.g. Maya" maxlength="16"/>
+  <div class="field-label">Your name</div>
+  <input class="field-input" id="nameInput" placeholder="e.g. Maya" maxlength="16"/>
 
-  <div class="join-label">Group code</div>
-  <input class="join-input" id="codeInput" placeholder="HZ-0000" maxlength="7"/>
+  <div class="field-label">Group code</div>
+  <input class="field-input code-input" id="codeInput" placeholder="HZ-0000" maxlength="7"/>
 
   <button class="join-btn" onclick="joinGroup()">Join Group →</button>
   <div class="join-create" onclick="createGroup()">+ Create a new group</div>
 </div>
 
-<!-- MAIN APP -->
+<!-- APP -->
 <div class="header">
   <div class="logo">Glyde<span>.app</span></div>
-  <div id="groupLabel" style="font-size:12px;font-weight:600;color:var(--muted)">—</div>
+  <div id="grpLabel" style="font-size:12px;font-weight:600;color:var(--muted)">—</div>
   <div class="live-pill">
     <div class="live-dot" id="liveDot" style="background:var(--amber)"></div>
     <span id="liveLabel" style="color:var(--amber)">CONNECTING</span>
   </div>
 </div>
 
-<div class="map-wrap" id="mapWrap">
+<div class="map-wrap">
   <canvas id="c"></canvas>
 
   <div class="map-controls">
-    <button class="map-btn" onclick="doZoom(1.2)">+</button>
+    <button class="map-btn" onclick="doZoom(1.25)">+</button>
     <button class="map-btn" onclick="doZoom(0.8)">−</button>
     <button class="map-btn" onclick="resetView()">◎</button>
   </div>
 
   <div class="compass">
-    <div class="compass-inner">
-      <div class="compass-n">N</div>
-      <div class="compass-needle" id="needle"></div>
+    <div class="c-inner">
+      <div class="c-n">N</div>
+      <div class="c-needle" id="needle"></div>
     </div>
   </div>
 
   <div class="nav-card" id="navCard">
-    <div class="nav-card-top">
-      <div class="nav-avatar" id="navAvatar">🦋</div>
-      <div class="nav-info">
-        <div class="nav-name" id="navName">—</div>
-        <div class="nav-sublabel" id="navSub">—</div>
+    <div class="nav-top">
+      <div class="nav-avatar" id="navAv">🦋</div>
+      <div>
+        <div class="nav-name" id="navNm">—</div>
+        <div class="nav-sub">Live location</div>
       </div>
-      <div class="nav-dist-badge" id="navDist">—</div>
+      <div class="nav-dist" id="navDst">—</div>
     </div>
-    <div class="direction-arrow">
-      <div class="arrow-wrap">
-        <div class="arrow-ring"></div>
-        <svg class="arrow-svg" id="arrowSvg" width="40" height="40" viewBox="0 0 40 40">
-          <polygon points="20,4 34,32 20,26 6,32" fill="#a78bfa" opacity="0.95"/>
-          <polygon points="20,4 34,32 20,26 6,32" fill="none" stroke="#7c3aed" stroke-width="1.5"/>
-        </svg>
-      </div>
+    <div class="arrow-row">
+      <svg class="arrow-svg" id="arrowSvg" width="48" height="48" viewBox="0 0 48 48">
+        <defs>
+          <linearGradient id="ag" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#c4b5fd"/>
+            <stop offset="100%" stop-color="#7c3aed"/>
+          </linearGradient>
+        </defs>
+        <polygon points="24,5 40,38 24,30 8,38" fill="url(#ag)"/>
+        <polygon points="24,5 40,38 24,30 8,38" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity="0.6"/>
+      </svg>
     </div>
-    <button class="nav-cancel-btn" onclick="cancelNav()">Stop navigating</button>
+    <button class="cancel-btn" onclick="cancelNav()">Stop navigating</button>
   </div>
 
   <div class="bottom-bar" id="bottomBar"></div>
@@ -165,383 +306,375 @@ canvas:active{cursor:grabbing;}
 
 <div class="toast" id="toast"></div>
 
-<!-- FIREBASE -->
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, remove, onDisconnect, serverTimestamp }
+import { getDatabase, ref, set, onValue, onDisconnect }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// ── FIREBASE CONFIG ───────────────────────────────────────────────────────────
-const firebaseConfig = {
-  apiKey: "AIzaSyDocnNn4xfEGcOZWS5mreGx5bvVAEO0TSw",
-  authDomain: "glyde-9cce8.firebaseapp.com",
-  databaseURL: "https://glyde-9cce8-default-rtdb.firebaseio.com",
-  projectId: "glyde-9cce8",
-  storageBucket: "glyde-9cce8.firebasestorage.app",
-  messagingSenderId: "395299315354",
-  appId: "1:395299315354:web:c219f13a88232d2bed4923"
-};
+// ── FIREBASE ──────────────────────────────────────────────────────────────────
+const app = initializeApp({
+  apiKey:"AIzaSyDocnNn4xfEGcOZWS5mreGx5bvVAEO0TSw",
+  authDomain:"glyde-9cce8.firebaseapp.com",
+  databaseURL:"https://glyde-9cce8-default-rtdb.firebaseio.com",
+  projectId:"glyde-9cce8",
+  storageBucket:"glyde-9cce8.firebasestorage.app",
+  messagingSenderId:"395299315354",
+  appId:"1:395299315354:web:c219f13a88232d2bed4923"
+});
+const db = getDatabase(app);
 
-const fbApp = initializeApp(firebaseConfig);
-const db = getDatabase(fbApp);
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const EMOJIS = ['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🎯','🌙','💎'];
+const COLORS = ['#f472b6','#fb923c','#facc15','#a78bfa','#34d399','#f87171','#60a5fa','#4ade80','#c084fc','#38bdf8'];
 
-// ── CONSTANTS ─────────────────────────────────────────────────────────────────
-const EMOJIS = ['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🦊','🐉','🎯'];
-const COLORS = ['#f472b6','#fb923c','#facc15','#a78bfa','#34d399','#f87171','#60a5fa','#c084fc','#fb923c','#4ade80'];
-
+// Venue zones — each has a colour, icon, label
 const ZONES = [
-  {label:'MAIN STAGE',  x:0.50,y:0.18,w:0.28,h:0.12,color:'#7c3aed',icon:'🎵',h3d:28},
-  {label:'EAST STAGE',  x:0.76,y:0.42,w:0.16,h:0.09,color:'#7c3aed',icon:'🎵',h3d:20},
-  {label:'WEST STAGE',  x:0.14,y:0.42,w:0.16,h:0.09,color:'#7c3aed',icon:'🎵',h3d:20},
-  {label:'FOOD VILLAGE',x:0.60,y:0.54,w:0.14,h:0.08,color:'#f59e0b',icon:'🍔',h3d:10},
-  {label:'MEDICAL',     x:0.50,y:0.60,w:0.09,h:0.06,color:'#ef4444',icon:'🏥',h3d:8},
-  {label:'TOILETS',     x:0.28,y:0.62,w:0.07,h:0.06,color:'#06b6d4',icon:'🚻',h3d:6},
-  {label:'TOILETS',     x:0.66,y:0.62,w:0.07,h:0.06,color:'#06b6d4',icon:'🚻',h3d:6},
-  {label:'WATER',       x:0.38,y:0.50,w:0.05,h:0.05,color:'#10b981',icon:'💧',h3d:4},
-  {label:'WATER',       x:0.58,y:0.50,w:0.05,h:0.05,color:'#10b981',icon:'💧',h3d:4},
+  { label:'MAIN STAGE',   x:.50, y:.20, w:.26, h:.11, color:'#9333ea', icon:'🎵', floors:3 },
+  { label:'EAST STAGE',   x:.76, y:.43, w:.15, h:.09, color:'#7c3aed', icon:'🎵', floors:2 },
+  { label:'WEST STAGE',   x:.14, y:.43, w:.15, h:.09, color:'#7c3aed', icon:'🎵', floors:2 },
+  { label:'FOOD VILLAGE', x:.61, y:.55, w:.13, h:.08, color:'#d97706', icon:'🍔', floors:1 },
+  { label:'MEDICAL',      x:.50, y:.61, w:.09, h:.06, color:'#dc2626', icon:'🏥', floors:1 },
+  { label:'TOILETS',      x:.28, y:.63, w:.07, h:.06, color:'#0891b2', icon:'🚻', floors:1 },
+  { label:'TOILETS',      x:.67, y:.63, w:.07, h:.06, color:'#0891b2', icon:'🚻', floors:1 },
+  { label:'WATER',        x:.38, y:.51, w:.05, h:.05, color:'#059669', icon:'💧', floors:1 },
+  { label:'WATER',        x:.59, y:.51, w:.05, h:.05, color:'#059669', icon:'💧', floors:1 },
 ];
 
 const PATHS = [
-  [[0.2,0.32],[0.5,0.32],[0.8,0.32]],
-  [[0.5,0.32],[0.5,0.82]],
-  [[0.2,0.32],[0.2,0.75],[0.5,0.82]],
-  [[0.8,0.32],[0.8,0.75],[0.5,0.82]],
-  [[0.2,0.54],[0.8,0.54]],
+  [[.2,.33],[.5,.33],[.8,.33]],
+  [[.5,.33],[.5,.83]],
+  [[.2,.33],[.2,.76],[.5,.83]],
+  [[.8,.33],[.8,.76],[.5,.83]],
+  [[.2,.55],[.8,.55]],
 ];
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
-let myId = 'user_' + Math.random().toString(36).slice(2,8);
-let myEmoji = EMOJIS[0];
-let myColor = COLORS[0];
-let myName = '';
-let myGroup = '';
-let myX = 0.50, myY = 0.65;
-let gpsActive = false;
-
-let peers = {}; // { uid: { name, emoji, color, x, y, ts } }
-let navigatingTo = null;
-let scale = 1, panX = 0, panY = 0;
-let heading = 0;
+const myId   = 'u_' + Math.random().toString(36).slice(2,9);
+let myEmoji  = EMOJIS[0];
+let myColor  = COLORS[0];
+let myName   = '';
+let myGroup  = '';
+let myX = .50, myY = .65;
+let peers    = {};
+let navUid   = null;
+let scale    = 1, panX = 0, panY = 0;
+let heading  = 0;
+let pushTmr  = null;
 
 // ── EMOJI PICKER ──────────────────────────────────────────────────────────────
-let selectedEmojiIdx = 0;
-document.getElementById('emojiRow').innerHTML = EMOJIS.slice(0,8).map((e,i)=>
-  `<div class="emoji-pick ${i===0?'selected':''}" onclick="pickEmoji(${i})">${e}</div>`
-).join('');
+let selIdx = 0;
+document.getElementById('emojiRow').innerHTML =
+  EMOJIS.slice(0,8).map((e,i)=>
+    `<div class="emoji-pick${i===0?' sel':''}" id="ep${i}" onclick="pickEmoji(${i})">${e}</div>`
+  ).join('');
 
-window.pickEmoji = (i) => {
-  selectedEmojiIdx = i;
-  myEmoji = EMOJIS[i];
-  myColor = COLORS[i];
-  document.querySelectorAll('.emoji-pick').forEach((el,j)=>el.classList.toggle('selected',j===i));
+window.pickEmoji = i => {
+  selIdx=i; myEmoji=EMOJIS[i]; myColor=COLORS[i];
+  document.querySelectorAll('.emoji-pick').forEach((el,j)=>el.classList.toggle('sel',j===i));
 };
 
-// ── GROUP JOIN / CREATE ───────────────────────────────────────────────────────
+// ── JOIN ──────────────────────────────────────────────────────────────────────
 window.createGroup = () => {
-  const code = 'HZ-' + Math.floor(1000+Math.random()*9000);
-  document.getElementById('codeInput').value = code;
-  showToast(`Group code: ${code} — share with friends!`);
+  const c='HZ-'+Math.floor(1000+Math.random()*9000);
+  document.getElementById('codeInput').value=c;
+  toast(`Code: ${c} — share it!`);
 };
 
-window.joinGroup = async () => {
+window.joinGroup = () => {
   const name = document.getElementById('nameInput').value.trim();
   const code = document.getElementById('codeInput').value.trim().toUpperCase();
-  if (!name) { showToast('Enter your name','warn'); return; }
-  if (!code || code.length < 4) { showToast('Enter a group code','warn'); return; }
-
-  myName = name;
-  myGroup = code;
-  document.getElementById('joinOverlay').style.display = 'none';
-  document.getElementById('groupLabel').textContent = code;
-
-  // Start GPS
+  if (!name) { toast('Enter your name','w'); return; }
+  if (code.length<4) { toast('Enter a group code','w'); return; }
+  myName=name; myGroup=code;
+  document.getElementById('joinOverlay').style.display='none';
+  document.getElementById('grpLabel').textContent=code;
   startGPS();
-  // Listen to group
   listenGroup();
-  // Start render loop
+  pushLoop();
   requestAnimationFrame(draw);
 };
 
 // ── GPS ───────────────────────────────────────────────────────────────────────
-// We map real GPS to venue coordinates for demo
-// In production this maps to actual venue lat/lng bounds
-const VENUE_BOUNDS = { minLat:0, maxLat:1, minLng:0, maxLng:1 };
-
 function startGPS() {
-  if (!navigator.geolocation) { pushLocation(); return; }
+  if (!navigator.geolocation) { setStatus(false); return; }
   navigator.geolocation.watchPosition(pos => {
-    gpsActive = true;
-    // For demo: use fractional movement from starting point
-    // Real version: map lat/lng to venue grid
-    const seed = myId.charCodeAt(5) / 36;
-    myX = 0.3 + seed * 0.4 + Math.sin(Date.now()/8000)*0.03;
-    myY = 0.4 + seed * 0.3 + Math.cos(Date.now()/7000)*0.03;
-    setLiveStatus(true);
-    pushLocation();
-  }, () => {
-    setLiveStatus(false);
-    pushLocation();
-  }, { enableHighAccuracy:true, maximumAge:4000, timeout:10000 });
+    setStatus(true);
+    // Demo mapping — replace with real venue bounds in production
+    const seed = parseInt(myId.slice(2,4),36)/36;
+    myX = .28 + seed*.44 + Math.sin(Date.now()/9000)*.025;
+    myY = .38 + seed*.28 + Math.cos(Date.now()/8000)*.025;
+  }, () => setStatus(false),
+  { enableHighAccuracy:true, maximumAge:4000, timeout:10000 });
 }
 
-function setLiveStatus(live) {
-  const dot = document.getElementById('liveDot');
-  const lbl = document.getElementById('liveLabel');
-  if (live) {
-    dot.style.background = 'var(--green)';
-    lbl.style.color = 'var(--green)';
-    lbl.textContent = 'LIVE';
-  } else {
-    dot.style.background = 'var(--amber)';
-    lbl.style.color = 'var(--amber)';
-    lbl.textContent = 'DEMO';
-  }
+function setStatus(live) {
+  const dot=document.getElementById('liveDot'), lbl=document.getElementById('liveLabel');
+  dot.style.background = live ? 'var(--green)' : 'var(--amber)';
+  lbl.style.color      = live ? 'var(--green)' : 'var(--amber)';
+  lbl.textContent      = live ? 'LIVE' : 'DEMO';
 }
 
-// ── FIREBASE LOCATION PUSH ────────────────────────────────────────────────────
-let pushTimer = null;
-function pushLocation() {
+// ── FIREBASE PUSH ─────────────────────────────────────────────────────────────
+function pushLoop() {
   if (!myGroup) return;
-  const userRef = ref(db, `groups/${myGroup}/users/${myId}`);
-  set(userRef, {
-    name: myName,
-    emoji: myEmoji,
-    color: myColor,
-    x: myX,
-    y: myY,
-    ts: Date.now()
-  });
-  // Remove on disconnect
-  onDisconnect(userRef).remove();
-  // Keep pushing every 3s
-  clearTimeout(pushTimer);
-  pushTimer = setTimeout(pushLocation, 3000);
+  const r = ref(db, `groups/${myGroup}/users/${myId}`);
+  set(r, { name:myName, emoji:myEmoji, color:myColor, x:myX, y:myY, ts:Date.now() });
+  onDisconnect(r).remove();
+  clearTimeout(pushTmr);
+  pushTmr = setTimeout(pushLoop, 3000);
 }
 
 // ── FIREBASE LISTEN ───────────────────────────────────────────────────────────
 function listenGroup() {
-  const groupRef = ref(db, `groups/${myGroup}/users`);
-  onValue(groupRef, snap => {
-    const data = snap.val() || {};
-    peers = {};
-    let count = 0;
-    Object.entries(data).forEach(([uid, u]) => {
-      if (uid !== myId) {
-        peers[uid] = u;
-        count++;
-      }
-    });
-    renderBottomBar();
-    const total = count + 1;
-    document.getElementById('groupLabel').textContent =
-      `${myGroup} · ${total} online`;
+  onValue(ref(db,`groups/${myGroup}/users`), snap => {
+    const data = snap.val()||{};
+    peers={};
+    Object.entries(data).forEach(([uid,u])=>{ if(uid!==myId) peers[uid]=u; });
+    renderBar();
+    const n=Object.keys(peers).length+1;
+    document.getElementById('grpLabel').textContent=`${myGroup} · ${n} online`;
   });
 }
 
 // ── CANVAS ────────────────────────────────────────────────────────────────────
-const canvas = document.getElementById('c');
-const ctx = canvas.getContext('2d');
-let W, H;
+const canvas=document.getElementById('c'), ctx=canvas.getContext('2d');
+let W,H;
 
-function resize() {
-  const wrap = document.getElementById('mapWrap');
-  W = wrap.clientWidth;
-  H = wrap.clientHeight * 1.6;
-  canvas.width = W; canvas.height = H;
-  canvas.style.width = W+'px'; canvas.style.height = H+'px';
+function resize(){
+  W=canvas.offsetWidth; H=canvas.offsetHeight;
+  canvas.width=W; canvas.height=H;
 }
-window.addEventListener('resize', resize);
-resize();
+window.addEventListener('resize',resize); resize();
 
-function s(rx,ry){ return { x: panX+rx*W*scale, y: panY+ry*H*scale }; }
+// Convert relative coords to screen pixels
+function px(rx,ry){ return { x:panX+rx*W*scale, y:panY+ry*H*scale }; }
 
 function draw(ts) {
   ctx.clearRect(0,0,W,H);
 
-  // Sky
-  const sky = ctx.createLinearGradient(0,0,0,H*0.3);
-  sky.addColorStop(0,'#06060c'); sky.addColorStop(1,'#0d0d1a');
-  ctx.fillStyle=sky; ctx.fillRect(0,0,W,H);
+  // ── BACKGROUND ──
+  // Rich dark base
+  const bg=ctx.createRadialGradient(W*.5,H*.4,0,W*.5,H*.4,W*.8);
+  bg.addColorStop(0,'#0d0d1f');
+  bg.addColorStop(1,'#07070f');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
 
-  // Ground
-  const gnd = ctx.createLinearGradient(0,H*0.1,0,H);
-  gnd.addColorStop(0,'#0f0f1e'); gnd.addColorStop(1,'#080810');
-  ctx.fillStyle=gnd; ctx.fillRect(0,H*0.1,W,H);
+  // Subtle ambient purple glow in centre (festival feel)
+  const glow=ctx.createRadialGradient(W*.5,H*.45,0,W*.5,H*.45,W*.55);
+  glow.addColorStop(0,'rgba(124,58,237,0.06)');
+  glow.addColorStop(1,'transparent');
+  ctx.fillStyle=glow; ctx.fillRect(0,0,W,H);
 
-  // Grid
-  ctx.strokeStyle='rgba(42,42,80,0.35)'; ctx.lineWidth=1;
-  for(let gx=0;gx<=10;gx++){const p=s(gx/10,0.05),p2=s(gx/10,1);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();}
-  for(let gy=0;gy<=10;gy++){const p=s(0,gy/10),p2=s(1,gy/10);ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p2.x,p2.y);ctx.stroke();}
+  // ── VENUE GROUND AREA ──
+  const vTL=px(.04,.06), vBR=px(.96,.94);
+  const vW=vBR.x-vTL.x, vH=vBR.y-vTL.y;
+  // Slightly lighter ground inside venue
+  ctx.fillStyle='rgba(16,16,32,0.9)';
+  ctx.beginPath();
+  ctx.roundRect(vTL.x,vTL.y,vW,vH,10);
+  ctx.fill();
 
-  // Venue boundary
-  const vtl=s(0.04,0.06),vbr=s(0.96,0.94);
-  ctx.strokeStyle='rgba(124,58,237,0.5)'; ctx.lineWidth=2;
-  ctx.setLineDash([10,5]); ctx.strokeRect(vtl.x,vtl.y,vbr.x-vtl.x,vbr.y-vtl.y); ctx.setLineDash([]);
+  // Venue border — glowing dashed line
+  ctx.strokeStyle='rgba(124,58,237,0.45)';
+  ctx.lineWidth=1.5; ctx.setLineDash([10,6]);
+  ctx.beginPath(); ctx.roundRect(vTL.x,vTL.y,vW,vH,10); ctx.stroke();
+  ctx.setLineDash([]);
 
-  // Paths
+  // ── PATHS / WALKWAYS ──
   PATHS.forEach(pts=>{
-    ctx.strokeStyle='rgba(160,160,220,0.18)'; ctx.lineWidth=18*scale; ctx.lineCap='round'; ctx.lineJoin='round';
-    ctx.beginPath(); pts.forEach(([rx,ry],i)=>{const p=s(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}); ctx.stroke();
-    ctx.strokeStyle='rgba(120,120,180,0.12)'; ctx.lineWidth=2*scale; ctx.setLineDash([12,10]);
-    ctx.beginPath(); pts.forEach(([rx,ry],i)=>{const p=s(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}); ctx.stroke(); ctx.setLineDash([]);
+    // Path base — glowing strip
+    ctx.strokeStyle='rgba(200,200,255,0.07)';
+    ctx.lineWidth=22*scale; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath();
+    pts.forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}); ctx.stroke();
+    // Centre line — soft glow
+    ctx.strokeStyle='rgba(167,139,250,0.12)';
+    ctx.lineWidth=2*scale; ctx.setLineDash([10,8]);
+    ctx.beginPath();
+    pts.forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}); ctx.stroke();
+    ctx.setLineDash([]);
   });
 
-  // Nav line
-  if(navigatingTo && peers[navigatingTo]){
-    const f=peers[navigatingTo];
-    const me=s(myX,myY),dest=s(f.x,f.y);
-    ctx.strokeStyle='rgba(167,139,250,0.9)'; ctx.lineWidth=3*scale; ctx.setLineDash([14,8]); ctx.lineCap='round';
-    ctx.beginPath(); ctx.moveTo(me.x,me.y); ctx.lineTo(dest.x,dest.y); ctx.stroke(); ctx.setLineDash([]);
-    const pulse=(ts%1200)/1200;
-    ctx.beginPath(); ctx.arc(dest.x,dest.y,(12+pulse*10)*scale,0,Math.PI*2);
-    ctx.strokeStyle=`rgba(167,139,250,${0.6-pulse*0.6})`; ctx.lineWidth=2; ctx.stroke();
-    // Update arrow
+  // ── NAV LINE ──
+  if (navUid && peers[navUid]) {
+    const f=peers[navUid];
+    const me=px(myX,myY), dst=px(f.x,f.y);
+    // Glowing dotted line
+    ctx.strokeStyle='rgba(167,139,250,0.85)';
+    ctx.lineWidth=2.5*scale; ctx.setLineDash([12,7]); ctx.lineCap='round';
+    ctx.beginPath(); ctx.moveTo(me.x,me.y); ctx.lineTo(dst.x,dst.y); ctx.stroke();
+    ctx.setLineDash([]);
+    // Pulse ring at destination
+    const pulse=(ts%1400)/1400;
+    ctx.beginPath(); ctx.arc(dst.x,dst.y,(10+pulse*14)*scale,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(167,139,250,${.55-pulse*.55})`; ctx.lineWidth=2; ctx.stroke();
+    // Arrow direction
     const dx=f.x-myX, dy=f.y-myY;
-    const angleDeg=Math.atan2(dy,dx)*180/Math.PI+90;
-    document.getElementById('arrowSvg').style.transform=`rotate(${angleDeg}deg)`;
-    const distM = Math.round(Math.sqrt(dx*dx+dy*dy)*1000);
-    document.getElementById('navDist').textContent = distM+'m';
+    document.getElementById('arrowSvg').style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI+90}deg)`;
+    const dm=Math.round(Math.sqrt(dx*dx+dy*dy)*1000);
+    document.getElementById('navDst').textContent=dm+'m';
   }
 
-  // 3D Zones
+  // ── ZONES (buildings) ──
   ZONES.forEach(z=>{
-    const bh=z.h3d*scale;
-    const tl=s(z.x-z.w/2,z.y-z.h/2), br=s(z.x+z.w/2,z.y+z.h/2);
-    const bw=br.x-tl.x, bd=br.y-tl.y;
-    // Right face
-    ctx.fillStyle=z.color+'28';
-    ctx.beginPath(); ctx.moveTo(br.x,tl.y); ctx.lineTo(br.x+bh*0.5,tl.y-bh*0.5); ctx.lineTo(br.x+bh*0.5,br.y-bh*0.5); ctx.lineTo(br.x,br.y); ctx.closePath(); ctx.fill();
-    // Top face
-    ctx.fillStyle=z.color+'22'; ctx.strokeStyle=z.color+'55'; ctx.lineWidth=1;
-    ctx.beginPath(); ctx.moveTo(tl.x,tl.y); ctx.lineTo(br.x,tl.y); ctx.lineTo(br.x+bh*0.5,tl.y-bh*0.5); ctx.lineTo(tl.x+bh*0.5,tl.y-bh*0.5); ctx.closePath(); ctx.fill(); ctx.stroke();
-    // Front face
-    ctx.fillStyle=z.color+'16'; ctx.strokeStyle=z.color+'70'; ctx.lineWidth=1.5;
-    ctx.beginPath(); ctx.moveTo(tl.x,tl.y); ctx.lineTo(br.x,tl.y); ctx.lineTo(br.x,br.y); ctx.lineTo(tl.x,br.y); ctx.closePath(); ctx.fill(); ctx.stroke();
+    const tl=px(z.x-z.w/2, z.y-z.h/2);
+    const br=px(z.x+z.w/2, z.y+z.h/2);
+    const bw=br.x-tl.x, bh=br.y-tl.y;
+    const shadow=z.floors*7*scale;
+
+    // Drop shadow for depth
+    ctx.shadowColor=z.color+'60';
+    ctx.shadowBlur=16*scale;
+
+    // Building face — filled rounded rect
+    ctx.fillStyle=z.color+'18';
+    ctx.strokeStyle=z.color+'90';
+    ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(tl.x,tl.y,bw,bh,6); ctx.fill(); ctx.stroke();
+
+    ctx.shadowBlur=0;
+
+    // Inner glow top edge
+    ctx.fillStyle=z.color+'30';
+    ctx.fillRect(tl.x+2,tl.y+2,bw-4,3);
+
+    // Icon
+    const cx=(tl.x+br.x)/2, cy=(tl.y+br.y)/2;
+    ctx.font=`${Math.max(13,17*scale)}px serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=z.color;
+    ctx.shadowColor=z.color; ctx.shadowBlur=8;
+    ctx.fillText(z.icon,cx,cy-7);
+    ctx.shadowBlur=0;
+
     // Label
-    const cx2=(tl.x+br.x)/2, cy2=(tl.y+br.y)/2;
-    ctx.font=`${Math.max(12,16*scale)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle'; ctx.fillStyle=z.color;
-    ctx.fillText(z.icon,cx2,cy2-5);
-    ctx.font=`bold ${Math.max(8,10*scale)}px Space Grotesk,sans-serif`; ctx.fillStyle=z.color+'cc';
-    ctx.fillText(z.label,cx2,cy2+10);
+    ctx.font=`700 ${Math.max(8,10*scale)}px Space Grotesk,sans-serif`;
+    ctx.fillStyle=z.color+'dd';
+    ctx.fillText(z.label,cx,cy+9);
   });
 
-  // PEERS (real users from Firebase)
-  Object.entries(peers).forEach(([uid,f])=>{
-    const p=s(f.x,f.y);
-    // Shadow
-    ctx.fillStyle='rgba(0,0,0,0.3)'; ctx.beginPath(); ctx.ellipse(p.x,p.y+4,10*scale,4*scale,0,0,Math.PI*2); ctx.fill();
-    // Glow
-    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,22*scale);
-    g.addColorStop(0,(f.color||'#a78bfa')+'66'); g.addColorStop(1,'transparent');
-    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,22*scale,0,Math.PI*2); ctx.fill();
-    // Body
-    ctx.fillStyle='#1c1c28'; ctx.strokeStyle=f.color||'#a78bfa'; ctx.lineWidth=2.5;
-    ctx.beginPath(); ctx.arc(p.x,p.y,15*scale,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  // ── PEERS ──
+  Object.values(peers).forEach(f=>{
+    const p=px(f.x,f.y);
+    // Outer glow
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,24*scale);
+    g.addColorStop(0,f.color+'55'); g.addColorStop(1,'transparent');
+    ctx.fillStyle=g; ctx.beginPath(); ctx.arc(p.x,p.y,24*scale,0,Math.PI*2); ctx.fill();
+    // Ground shadow
+    ctx.fillStyle='rgba(0,0,0,0.35)';
+    ctx.beginPath(); ctx.ellipse(p.x,p.y+3,9*scale,3*scale,0,0,Math.PI*2); ctx.fill();
+    // Circle
+    ctx.fillStyle='#181826'; ctx.strokeStyle=f.color; ctx.lineWidth=2.5;
+    ctx.shadowColor=f.color; ctx.shadowBlur=10;
+    ctx.beginPath(); ctx.arc(p.x,p.y,14*scale,0,Math.PI*2); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur=0;
     // Emoji
-    ctx.font=`${13*scale}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`${12*scale}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
     ctx.fillText(f.emoji||'👤',p.x,p.y);
-    // Name tag
-    ctx.font=`bold ${9*scale}px Space Grotesk,sans-serif`;
+    // Name pill
+    ctx.font=`700 ${Math.max(9,10*scale)}px Space Grotesk,sans-serif`;
     const tw=ctx.measureText(f.name).width;
-    ctx.fillStyle='#13131a'; ctx.fillRect(p.x-tw/2-4,p.y+18*scale,tw+8,14*scale);
-    ctx.fillStyle=f.color||'#a78bfa'; ctx.textBaseline='top';
-    ctx.fillText(f.name,p.x,p.y+19*scale);
+    ctx.fillStyle='rgba(17,17,28,0.85)';
+    ctx.beginPath(); ctx.roundRect(p.x-tw/2-5,p.y+17*scale,tw+10,14*scale,4); ctx.fill();
+    ctx.fillStyle=f.color; ctx.textBaseline='top';
+    ctx.fillText(f.name,p.x,p.y+18*scale);
   });
 
-  // ME
-  const me=s(myX,myY);
-  const pulse2=(ts%1800)/1800;
-  ctx.beginPath(); ctx.arc(me.x,me.y,(18+pulse2*18)*scale,0,Math.PI*2);
-  ctx.strokeStyle=`rgba(16,185,129,${0.5-pulse2*0.5})`; ctx.lineWidth=2; ctx.stroke();
+  // ── ME ──
+  const me=px(myX,myY);
+  // Pulse ring
+  const pulse=(ts%2000)/2000;
+  ctx.beginPath(); ctx.arc(me.x,me.y,(16+pulse*20)*scale,0,Math.PI*2);
+  ctx.strokeStyle=`rgba(16,185,129,${.45-pulse*.45})`; ctx.lineWidth=2; ctx.stroke();
   // Shadow
-  ctx.fillStyle='rgba(0,0,0,0.35)'; ctx.beginPath(); ctx.ellipse(me.x,me.y+5,12*scale,5*scale,0,0,Math.PI*2); ctx.fill();
-  // Body
-  ctx.fillStyle='#0a0a0f'; ctx.strokeStyle='#10b981'; ctx.lineWidth=3;
-  ctx.beginPath(); ctx.arc(me.x,me.y,15*scale,0,Math.PI*2); ctx.fill(); ctx.stroke();
-  // Direction cone
-  const ca=heading*Math.PI/180;
-  ctx.fillStyle='rgba(16,185,129,0.15)';
-  ctx.beginPath(); ctx.moveTo(me.x,me.y); ctx.arc(me.x,me.y,35*scale,ca-0.4,ca+0.4); ctx.closePath(); ctx.fill();
-  // Arrow
-  ctx.save(); ctx.translate(me.x,me.y); ctx.rotate(ca);
-  ctx.fillStyle='#10b981'; ctx.beginPath(); ctx.moveTo(0,-22*scale); ctx.lineTo(-5*scale,-14*scale); ctx.lineTo(5*scale,-14*scale); ctx.closePath(); ctx.fill(); ctx.restore();
+  ctx.fillStyle='rgba(0,0,0,0.4)';
+  ctx.beginPath(); ctx.ellipse(me.x,me.y+4,11*scale,4*scale,0,0,Math.PI*2); ctx.fill();
+  // Circle
+  ctx.fillStyle='#07070f'; ctx.strokeStyle='#10b981'; ctx.lineWidth=2.5;
+  ctx.shadowColor='#10b981'; ctx.shadowBlur=14;
+  ctx.beginPath(); ctx.arc(me.x,me.y,14*scale,0,Math.PI*2); ctx.fill(); ctx.stroke();
+  ctx.shadowBlur=0;
   // Emoji
   ctx.font=`${12*scale}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
   ctx.fillText(myEmoji,me.x,me.y);
-  // Name
-  ctx.font=`bold ${9*scale}px Space Grotesk,sans-serif`; ctx.fillStyle='#10b981'; ctx.textBaseline='top';
-  ctx.fillText('YOU',me.x,me.y+18*scale);
+  // YOU label
+  ctx.font=`700 ${Math.max(9,10*scale)}px Space Grotesk,sans-serif`;
+  ctx.fillStyle='#10b981'; ctx.textBaseline='top';
+  ctx.fillText('YOU',me.x,me.y+17*scale);
 
-  heading=(heading+0.25)%360;
+  // Compass
+  heading=(heading+.2)%360;
   document.getElementById('needle').style.transform=`translate(-50%,-100%) rotate(${heading}deg)`;
 
   requestAnimationFrame(draw);
 }
 
 // ── NAVIGATION ────────────────────────────────────────────────────────────────
-window.navigateToPeer = (uid) => {
-  const f=peers[uid];
-  if(!f) return;
-  navigatingTo=uid;
-  document.getElementById('navCard').classList.add('active');
-  document.getElementById('navAvatar').textContent=f.emoji;
-  document.getElementById('navAvatar').style.borderColor=f.color;
-  document.getElementById('navAvatar').style.background=f.color+'22';
-  document.getElementById('navName').textContent=f.name;
-  document.getElementById('navName').style.color=f.color;
-  document.getElementById('navSub').textContent='Live location';
-  document.querySelectorAll('.friend-chip').forEach(c=>c.classList.remove('active'));
-  document.querySelector(`[data-uid="${uid}"]`)?.classList.add('active');
-  showToast(`Navigating to ${f.emoji} ${f.name}`);
+window.navTo = uid => {
+  const f=peers[uid]; if(!f) return;
+  navUid=uid;
+  document.getElementById('navCard').classList.add('on');
+  document.getElementById('navAv').textContent=f.emoji;
+  document.getElementById('navAv').style.borderColor=f.color;
+  document.getElementById('navAv').style.background=f.color+'22';
+  document.getElementById('navNm').textContent=f.name;
+  document.getElementById('navNm').style.color=f.color;
+  document.querySelectorAll('.peer-chip').forEach(c=>c.classList.remove('on'));
+  document.querySelector(`[data-uid="${uid}"]`)?.classList.add('on');
+  toast(`Navigating to ${f.emoji} ${f.name}`);
 };
-
 window.cancelNav=()=>{
-  navigatingTo=null;
-  document.getElementById('navCard').classList.remove('active');
-  document.querySelectorAll('.friend-chip').forEach(c=>c.classList.remove('active'));
+  navUid=null;
+  document.getElementById('navCard').classList.remove('on');
+  document.querySelectorAll('.peer-chip').forEach(c=>c.classList.remove('on'));
 };
 
 // ── BOTTOM BAR ────────────────────────────────────────────────────────────────
-function renderBottomBar() {
-  const bar=document.getElementById('bottomBar');
-  const myChip=`<div class="my-chip"><div style="font-size:18px">${myEmoji}</div><div><div style="font-size:12px;font-weight:700;color:var(--text)">${myName}</div><div class="my-chip-label">YOU</div></div></div>`;
+function renderBar() {
+  const myChip=`
+    <div class="my-chip">
+      <div class="chip-emoji">${myEmoji}</div>
+      <div>
+        <div class="chip-name" style="color:var(--green)">${myName}</div>
+        <div class="chip-live">YOU 🟢</div>
+      </div>
+    </div>`;
   const peerChips=Object.entries(peers).map(([uid,f])=>`
-    <div class="friend-chip" data-uid="${uid}" onclick="navigateToPeer('${uid}')">
+    <div class="peer-chip" data-uid="${uid}" onclick="navTo('${uid}')">
       <div class="chip-emoji">${f.emoji||'👤'}</div>
       <div>
         <div class="chip-name" style="color:${f.color||'#a78bfa'}">${f.name}</div>
-        <div class="chip-dist">Live 🟢</div>
+        <div class="chip-live">Live 🟢</div>
       </div>
     </div>`).join('');
-  bar.innerHTML = myChip + peerChips +
-    (Object.keys(peers).length===0
-      ? `<div style="display:flex;align-items:center;padding:8px 12px;font-size:12px;color:var(--muted)">Waiting for friends to join…</div>`
-      : '');
+  const empty=Object.keys(peers).length===0
+    ? `<div class="waiting-txt">Waiting for friends to join…</div>` : '';
+  document.getElementById('bottomBar').innerHTML=myChip+peerChips+empty;
 }
 
 // ── ZOOM / PAN ────────────────────────────────────────────────────────────────
-window.doZoom=(f)=>{ scale=Math.min(Math.max(scale*f,0.4),3); };
-window.resetView=()=>{ scale=1; panX=0; panY=0; };
-let drag=false,lastDx,lastDy;
-canvas.addEventListener('mousedown',e=>{drag=true;lastDx=e.clientX;lastDy=e.clientY;});
-canvas.addEventListener('mousemove',e=>{if(!drag)return;panX+=e.clientX-lastDx;panY+=e.clientY-lastDy;lastDx=e.clientX;lastDy=e.clientY;});
-canvas.addEventListener('mouseup',()=>drag=false); canvas.addEventListener('mouseleave',()=>drag=false);
-canvas.addEventListener('touchstart',e=>{const t=e.touches[0];drag=true;lastDx=t.clientX;lastDy=t.clientY;},{passive:true});
-canvas.addEventListener('touchmove',e=>{if(!drag)return;const t=e.touches[0];panX+=t.clientX-lastDx;panY+=t.clientY-lastDy;lastDx=t.clientX;lastDy=t.clientY;},{passive:true});
+window.doZoom=f=>{ scale=Math.min(Math.max(scale*f,.4),3.5); };
+window.resetView=()=>{ scale=1;panX=0;panY=0; };
+let drag=false,ldx,ldy;
+canvas.addEventListener('mousedown',e=>{drag=true;ldx=e.clientX;ldy=e.clientY;});
+canvas.addEventListener('mousemove',e=>{if(!drag)return;panX+=e.clientX-ldx;panY+=e.clientY-ldy;ldx=e.clientX;ldy=e.clientY;});
+canvas.addEventListener('mouseup',()=>drag=false);
+canvas.addEventListener('mouseleave',()=>drag=false);
+canvas.addEventListener('touchstart',e=>{const t=e.touches[0];drag=true;ldx=t.clientX;ldy=t.clientY;},{passive:true});
+canvas.addEventListener('touchmove',e=>{if(!drag)return;const t=e.touches[0];panX+=t.clientX-ldx;panY+=t.clientY-ldy;ldx=t.clientX;ldy=t.clientY;},{passive:true});
 canvas.addEventListener('touchend',()=>drag=false);
-canvas.addEventListener('wheel',e=>{e.preventDefault();doZoom(e.deltaY<0?1.1:0.9);},{passive:false});
+canvas.addEventListener('wheel',e=>{e.preventDefault();doZoom(e.deltaY<0?1.12:.9);},{passive:false});
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
-window.showToast=(msg,type='')=>{
+window.toast=(msg,type='')=>{
   const t=document.getElementById('toast');
-  t.textContent=msg; t.className='toast show '+(type==='warn'?'warn':type==='err'?'err':'');
-  setTimeout(()=>t.className='toast',3500);
+  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.className='toast',3200);
 };
 
-// Device orientation compass
-if(window.DeviceOrientationEvent){
+// Device compass
+if(window.DeviceOrientationEvent)
   window.addEventListener('deviceorientation',e=>{ if(e.alpha!==null) heading=e.alpha; });
-}
 </script>
 </body>
 </html>
