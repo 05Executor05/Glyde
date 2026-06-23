@@ -5,24 +5,77 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Glyde — Festival Navigation</title>
 <style>
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: 'Space Grotesk', sans-serif; background: #0a0a0f; color: #f1f0ff; height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap');
-  .logo { font-family: 'Space Mono', monospace; font-size: 42px; font-weight: 700; color: #a78bfa; margin-bottom: 8px; }
-  .logo span { color: #5a5a78; }
-  .tagline { font-size: 16px; color: #6b6b8a; margin-bottom: 48px; text-align: center; }
-  .btn { display: block; width: 260px; padding: 16px; border-radius: 12px; text-align: center; font-size: 15px; font-weight: 700; text-decoration: none; margin-bottom: 12px; transition: opacity 0.2s; }
-  .btn:hover { opacity: 0.85; }
-  .btn-map { background: #7c3aed; color: white; }
-  .btn-chat { background: #1c1c28; color: #a78bfa; border: 1px solid #2a2a3d; }
-  .badge { font-size: 11px; background: rgba(124,58,237,0.2); color: #a78bfa; border: 1px solid #7c3aed; padding: 4px 10px; border-radius: 20px; margin-bottom: 32px; }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: #0a0a0f;
+    color: #f1f0ff;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  .logo { font-family:'Space Mono',monospace; font-size:48px; font-weight:700; color:#a78bfa; margin-bottom:6px; }
+  .logo span { color:#5a5a78; }
+  .tagline { font-size:15px; color:#6b6b8a; margin-bottom:10px; text-align:center; }
+  .badge { font-size:11px; background:rgba(124,58,237,0.2); color:#a78bfa; border:1px solid #7c3aed; padding:4px 12px; border-radius:20px; margin-bottom:40px; }
+  .btn {
+    display:flex; align-items:center; gap:12px;
+    width:100%; max-width:320px;
+    padding:16px 20px;
+    border-radius:14px;
+    text-decoration:none;
+    font-size:15px; font-weight:700;
+    margin-bottom:10px;
+    transition:opacity 0.2s;
+    border: 1px solid transparent;
+  }
+  .btn:hover { opacity:0.85; }
+  .btn-icon { font-size:22px; }
+  .btn-info { flex:1; }
+  .btn-title { font-size:15px; font-weight:700; }
+  .btn-sub { font-size:11px; opacity:0.6; margin-top:2px; font-weight:400; }
+  .btn-3d { background:#7c3aed; color:white; }
+  .btn-flat { background:#1c1c28; color:#a78bfa; border-color:#2a2a3d; }
+  .btn-chat { background:#1c1c28; color:#10b981; border-color:#2a2a3d; }
+  .divider { width:100%; max-width:320px; height:1px; background:#2a2a3d; margin:8px 0 18px; }
+  .version { font-size:10px; color:#3a3a52; margin-top:24px; font-family:'Space Mono',monospace; }
 </style>
 </head>
 <body>
   <div class="logo">Glyde<span>.app</span></div>
   <div class="tagline">Festival navigation & safety</div>
-  <div class="badge">🚧 Demo Build — Horizon Festival 2026</div>
-  <a href="festival-nav.html" class="btn btn-map">🗺️ Open Venue Map</a>
-  <a href="groundmap-chat.html" class="btn btn-chat">💬 Open Chat</a>
+  <div class="badge">🚧 Demo — Horizon Festival 2026</div>
+
+  <a href="glyde-3d-map.html" class="btn btn-3d">
+    <div class="btn-icon">🏟️</div>
+    <div class="btn-info">
+      <div class="btn-title">3D Venue Map</div>
+      <div class="btn-sub">Navigate to friends · Report issues · Live GPS</div>
+    </div>
+  </a>
+
+  <a href="festival-nav.html" class="btn btn-flat">
+    <div class="btn-icon">🗺️</div>
+    <div class="btn-info">
+      <div class="btn-title">Classic Map</div>
+      <div class="btn-sub">Top-down view with full controls</div>
+    </div>
+  </a>
+
+  <div class="divider"></div>
+
+  <a href="groundmap-chat.html" class="btn btn-chat">
+    <div class="btn-icon">💬</div>
+    <div class="btn-info">
+      <div class="btn-title">Chat</div>
+      <div class="btn-sub">Venue channels · Group · Direct messages</div>
+    </div>
+  </a>
+
+  <div class="version">v0.4 · Built with Claude</div>
 </body>
 </html>
