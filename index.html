@@ -221,15 +221,37 @@ canvas:active{cursor:grabbing;}
 .loc-share-btn{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--neon);background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);border-radius:8px;padding:5px 10px;cursor:pointer;transition:all .2s;font-family:'Space Grotesk',sans-serif;margin-top:7px;width:fit-content;}
 .loc-share-btn:hover{background:rgba(124,58,237,.2);}
 
-/* Mobile: hide sidebar, show channel switcher */
+/* Mobile: hide sidebar, show hamburger */
 @media(max-width:600px){
   .chat-sidebar{display:none;}
-  .mob-ch-bar{display:flex!important;}
+  .chat-hamburger{display:flex!important;}
 }
-.mob-ch-bar{display:none;overflow-x:auto;padding:8px 12px;gap:8px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
-.mob-ch-bar::-webkit-scrollbar{display:none;}
-.mob-ch{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--surface2);white-space:nowrap;}
-.mob-ch.active{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+/* Hamburger button in chat header */
+.chat-hamburger{display:none;width:36px;height:36px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;align-items:center;justify-content:center;cursor:pointer;font-size:18px;flex-shrink:0;transition:all .15s;}
+.chat-hamburger:hover{border-color:var(--neon);}
+/* Drawer overlay */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;backdrop-filter:blur(4px);}
+.drawer-overlay.open{display:block;}
+/* Drawer panel */
+.drawer{position:fixed;top:0;left:0;bottom:0;width:280px;background:var(--surface);z-index:201;transform:translateX(-100%);transition:transform .25s ease;display:flex;flex-direction:column;overflow:hidden;}
+.drawer.open{transform:translateX(0);}
+.drawer-header{display:flex;align-items:center;justify-content:space-between;padding:16px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.drawer-title{font-family:'Space Mono',monospace;font-size:14px;font-weight:700;color:var(--neon);}
+.drawer-close{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;transition:all .15s;}
+.drawer-close:hover{border-color:var(--red);color:var(--red);}
+.drawer-body{flex:1;overflow-y:auto;padding:8px;}
+.drawer-body::-webkit-scrollbar{width:3px;}
+.drawer-body::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+.drawer-section-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;padding:10px 10px 6px;font-family:'Space Mono',monospace;}
+.drawer-ch{display:flex;align-items:center;gap:10px;padding:10px 10px;border-radius:10px;cursor:pointer;transition:background .12s;margin-bottom:2px;}
+.drawer-ch:hover{background:var(--surface2);}
+.drawer-ch.active{background:rgba(124,58,237,.15);}
+.drawer-ch.active .drawer-ch-name{color:var(--neon);}
+.drawer-ch-icon{width:34px;height:34px;border-radius:9px;background:rgba(124,58,237,.1);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+.drawer-ch-name{font-size:13px;font-weight:600;color:var(--muted);}
+.drawer-ch-preview{font-size:10px;color:var(--muted);opacity:.6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;max-width:160px;}
+.drawer-unread{margin-left:auto;background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;font-family:'Space Mono',monospace;flex-shrink:0;}
+.drawer-divider{height:1px;background:var(--border);margin:6px 10px;}
 
 /* ══════════════════════════════════
    REPORT SCREEN
@@ -325,11 +347,21 @@ canvas:active{cursor:grabbing;}
 
 <!-- CHAT -->
 <div class="screen" id="screen-chat">
-  <div class="mob-ch-bar" id="mobChBar"></div>
+  <!-- Drawer overlay -->
+  <div class="drawer-overlay" id="drawerOverlay" onclick="closeDrawer()"></div>
+  <!-- Drawer panel -->
+  <div class="drawer" id="drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">Channels</div>
+      <div class="drawer-close" onclick="closeDrawer()">✕</div>
+    </div>
+    <div class="drawer-body" id="drawerBody"></div>
+  </div>
   <div class="chat-layout">
     <div class="chat-sidebar" id="chatSidebar"></div>
     <div class="chat-main">
       <div class="chat-header">
+        <div class="chat-hamburger" onclick="openDrawer()">☰</div>
         <div style="font-size:16px" id="chHeaderIcon">🎪</div>
         <div class="chat-header-name" id="chHeaderName"># Horizon Festival</div>
         <div class="chat-badge badge-v" id="chHeaderBadge">Venue</div>
@@ -738,12 +770,46 @@ function renderSidebar(){
 }
 
 function renderMobBar(){
-  const chs=['venue-main','venue-lost','venue-tips','group-main','dm-1'];
-  document.getElementById('mobChBar').innerHTML=chs.map(k=>{
-    const ch=CHANNELS[k];if(!ch)return'';
-    return`<div class="mob-ch${currentChannel===k?' active':''}" onclick="switchChannel('${k}')">${ch.icon} ${ch.name}</div>`;
-  }).join('');
+  // Build drawer channel list
+  const sections=[
+    {label:'Venue Channels',chs:['venue-main','venue-lost','venue-tips'],unreads:{}},
+    {label:`Group · ${myGroup||'—'}`,chs:['group-main'],unreads:{}},
+    {label:'Direct Messages',chs:['dm-1',...Object.keys(CHANNELS).filter(k=>k.startsWith('dm-')&&k!=='dm-1')],unreads:{'dm-1':1}},
+  ];
+  let html='';
+  sections.forEach((sec,si)=>{
+    html+=`<div class="drawer-section-label">${sec.label}</div>`;
+    sec.chs.forEach(key=>{
+      const ch=CHANNELS[key];if(!ch)return;
+      const active=currentChannel===key?'active':'';
+      const lastMsg=ch.messages.filter(m=>m.text).slice(-1)[0];
+      const unread=sec.unreads[key]?`<div class="drawer-unread">${sec.unreads[key]}</div>`:'';
+      html+=`<div class="drawer-ch ${active}" onclick="switchChannelDrawer('${key}')">
+        <div class="drawer-ch-icon">${ch.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div class="drawer-ch-name">${ch.name}</div>
+          ${lastMsg?`<div class="drawer-ch-preview">${lastMsg.author?lastMsg.author+': ':''}${lastMsg.text}</div>`:''}
+        </div>${unread}
+      </div>`;
+    });
+    if(si<sections.length-1) html+=`<div class="drawer-divider"></div>`;
+  });
+  document.getElementById('drawerBody').innerHTML=html;
 }
+
+window.openDrawer=()=>{
+  renderMobBar();
+  document.getElementById('drawer').classList.add('open');
+  document.getElementById('drawerOverlay').classList.add('open');
+};
+window.closeDrawer=()=>{
+  document.getElementById('drawer').classList.remove('open');
+  document.getElementById('drawerOverlay').classList.remove('open');
+};
+window.switchChannelDrawer=key=>{
+  switchChannel(key);
+  closeDrawer();
+};
 
 window.switchChannel=key=>{
   currentChannel=key;
