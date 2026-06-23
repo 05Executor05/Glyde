@@ -2,80 +2,909 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Glyde — Festival Navigation</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Glyde</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;600;700&family=Space+Mono:wght@700&display=swap');
-  * { margin:0; padding:0; box-sizing:border-box; }
-  body {
-    font-family: 'Space Grotesk', sans-serif;
-    background: #0a0a0f;
-    color: #f1f0ff;
-    height: 100dvh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 24px;
-  }
-  .logo { font-family:'Space Mono',monospace; font-size:48px; font-weight:700; color:#a78bfa; margin-bottom:6px; }
-  .logo span { color:#5a5a78; }
-  .tagline { font-size:15px; color:#6b6b8a; margin-bottom:10px; text-align:center; }
-  .badge { font-size:11px; background:rgba(124,58,237,0.2); color:#a78bfa; border:1px solid #7c3aed; padding:4px 12px; border-radius:20px; margin-bottom:40px; }
-  .btn {
-    display:flex; align-items:center; gap:12px;
-    width:100%; max-width:320px;
-    padding:16px 20px;
-    border-radius:14px;
-    text-decoration:none;
-    font-size:15px; font-weight:700;
-    margin-bottom:10px;
-    transition:opacity 0.2s;
-    border: 1px solid transparent;
-  }
-  .btn:hover { opacity:0.85; }
-  .btn-icon { font-size:22px; }
-  .btn-info { flex:1; }
-  .btn-title { font-size:15px; font-weight:700; }
-  .btn-sub { font-size:11px; opacity:0.6; margin-top:2px; font-weight:400; }
-  .btn-3d { background:#7c3aed; color:white; }
-  .btn-flat { background:#1c1c28; color:#a78bfa; border-color:#2a2a3d; }
-  .btn-chat { background:#1c1c28; color:#10b981; border-color:#2a2a3d; }
-  .divider { width:100%; max-width:320px; height:1px; background:#2a2a3d; margin:8px 0 18px; }
-  .version { font-size:10px; color:#3a3a52; margin-top:24px; font-family:'Space Mono',monospace; }
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:#07070f;
+  --surface:#11111c;
+  --surface2:#181826;
+  --border:#252538;
+  --accent:#7c3aed;
+  --neon:#a78bfa;
+  --green:#10b981;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --pink:#f472b6;
+  --orange:#fb923c;
+  --yellow:#facc15;
+  --text:#f0efff;
+  --muted:#6060a0;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+
+body {
+  font-family:'Space Grotesk',sans-serif;
+  background:var(--bg);color:var(--text);
+  height:100dvh;display:flex;flex-direction:column;
+  overflow:hidden;user-select:none;
+}
+
+/* ── JOIN OVERLAY ── */
+.join-overlay {
+  position:fixed;inset:0;
+  background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:300;padding:28px;
+}
+.join-logo{font-family:'Space Mono',monospace;font-size:40px;font-weight:700;color:var(--neon);margin-bottom:4px;}
+.join-logo span{color:var(--muted);}
+.join-tag{font-size:13px;color:var(--muted);margin-bottom:36px;}
+.fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;align-self:flex-start;font-family:'Space Mono',monospace;}
+.fi{width:100%;max-width:320px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;outline:none;margin-bottom:16px;}
+.fi:focus{border-color:var(--accent);}
+.fi-code{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;letter-spacing:6px;text-align:center;}
+.emoji-row{display:flex;gap:10px;margin-bottom:20px;}
+.ep{width:46px;height:46px;background:var(--surface2);border:2px solid var(--border);border-radius:50%;font-size:20px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .15s;}
+.ep.sel{border-color:var(--accent);background:rgba(124,58,237,0.2);}
+.jbtn{width:100%;max-width:320px;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;margin-bottom:12px;transition:opacity .2s;}
+.jbtn:hover{opacity:.88;}
+.jcreate{font-size:13px;color:var(--neon);cursor:pointer;}
+
+/* ── HEADER ── */
+.header{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:11px 16px;
+  background:rgba(11,11,20,0.97);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:100;
+}
+.logo{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--neon);}
+.logo span{color:var(--muted);}
+.hdr-mid{font-size:12px;font-weight:600;color:var(--muted);}
+.live-pill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;}
+.ldot{width:7px;height:7px;border-radius:50%;animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ── SCREENS ── */
+.screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ── TAB BAR ── */
+.tabbar{
+  display:flex;
+  background:rgba(11,11,20,0.97);
+  border-top:1px solid var(--border);
+  flex-shrink:0;z-index:100;
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.tab{
+  flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:10px 0 8px;cursor:pointer;
+  font-size:10px;font-weight:600;color:var(--muted);
+  transition:color .15s;gap:4px;position:relative;
+}
+.tab.active{color:var(--neon);}
+.tab-icon{font-size:20px;line-height:1;}
+.tab-badge{
+  position:absolute;top:6px;right:calc(50% - 18px);
+  background:var(--red);color:#fff;
+  font-size:9px;font-weight:700;
+  padding:1px 5px;border-radius:10px;
+  font-family:'Space Mono',monospace;
+  display:none;
+}
+.tab-badge.on{display:block;}
+
+/* ══════════════════════════════════
+   MAP SCREEN
+══════════════════════════════════ */
+.map-wrap{flex:1;position:relative;overflow:hidden;background:var(--bg);}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%;cursor:grab;}
+canvas:active{cursor:grabbing;}
+
+.map-controls{position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:6px;z-index:20;}
+.mbtn{width:38px;height:38px;background:rgba(17,17,28,.92);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.mbtn:hover{border-color:var(--neon);color:var(--neon);}
+
+.compass{position:absolute;top:12px;right:12px;width:46px;height:46px;background:rgba(17,17,28,.92);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;z-index:20;}
+.ci{width:30px;height:30px;position:relative;}
+.cn{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:9px;font-weight:700;color:var(--red);font-family:'Space Mono',monospace;}
+.cneedle{position:absolute;top:50%;left:50%;width:3px;height:13px;background:linear-gradient(var(--red) 50%,#444 50%);transform-origin:50% 100%;transform:translate(-50%,-100%) rotate(0deg);border-radius:2px;transition:transform .4s ease;}
+
+.nav-card{position:absolute;bottom:8px;left:12px;right:12px;background:rgba(17,17,28,.97);border:1px solid var(--border);border-radius:16px;padding:14px;z-index:20;display:none;box-shadow:0 8px 32px rgba(0,0,0,.6);}
+.nav-card.on{display:block;}
+.ntop{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+.nav-av{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid;flex-shrink:0;}
+.nav-name{font-size:15px;font-weight:700;}
+.nav-sub{font-size:11px;color:var(--muted);margin-top:2px;}
+.nav-dist{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(124,58,237,.15);color:var(--neon);border:1px solid rgba(124,58,237,.3);margin-left:auto;white-space:nowrap;}
+.arrow-row{display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
+.arrow-svg{transition:transform .4s ease;filter:drop-shadow(0 0 10px rgba(167,139,250,.7));}
+.cbtn{width:100%;padding:9px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
+.cbtn:hover{border-color:var(--red);color:var(--red);}
+
+/* Friend chips at bottom of map */
+.map-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(11,11,20,.97);border-top:1px solid var(--border);padding:8px 10px;display:flex;gap:8px;z-index:20;overflow-x:auto;}
+.map-bar::-webkit-scrollbar{display:none;}
+.mchip{flex-shrink:0;display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:7px 11px;cursor:pointer;transition:all .15s;}
+.mchip:hover,.mchip.on{border-color:var(--accent);background:rgba(124,58,237,.1);}
+.mychip{flex-shrink:0;display:flex;align-items:center;gap:8px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:7px 11px;}
+.ch-em{font-size:17px;}
+.ch-nm{font-size:12px;font-weight:700;}
+.ch-st{font-size:10px;font-family:'Space Mono',monospace;}
+
+/* ══════════════════════════════════
+   CHAT SCREEN
+══════════════════════════════════ */
+.chat-layout{display:flex;flex:1;overflow:hidden;}
+
+/* Sidebar */
+.chat-sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto;flex-shrink:0;}
+.cs-section{padding:12px 10px 8px;}
+.cs-label{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;font-family:'Space Mono',monospace;}
+.ch-item{display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:9px;cursor:pointer;transition:background .12s;margin-bottom:2px;position:relative;}
+.ch-item:hover{background:var(--surface2);}
+.ch-item.active{background:rgba(124,58,237,.15);}
+.ch-item.active .ch-item-name{color:var(--neon);}
+.ch-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ch-item-name{font-size:13px;font-weight:600;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ch-preview{font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.7;}
+.ch-unread{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:var(--accent);color:#fff;font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;font-family:'Space Mono',monospace;}
+
+/* Chat main */
+.chat-main{flex:1;display:flex;flex-direction:column;overflow:hidden;}
+.chat-header{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;flex-shrink:0;}
+.chat-header-name{font-size:14px;font-weight:700;}
+.chat-badge{font-size:9px;padding:3px 8px;border-radius:20px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;font-family:'Space Mono',monospace;}
+.badge-v{background:rgba(124,58,237,.2);color:var(--neon);border:1px solid var(--accent);}
+.badge-g{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.4);}
+.badge-d{background:rgba(244,114,182,.15);color:var(--pink);border:1px solid rgba(244,114,182,.4);}
+.chat-online{margin-left:auto;font-size:11px;color:var(--green);font-family:'Space Mono',monospace;display:flex;align-items:center;gap:4px;}
+
+.messages{flex:1;overflow-y:auto;padding:14px 0 6px;}
+.messages::-webkit-scrollbar{width:3px;}
+.messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+.date-div{display:flex;align-items:center;gap:10px;padding:6px 16px;margin:6px 0;}
+.date-div::before,.date-div::after{content:'';flex:1;height:1px;background:var(--border);}
+.date-div span{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;white-space:nowrap;}
+
+.sys-msg{padding:4px 16px;font-size:11px;color:var(--muted);display:flex;align-items:center;gap:8px;}
+.sys-msg::before{content:'—';color:var(--border);}
+
+.msg-group{padding:3px 14px;display:flex;gap:10px;align-items:flex-start;}
+.msg-group:hover{background:rgba(255,255,255,.015);}
+.msg-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;margin-top:2px;border:2px solid;}
+.msg-body{flex:1;min-width:0;}
+.msg-hdr{display:flex;align-items:baseline;gap:7px;margin-bottom:3px;}
+.msg-author{font-size:13px;font-weight:700;}
+.msg-time{font-size:9px;color:var(--muted);font-family:'Space Mono',monospace;}
+.msg-loc{font-size:9px;padding:2px 6px;border-radius:4px;background:rgba(124,58,237,.15);color:var(--neon);font-weight:600;}
+.msg-text{font-size:13px;color:var(--text);line-height:1.5;word-break:break-word;}
+.msg-group.own{flex-direction:row-reverse;}
+.msg-group.own .msg-body{display:flex;flex-direction:column;align-items:flex-end;}
+.msg-group.own .msg-hdr{flex-direction:row-reverse;}
+.msg-group.own .msg-text{background:rgba(124,58,237,.15);border:1px solid rgba(124,58,237,.2);padding:7px 11px;border-radius:12px 3px 12px 12px;display:inline-block;max-width:82%;}
+.msg-reactions{display:flex;gap:5px;margin-top:3px;flex-wrap:wrap;}
+.reaction{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:2px 7px;font-size:11px;cursor:pointer;transition:all .12s;display:flex;align-items:center;gap:3px;}
+.reaction:hover{border-color:var(--accent);}
+.reaction.mine{border-color:var(--accent);background:rgba(124,58,237,.15);}
+.rc{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;}
+
+/* Location pin message */
+.loc-pin{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:inline-flex;align-items:center;gap:10px;cursor:pointer;margin-top:4px;transition:all .15s;}
+.loc-pin:hover{border-color:var(--neon);}
+
+.typing-bar{padding:3px 16px 6px;font-size:11px;color:var(--muted);font-style:italic;min-height:22px;}
+.tdot span{display:inline-block;width:4px;height:4px;background:var(--muted);border-radius:50%;animation:tdot 1.2s infinite;margin-right:2px;}
+.tdot span:nth-child(2){animation-delay:.2s;}
+.tdot span:nth-child(3){animation-delay:.4s;}
+@keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
+
+/* Input */
+.chat-input-area{padding:10px 14px 12px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.input-row{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:4px 6px 4px 14px;transition:border-color .2s;}
+.input-row:focus-within{border-color:var(--accent);}
+.msg-input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:7px 0;resize:none;height:36px;max-height:100px;overflow-y:auto;line-height:1.4;}
+.msg-input::placeholder{color:var(--muted);}
+.ibtn{width:32px;height:32px;background:none;border:none;cursor:pointer;border-radius:8px;font-size:15px;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:all .12s;}
+.ibtn:hover{background:var(--surface);color:var(--text);}
+.sbtn{width:34px;height:34px;background:var(--accent);border:none;cursor:pointer;border-radius:9px;font-size:14px;display:flex;align-items:center;justify-content:center;color:#fff;transition:opacity .2s;flex-shrink:0;}
+.sbtn:hover{opacity:.85;}
+.sbtn:disabled{opacity:.3;cursor:default;}
+.loc-share-btn{display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--neon);background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.25);border-radius:8px;padding:5px 10px;cursor:pointer;transition:all .2s;font-family:'Space Grotesk',sans-serif;margin-top:7px;width:fit-content;}
+.loc-share-btn:hover{background:rgba(124,58,237,.2);}
+
+/* Mobile: hide sidebar, show channel switcher */
+@media(max-width:600px){
+  .chat-sidebar{display:none;}
+  .mob-ch-bar{display:flex!important;}
+}
+.mob-ch-bar{display:none;overflow-x:auto;padding:8px 12px;gap:8px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.mob-ch-bar::-webkit-scrollbar{display:none;}
+.mob-ch{flex-shrink:0;padding:5px 12px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--surface2);white-space:nowrap;}
+.mob-ch.active{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+
+/* ══════════════════════════════════
+   REPORT SCREEN
+══════════════════════════════════ */
+.report-screen{flex:1;overflow-y:auto;padding:16px;}
+.rep-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.rep-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.rep-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:24px;}
+.rep-btn{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px 10px;cursor:pointer;text-align:center;transition:all .2s;color:var(--text);font-family:'Space Grotesk',sans-serif;}
+.rep-btn:hover{border-color:var(--amber);background:rgba(245,158,11,.08);}
+.rep-btn.sent{border-color:var(--green);background:rgba(16,185,129,.08);}
+.rep-icon{font-size:28px;margin-bottom:6px;}
+.rep-label{font-size:12px;font-weight:600;color:var(--muted);}
+.panic-wrap{margin-bottom:20px;}
+.panic-btn{width:100%;padding:16px;background:rgba(239,68,68,.12);border:1px solid var(--red);color:var(--red);border-radius:14px;font-family:'Space Grotesk',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;}
+.panic-btn:hover{background:rgba(239,68,68,.2);}
+.panic-btn.on{background:var(--red);color:#fff;animation:ppulse 1s infinite;}
+@keyframes ppulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}
+.group-box{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;}
+.group-code{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;color:var(--neon);letter-spacing:6px;margin:8px 0;}
+.copy-btn{padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;margin-top:8px;}
+.copy-btn:hover{opacity:.85;}
+
+/* TOAST */
+.toast{position:fixed;top:66px;left:50%;transform:translateX(-50%) translateY(-8px);background:var(--surface);border:1px solid var(--green);color:var(--green);padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all .25s;white-space:nowrap;pointer-events:none;}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+.toast.w{border-color:var(--amber);color:var(--amber);}
+.toast.e{border-color:var(--red);color:var(--red);}
+
+/* Emoji picker */
+.epicker{position:absolute;bottom:70px;left:14px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;display:none;flex-wrap:wrap;gap:6px;max-width:260px;z-index:100;box-shadow:0 8px 32px rgba(0,0,0,.5);}
+.epicker.open{display:flex;}
+.epick-opt{font-size:20px;cursor:pointer;padding:4px;border-radius:6px;transition:background .1s;}
+.epick-opt:hover{background:var(--surface2);}
 </style>
 </head>
 <body>
+
+<!-- ── JOIN ── -->
+<div class="join-overlay" id="joinOverlay">
+  <div class="join-logo">Glyde<span>.app</span></div>
+  <div class="join-tag">Festival navigation · safety · live</div>
+  <div class="fl">Your avatar</div>
+  <div class="emoji-row" id="emojiRow"></div>
+  <div class="fl">Your name</div>
+  <input class="fi" id="nameInput" placeholder="e.g. Maya" maxlength="16"/>
+  <div class="fl">Group code</div>
+  <input class="fi fi-code" id="codeInput" placeholder="HZ-0000" maxlength="7"/>
+  <button class="jbtn" onclick="joinGroup()">Join Group →</button>
+  <div class="jcreate" onclick="createGroup()">+ Create a new group</div>
+</div>
+
+<!-- ── HEADER ── -->
+<div class="header">
   <div class="logo">Glyde<span>.app</span></div>
-  <div class="tagline">Festival navigation & safety</div>
-  <div class="badge">🚧 Demo — Horizon Festival 2026</div>
+  <div class="hdr-mid" id="grpLabel">—</div>
+  <div class="live-pill">
+    <div class="ldot" id="ldot" style="background:var(--amber)"></div>
+    <span id="llbl" style="color:var(--amber)">CONNECTING</span>
+  </div>
+</div>
 
-  <a href="glyde-3d-map.html" class="btn btn-3d">
-    <div class="btn-icon">🏟️</div>
-    <div class="btn-info">
-      <div class="btn-title">3D Venue Map</div>
-      <div class="btn-sub">Navigate to friends · Report issues · Live GPS</div>
+<!-- ── SCREENS ── -->
+
+<!-- MAP -->
+<div class="screen active" id="screen-map">
+  <div class="map-wrap">
+    <canvas id="mapCanvas"></canvas>
+    <div class="map-controls">
+      <button class="mbtn" onclick="doZoom(1.25)">+</button>
+      <button class="mbtn" onclick="doZoom(.8)">−</button>
+      <button class="mbtn" onclick="resetView()">◎</button>
     </div>
-  </a>
-
-  <a href="festival-nav.html" class="btn btn-flat">
-    <div class="btn-icon">🗺️</div>
-    <div class="btn-info">
-      <div class="btn-title">Classic Map</div>
-      <div class="btn-sub">Top-down view with full controls</div>
+    <div class="compass"><div class="ci"><div class="cn">N</div><div class="cneedle" id="needle"></div></div></div>
+    <div class="nav-card" id="navCard">
+      <div class="ntop">
+        <div class="nav-av" id="navAv">🦋</div>
+        <div><div class="nav-name" id="navNm">—</div><div class="nav-sub">Live location</div></div>
+        <div class="nav-dist" id="navDst">—</div>
+      </div>
+      <div class="arrow-row">
+        <svg class="arrow-svg" id="arrowSvg" width="48" height="48" viewBox="0 0 48 48">
+          <defs><linearGradient id="ag" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#c4b5fd"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient></defs>
+          <polygon points="24,5 40,38 24,30 8,38" fill="url(#ag)"/>
+          <polygon points="24,5 40,38 24,30 8,38" fill="none" stroke="#a78bfa" stroke-width="1.5" opacity=".6"/>
+        </svg>
+      </div>
+      <button class="cbtn" onclick="cancelNav()">Stop navigating</button>
     </div>
-  </a>
+    <div class="map-bar" id="mapBar"></div>
+  </div>
+</div>
 
-  <div class="divider"></div>
-
-  <a href="groundmap-chat.html" class="btn btn-chat">
-    <div class="btn-icon">💬</div>
-    <div class="btn-info">
-      <div class="btn-title">Chat</div>
-      <div class="btn-sub">Venue channels · Group · Direct messages</div>
+<!-- CHAT -->
+<div class="screen" id="screen-chat">
+  <div class="mob-ch-bar" id="mobChBar"></div>
+  <div class="chat-layout">
+    <div class="chat-sidebar" id="chatSidebar"></div>
+    <div class="chat-main">
+      <div class="chat-header">
+        <div style="font-size:16px" id="chHeaderIcon">🎪</div>
+        <div class="chat-header-name" id="chHeaderName"># Horizon Festival</div>
+        <div class="chat-badge badge-v" id="chHeaderBadge">Venue</div>
+        <div class="chat-online"><span id="chOnline">—</span></div>
+      </div>
+      <div class="messages" id="messages"></div>
+      <div class="typing-bar" id="typingBar"></div>
+      <div class="chat-input-area" style="position:relative">
+        <div class="input-row">
+          <textarea class="msg-input" id="msgInput" placeholder="Message…" rows="1" onkeydown="handleKey(event)" oninput="handleInputChange(this)"></textarea>
+          <div style="display:flex;align-items:center;gap:3px">
+            <button class="ibtn" onclick="toggleEmoji()">😊</button>
+            <button class="ibtn" onclick="shareLocation()">📍</button>
+            <button class="sbtn" id="sendBtn" onclick="sendMessage()" disabled>↑</button>
+          </div>
+        </div>
+        <button class="loc-share-btn" onclick="shareLocation()">📍 Share my location</button>
+        <div class="epicker" id="epicker"></div>
+      </div>
     </div>
-  </a>
+  </div>
+</div>
 
-  <div class="version">v0.4 · Built with Claude</div>
+<!-- REPORT -->
+<div class="screen" id="screen-report">
+  <div class="report-screen">
+    <div class="rep-title">Report an Issue</div>
+    <div class="rep-sub">Reports go directly to venue staff</div>
+    <div class="rep-grid" id="repGrid"></div>
+    <div class="panic-wrap">
+      <button class="panic-btn" id="panicBtn" onclick="triggerPanic()">🆘 Send my location to group</button>
+    </div>
+    <div class="group-box">
+      <div style="font-size:11px;color:var(--muted)">Your group code</div>
+      <div class="group-code" id="groupCodeDisplay">—</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Share with friends to join your group</div>
+      <button class="copy-btn" onclick="copyCode()">Copy & Share</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tabbar">
+  <div class="tab active" id="tab-map" onclick="switchTab('map')">
+    <div class="tab-icon">🗺️</div>
+    <span>Map</span>
+  </div>
+  <div class="tab" id="tab-chat" onclick="switchTab('chat')">
+    <div class="tab-icon">💬</div>
+    <span>Chat</span>
+    <div class="tab-badge" id="chatBadge">3</div>
+  </div>
+  <div class="tab" id="tab-report" onclick="switchTab('report')">
+    <div class="tab-icon">📢</div>
+    <span>Report</span>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue, onDisconnect }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+// ── FIREBASE ──────────────────────────────────────────────────────────────────
+const fbApp = initializeApp({
+  apiKey:"AIzaSyDocnNn4xfEGcOZWS5mreGx5bvVAEO0TSw",
+  authDomain:"glyde-9cce8.firebaseapp.com",
+  databaseURL:"https://glyde-9cce8-default-rtdb.firebaseio.com",
+  projectId:"glyde-9cce8",
+  storageBucket:"glyde-9cce8.firebasestorage.app",
+  messagingSenderId:"395299315354",
+  appId:"1:395299315354:web:c219f13a88232d2bed4923"
+});
+const db = getDatabase(fbApp);
+
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const EMOJIS=['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🎯','🌙','💎'];
+const COLORS=['#f472b6','#fb923c','#facc15','#a78bfa','#34d399','#f87171','#60a5fa','#4ade80','#c084fc','#38bdf8'];
+
+const ZONES=[
+  {label:'MAIN STAGE',  x:.50,y:.20,w:.26,h:.11,color:'#9333ea',icon:'🎵',floors:3},
+  {label:'EAST STAGE',  x:.76,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2},
+  {label:'WEST STAGE',  x:.14,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2},
+  {label:'FOOD VILLAGE',x:.61,y:.55,w:.13,h:.08,color:'#d97706',icon:'🍔',floors:1},
+  {label:'MEDICAL',     x:.50,y:.61,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1},
+  {label:'TOILETS',     x:.28,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1},
+  {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1},
+  {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1},
+  {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1},
+];
+
+const PATHS=[
+  [[.2,.33],[.5,.33],[.8,.33]],
+  [[.5,.33],[.5,.83]],
+  [[.2,.33],[.2,.76],[.5,.83]],
+  [[.8,.33],[.8,.76],[.5,.83]],
+  [[.2,.55],[.8,.55]],
+];
+
+const REPORTS=[
+  {id:'toilet',icon:'🚻',label:'Dirty Toilet'},
+  {id:'queue', icon:'⏳',label:'Long Queue'},
+  {id:'water', icon:'💧',label:'No Water'},
+  {id:'medical',icon:'🏥',label:'Need Medical'},
+  {id:'litter',icon:'🗑️',label:'Litter Issue'},
+  {id:'security',icon:'🛡️',label:'Security Alert'},
+];
+
+const CHANNELS={
+  'venue-main':{name:'# Horizon Festival',icon:'🎪',badge:'Venue',badgeClass:'badge-v',online:'1,247 online',ph:'Message # Horizon Festival…',
+    messages:[
+      {type:'date',label:'Today'},
+      {type:'sys',text:'Welcome to Horizon Festival 2026! 🎪'},
+      {id:1,author:'festlvr22',emoji:'🌈',color:'#34d399',time:'14:02',loc:'Gate A',text:'MAIN STAGE IS LIT 🔥 Headliner in 20 mins!',reactions:[{e:'🔥',n:24,m:false},{e:'🎵',n:11,m:false}]},
+      {id:2,author:'Alex_P',emoji:'🎸',color:'#60a5fa',time:'14:05',loc:'Main Stage',text:'Anyone know which side has shorter drink queue?',reactions:[]},
+      {id:3,author:'nightowl',emoji:'🦉',color:'#c084fc',time:'14:07',loc:'Food Village',text:'Right side of main bar is way shorter! Thai place also has no queue 🍜',reactions:[{e:'🙏',n:8,m:true}]},
+    ]},
+  'venue-lost':{name:'# Lost & Found',icon:'🆘',badge:'Venue',badgeClass:'badge-v',online:'1,247 online',ph:'Post a lost or found item…',
+    messages:[
+      {type:'date',label:'Today'},
+      {type:'sys',text:'Post here if you lost or found something.'},
+      {id:10,author:'user_k33',emoji:'😟',color:'#94a3b8',time:'13:40',text:'Lost: black North Face backpack near east stage, has a carabiner. DM if found 🙏',reactions:[{e:'🙏',n:3,m:false}]},
+    ]},
+  'venue-tips':{name:'# Tips & Shortcuts',icon:'💡',badge:'Venue',badgeClass:'badge-v',online:'1,247 online',ph:'Share a tip…',
+    messages:[
+      {type:'date',label:'Today'},
+      {id:20,author:'local_legend',emoji:'🧠',color:'#f59e0b',time:'12:30',text:'PRO TIP: Side gate B has zero queue right now. Save 20 mins 👌',reactions:[{e:'👀',n:41,m:false}]},
+    ]},
+  'group-main':{name:'Group Chat',icon:'👥',badge:'Group',badgeClass:'badge-g',online:'',ph:'Message your group…',
+    messages:[
+      {type:'date',label:'Today'},
+      {type:'sys',text:'Group created. Share your code to invite friends.'},
+    ]},
+  'dm-1':{name:'Maya',icon:'🦋',badge:'DM',badgeClass:'badge-d',online:'Active now',ph:'Message Maya…',
+    messages:[
+      {type:'date',label:'Today'},
+      {id:40,author:'Maya',emoji:'🦋',color:'#f472b6',time:'13:30',text:'heyy where are you?? heading to main stage 👀',reactions:[]},
+      {id:41,author:'You',emoji:'📍',color:'#a78bfa',own:true,time:'13:31',text:'omw! 5 mins',reactions:[]},
+      {id:42,author:'Maya',emoji:'🦋',color:'#f472b6',time:'13:32',text:'ok we\'re by the big speaker left side 🦋',reactions:[]},
+    ]},
+};
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+const myId='u_'+Math.random().toString(36).slice(2,9);
+let myEmoji=EMOJIS[0], myColor=COLORS[0], myName='', myGroup='';
+let myX=.50, myY=.65;
+let peers={};
+let navUid=null;
+let scale=1, panX=0, panY=0, heading=0;
+let pushTmr=null;
+let panicOn=false;
+let repSent={};
+let msgIdCtr=1000;
+let emojiOpen=false;
+let currentTab='map';
+let currentChannel='venue-main';
+let unreadChat=3;
+
+// ── EMOJI SETUP ───────────────────────────────────────────────────────────────
+let selIdx=0;
+document.getElementById('emojiRow').innerHTML=
+  EMOJIS.slice(0,8).map((e,i)=>`<div class="ep${i===0?' sel':''}" id="ep${i}" onclick="pickEmoji(${i})">${e}</div>`).join('');
+window.pickEmoji=i=>{
+  selIdx=i;myEmoji=EMOJIS[i];myColor=COLORS[i];
+  document.querySelectorAll('.ep').forEach((el,j)=>el.classList.toggle('sel',j===i));
+};
+
+// ── JOIN ──────────────────────────────────────────────────────────────────────
+window.createGroup=()=>{
+  const c='HZ-'+Math.floor(1000+Math.random()*9000);
+  document.getElementById('codeInput').value=c;
+  toast(`Code: ${c} — share it!`);
+};
+window.joinGroup=()=>{
+  const name=document.getElementById('nameInput').value.trim();
+  const code=document.getElementById('codeInput').value.trim().toUpperCase();
+  if(!name){toast('Enter your name','w');return;}
+  if(code.length<4){toast('Enter a group code','w');return;}
+  myName=name;myGroup=code;
+  document.getElementById('joinOverlay').style.display='none';
+  document.getElementById('grpLabel').textContent=code;
+  document.getElementById('groupCodeDisplay').textContent=code;
+  // Add join message to group chat
+  CHANNELS['group-main'].messages.push({type:'sys',text:`${myEmoji} ${myName} joined the group`});
+  startGPS();listenGroup();pushLoop();
+  requestAnimationFrame(draw);
+  renderChat();renderSidebar();renderMobBar();renderReports();renderMapBar();
+};
+
+// ── TAB SWITCHING ─────────────────────────────────────────────────────────────
+window.switchTab=tab=>{
+  currentTab=tab;
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
+  if(tab==='chat'){
+    unreadChat=0;
+    document.getElementById('chatBadge').classList.remove('on');
+    scrollMessages();
+  }
+};
+
+// ── GPS ───────────────────────────────────────────────────────────────────────
+function startGPS(){
+  if(!navigator.geolocation){setStatus(false);return;}
+  navigator.geolocation.watchPosition(pos=>{
+    setStatus(true);
+    const seed=parseInt(myId.slice(2,4),36)/36;
+    myX=.28+seed*.44+Math.sin(Date.now()/9000)*.025;
+    myY=.38+seed*.28+Math.cos(Date.now()/8000)*.025;
+  },()=>setStatus(false),{enableHighAccuracy:true,maximumAge:4000,timeout:10000});
+}
+function setStatus(live){
+  const d=document.getElementById('ldot'),l=document.getElementById('llbl');
+  d.style.background=live?'var(--green)':'var(--amber)';
+  l.style.color=live?'var(--green)':'var(--amber)';
+  l.textContent=live?'LIVE':'DEMO';
+}
+
+// ── FIREBASE ──────────────────────────────────────────────────────────────────
+function pushLoop(){
+  if(!myGroup)return;
+  const r=ref(db,`groups/${myGroup}/users/${myId}`);
+  set(r,{name:myName,emoji:myEmoji,color:myColor,x:myX,y:myY,ts:Date.now()});
+  onDisconnect(r).remove();
+  clearTimeout(pushTmr);
+  pushTmr=setTimeout(pushLoop,3000);
+}
+function listenGroup(){
+  onValue(ref(db,`groups/${myGroup}/users`),snap=>{
+    const data=snap.val()||{};
+    peers={};
+    Object.entries(data).forEach(([uid,u])=>{if(uid!==myId)peers[uid]=u;});
+    renderMapBar();renderSidebar();renderMobBar();
+    const n=Object.keys(peers).length+1;
+    document.getElementById('grpLabel').textContent=`${myGroup} · ${n} online`;
+    // Update group chat online count
+    CHANNELS['group-main'].online=`${n} members`;
+  });
+}
+
+// ── MAP CANVAS ────────────────────────────────────────────────────────────────
+const canvas=document.getElementById('mapCanvas'),ctx=canvas.getContext('2d');
+let W,H;
+function resize(){W=canvas.offsetWidth;H=canvas.offsetHeight;canvas.width=W;canvas.height=H;}
+window.addEventListener('resize',resize);resize();
+function px(rx,ry){return{x:panX+rx*W*scale,y:panY+ry*H*scale};}
+
+function draw(ts){
+  ctx.clearRect(0,0,W,H);
+  // Background
+  const bg=ctx.createRadialGradient(W*.5,H*.4,0,W*.5,H*.4,W*.8);
+  bg.addColorStop(0,'#0d0d1f');bg.addColorStop(1,'#07070f');
+  ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  const glow=ctx.createRadialGradient(W*.5,H*.45,0,W*.5,H*.45,W*.55);
+  glow.addColorStop(0,'rgba(124,58,237,.06)');glow.addColorStop(1,'transparent');
+  ctx.fillStyle=glow;ctx.fillRect(0,0,W,H);
+  // Venue ground
+  const vTL=px(.04,.06),vBR=px(.96,.94);
+  ctx.fillStyle='rgba(16,16,32,.9)';
+  ctx.beginPath();ctx.roundRect(vTL.x,vTL.y,vBR.x-vTL.x,vBR.y-vTL.y,10);ctx.fill();
+  ctx.strokeStyle='rgba(124,58,237,.45)';ctx.lineWidth=1.5;ctx.setLineDash([10,6]);
+  ctx.beginPath();ctx.roundRect(vTL.x,vTL.y,vBR.x-vTL.x,vBR.y-vTL.y,10);ctx.stroke();ctx.setLineDash([]);
+  // Paths
+  PATHS.forEach(pts=>{
+    ctx.strokeStyle='rgba(200,200,255,.07)';ctx.lineWidth=22*scale;ctx.lineCap='round';ctx.lineJoin='round';
+    ctx.beginPath();pts.forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});ctx.stroke();
+    ctx.strokeStyle='rgba(167,139,250,.12)';ctx.lineWidth=2*scale;ctx.setLineDash([10,8]);
+    ctx.beginPath();pts.forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.setLineDash([]);
+  });
+  // Nav line
+  if(navUid&&peers[navUid]){
+    const f=peers[navUid],me=px(myX,myY),dst=px(f.x,f.y);
+    ctx.strokeStyle='rgba(167,139,250,.85)';ctx.lineWidth=2.5*scale;ctx.setLineDash([12,7]);ctx.lineCap='round';
+    ctx.beginPath();ctx.moveTo(me.x,me.y);ctx.lineTo(dst.x,dst.y);ctx.stroke();ctx.setLineDash([]);
+    const pulse=(ts%1400)/1400;
+    ctx.beginPath();ctx.arc(dst.x,dst.y,(10+pulse*14)*scale,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(167,139,250,${.55-pulse*.55})`;ctx.lineWidth=2;ctx.stroke();
+    const dx=f.x-myX,dy=f.y-myY;
+    document.getElementById('arrowSvg').style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI+90}deg)`;
+    document.getElementById('navDst').textContent=Math.round(Math.sqrt(dx*dx+dy*dy)*1000)+'m';
+  }
+  // Zones
+  ZONES.forEach(z=>{
+    const tl=px(z.x-z.w/2,z.y-z.h/2),br=px(z.x+z.w/2,z.y+z.h/2);
+    const bw=br.x-tl.x,bh=br.y-tl.y;
+    ctx.shadowColor=z.color+'60';ctx.shadowBlur=16*scale;
+    ctx.fillStyle=z.color+'18';ctx.strokeStyle=z.color+'90';ctx.lineWidth=1.5;
+    ctx.beginPath();ctx.roundRect(tl.x,tl.y,bw,bh,6);ctx.fill();ctx.stroke();
+    ctx.shadowBlur=0;
+    ctx.fillStyle=z.color+'30';ctx.fillRect(tl.x+2,tl.y+2,bw-4,3);
+    const cx=(tl.x+br.x)/2,cy=(tl.y+br.y)/2;
+    ctx.font=`${Math.max(13,17*scale)}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillStyle=z.color;ctx.shadowColor=z.color;ctx.shadowBlur=8;
+    ctx.fillText(z.icon,cx,cy-7);ctx.shadowBlur=0;
+    ctx.font=`700 ${Math.max(8,10*scale)}px Space Grotesk,sans-serif`;ctx.fillStyle=z.color+'dd';
+    ctx.fillText(z.label,cx,cy+9);
+  });
+  // Peers
+  Object.values(peers).forEach(f=>{
+    const p=px(f.x,f.y);
+    const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,24*scale);
+    g.addColorStop(0,f.color+'55');g.addColorStop(1,'transparent');
+    ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,24*scale,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(p.x,p.y+3,9*scale,3*scale,0,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#181826';ctx.strokeStyle=f.color;ctx.lineWidth=2.5;
+    ctx.shadowColor=f.color;ctx.shadowBlur=10;
+    ctx.beginPath();ctx.arc(p.x,p.y,14*scale,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+    ctx.font=`${12*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(f.emoji||'👤',p.x,p.y);
+    ctx.font=`700 ${Math.max(9,10*scale)}px Space Grotesk,sans-serif`;
+    const tw=ctx.measureText(f.name).width;
+    ctx.fillStyle='rgba(17,17,28,.85)';ctx.beginPath();ctx.roundRect(p.x-tw/2-5,p.y+17*scale,tw+10,14*scale,4);ctx.fill();
+    ctx.fillStyle=f.color;ctx.textBaseline='top';ctx.fillText(f.name,p.x,p.y+18*scale);
+  });
+  // Me
+  const me=px(myX,myY);
+  const pulse=(ts%2000)/2000;
+  ctx.beginPath();ctx.arc(me.x,me.y,(16+pulse*20)*scale,0,Math.PI*2);
+  ctx.strokeStyle=`rgba(16,185,129,${.45-pulse*.45})`;ctx.lineWidth=2;ctx.stroke();
+  ctx.fillStyle='rgba(0,0,0,.4)';ctx.beginPath();ctx.ellipse(me.x,me.y+4,11*scale,4*scale,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle='#07070f';ctx.strokeStyle='#10b981';ctx.lineWidth=2.5;
+  ctx.shadowColor='#10b981';ctx.shadowBlur=14;
+  ctx.beginPath();ctx.arc(me.x,me.y,14*scale,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
+  ctx.font=`${12*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(myEmoji,me.x,me.y);
+  ctx.font=`700 ${Math.max(9,10*scale)}px Space Grotesk,sans-serif`;ctx.fillStyle='#10b981';ctx.textBaseline='top';
+  ctx.fillText('YOU',me.x,me.y+17*scale);
+  heading=(heading+.2)%360;
+  document.getElementById('needle').style.transform=`translate(-50%,-100%) rotate(${heading}deg)`;
+  requestAnimationFrame(draw);
+}
+
+// ── MAP CONTROLS ──────────────────────────────────────────────────────────────
+window.doZoom=f=>{scale=Math.min(Math.max(scale*f,.4),3.5);};
+window.resetView=()=>{scale=1;panX=0;panY=0;};
+let drag=false,ldx,ldy;
+canvas.addEventListener('mousedown',e=>{drag=true;ldx=e.clientX;ldy=e.clientY;});
+canvas.addEventListener('mousemove',e=>{if(!drag)return;panX+=e.clientX-ldx;panY+=e.clientY-ldy;ldx=e.clientX;ldy=e.clientY;});
+canvas.addEventListener('mouseup',()=>drag=false);canvas.addEventListener('mouseleave',()=>drag=false);
+canvas.addEventListener('touchstart',e=>{const t=e.touches[0];drag=true;ldx=t.clientX;ldy=t.clientY;},{passive:true});
+canvas.addEventListener('touchmove',e=>{if(!drag)return;const t=e.touches[0];panX+=t.clientX-ldx;panY+=t.clientY-ldy;ldx=t.clientX;ldy=t.clientY;},{passive:true});
+canvas.addEventListener('touchend',()=>drag=false);
+canvas.addEventListener('wheel',e=>{e.preventDefault();doZoom(e.deltaY<0?1.12:.9);},{passive:false});
+
+// ── NAV ───────────────────────────────────────────────────────────────────────
+window.navTo=uid=>{
+  const f=peers[uid];if(!f)return;
+  navUid=uid;
+  document.getElementById('navCard').classList.add('on');
+  document.getElementById('navAv').textContent=f.emoji;
+  document.getElementById('navAv').style.borderColor=f.color;
+  document.getElementById('navAv').style.background=f.color+'22';
+  document.getElementById('navNm').textContent=f.name;
+  document.getElementById('navNm').style.color=f.color;
+  document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
+  document.querySelector(`[data-uid="${uid}"]`)?.classList.add('on');
+  toast(`Navigating to ${f.emoji} ${f.name}`);
+};
+window.cancelNav=()=>{navUid=null;document.getElementById('navCard').classList.remove('on');document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));};
+
+// ── MAP BAR ───────────────────────────────────────────────────────────────────
+function renderMapBar(){
+  const myChip=`<div class="mychip"><div class="ch-em">${myEmoji}</div><div><div class="ch-nm" style="color:var(--green)">${myName||'You'}</div><div class="ch-st" style="color:var(--green)">YOU</div></div></div>`;
+  const chips=Object.entries(peers).map(([uid,f])=>`
+    <div class="mchip" data-uid="${uid}" onclick="navTo('${uid}')">
+      <div class="ch-em">${f.emoji||'👤'}</div>
+      <div><div class="ch-nm" style="color:${f.color||'#a78bfa'}">${f.name}</div><div class="ch-st" style="color:var(--green)">Live 🟢</div></div>
+    </div>`).join('');
+  const empty=Object.keys(peers).length===0?`<div style="display:flex;align-items:center;padding:0 4px;font-size:11px;color:var(--muted)">Waiting for friends…</div>`:'';
+  document.getElementById('mapBar').innerHTML=myChip+chips+empty;
+}
+
+// ── CHAT ──────────────────────────────────────────────────────────────────────
+function renderSidebar(){
+  const sections=[
+    {label:'Venue',chs:['venue-main','venue-lost','venue-tips'],unreads:{},},
+    {label:`Group · ${myGroup||'—'}`,chs:['group-main'],unreads:{}},
+    {label:'Direct Messages',chs:['dm-1'],unreads:{'dm-1':1}},
+  ];
+  // Add live peers as DMs
+  Object.entries(peers).forEach(([uid,f])=>{
+    const key='dm-'+uid;
+    if(!CHANNELS[key]) CHANNELS[key]={name:f.name,icon:f.emoji,badge:'DM',badgeClass:'badge-d',online:'Active now',ph:`Message ${f.name}…`,messages:[{type:'date',label:'Today'},{type:'sys',text:`${f.emoji} ${f.name} is in your group`}]};
+  });
+  let html='';
+  sections.forEach(sec=>{
+    html+=`<div class="cs-section"><div class="cs-label">${sec.label}</div>`;
+    sec.chs.forEach(key=>{
+      const ch=CHANNELS[key];if(!ch)return;
+      const active=currentChannel===key?'active':'';
+      const unread=sec.unreads[key]?`<div class="ch-unread">${sec.unreads[key]}</div>`:'';
+      const lastMsg=ch.messages.filter(m=>m.text).slice(-1)[0];
+      html+=`<div class="ch-item ${active}" onclick="switchChannel('${key}')">
+        <div class="ch-icon" style="background:rgba(124,58,237,.12)">${ch.icon}</div>
+        <div style="flex:1;min-width:0">
+          <div class="ch-item-name">${ch.name}</div>
+          ${lastMsg?`<div class="ch-preview">${lastMsg.author||''}: ${lastMsg.text||''}</div>`:''}
+        </div>${unread}</div>`;
+    });
+    html+='</div>';
+    if(sec.label!=='Direct Messages') html+=`<div style="height:1px;background:var(--border);margin:0 12px"></div>`;
+  });
+  document.getElementById('chatSidebar').innerHTML=html;
+}
+
+function renderMobBar(){
+  const chs=['venue-main','venue-lost','venue-tips','group-main','dm-1'];
+  document.getElementById('mobChBar').innerHTML=chs.map(k=>{
+    const ch=CHANNELS[k];if(!ch)return'';
+    return`<div class="mob-ch${currentChannel===k?' active':''}" onclick="switchChannel('${k}')">${ch.icon} ${ch.name}</div>`;
+  }).join('');
+}
+
+window.switchChannel=key=>{
+  currentChannel=key;
+  const ch=CHANNELS[key];if(!ch)return;
+  document.getElementById('chHeaderIcon').textContent=ch.icon;
+  document.getElementById('chHeaderName').textContent=ch.name;
+  document.getElementById('chHeaderBadge').textContent=ch.badge;
+  document.getElementById('chHeaderBadge').className='chat-badge '+ch.badgeClass;
+  document.getElementById('chOnline').textContent=ch.online;
+  document.getElementById('msgInput').placeholder=ch.ph||'Message…';
+  renderSidebar();renderMobBar();renderChat();
+};
+
+function renderChat(){
+  const ch=CHANNELS[currentChannel];if(!ch)return;
+  const el=document.getElementById('messages');
+  el.innerHTML='';
+  ch.messages.forEach(msg=>{
+    if(msg.type==='date'){
+      el.innerHTML+=`<div class="date-div"><span>${msg.label}</span></div>`;
+    } else if(msg.type==='sys'){
+      el.innerHTML+=`<div class="sys-msg">${msg.text}</div>`;
+    } else if(msg.type==='location'){
+      el.innerHTML+=`<div class="msg-group">
+        <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
+        <div class="msg-body">
+          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${msg.author}</span><span class="msg-time">${msg.time}</span></div>
+          <div class="loc-pin" onclick="toast('Navigating to ${msg.locName}')">
+            <div style="font-size:22px">📍</div>
+            <div><div style="font-size:13px;font-weight:700;color:var(--neon)">${msg.locName}</div><div style="font-size:11px;color:var(--muted)">${msg.dist} · Tap to navigate</div></div>
+            <div style="margin-left:8px;font-size:12px;color:var(--neon);font-weight:700">Go →</div>
+          </div>
+        </div></div>`;
+    } else {
+      const locTag=msg.loc?`<span class="msg-loc">📍 ${msg.loc}</span>`:'';
+      const reactions=(msg.reactions||[]).map(r=>
+        `<span class="reaction${r.m?' mine':''}" onclick="toggleReaction(${msg.id},'${r.e}')">${r.e}<span class="rc">${r.n}</span></span>`
+      ).join('');
+      el.innerHTML+=`<div class="msg-group${msg.own?' own':''}">
+        <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
+        <div class="msg-body">
+          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${msg.author}</span><span class="msg-time">${msg.time}</span>${locTag}</div>
+          <div class="msg-text">${esc(msg.text)}</div>
+          ${reactions?`<div class="msg-reactions">${reactions}</div>`:''}
+        </div></div>`;
+    }
+  });
+  scrollMessages();
+}
+
+function scrollMessages(){
+  const el=document.getElementById('messages');
+  setTimeout(()=>el.scrollTop=el.scrollHeight,50);
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+window.sendMessage=()=>{
+  const input=document.getElementById('msgInput');
+  const text=input.value.trim();if(!text)return;
+  const now=new Date();
+  const time=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  CHANNELS[currentChannel].messages.push({id:++msgIdCtr,author:myName||'You',emoji:myEmoji,color:myColor,own:true,time,text,reactions:[]});
+  input.value='';input.style.height='36px';
+  document.getElementById('sendBtn').disabled=true;
+  renderChat();
+  if(['venue-main','group-main'].includes(currentChannel)) simulateReply();
+};
+
+function simulateReply(){
+  const pool={
+    'venue-main':[{author:'festlvr22',emoji:'🌈',color:'#34d399',text:'totally! this crowd is insane 🎉'},{author:'Alex_P',emoji:'🎸',color:'#60a5fa',text:'loving every second 🎵'}],
+    'group-main':[{author:'Maya',emoji:'🦋',color:'#f472b6',text:'haha yes!! find us 🦋'},{author:'Jordan',emoji:'🔥',color:'#fb923c',text:'getting food, back in 5 🍔'}],
+  };
+  const p=pool[currentChannel];if(!p)return;
+  const r=p[Math.floor(Math.random()*p.length)];
+  const ti=document.getElementById('typingBar');
+  ti.innerHTML=`<span style="color:${r.color}">${r.emoji} ${r.author}</span>&nbsp;is typing <span class="tdot"><span></span><span></span><span></span></span>`;
+  setTimeout(()=>{
+    ti.innerHTML='';
+    const now=new Date();
+    const time=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+    CHANNELS[currentChannel].messages.push({id:++msgIdCtr,...r,time,reactions:[]});
+    renderChat();
+    // Badge if not on chat tab
+    if(currentTab!=='chat'){unreadChat++;document.getElementById('chatBadge').textContent=unreadChat;document.getElementById('chatBadge').classList.add('on');}
+  },1800);
+}
+
+window.handleKey=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}};
+window.handleInputChange=el=>{
+  el.style.height='36px';el.style.height=Math.min(el.scrollHeight,100)+'px';
+  document.getElementById('sendBtn').disabled=!el.value.trim();
+};
+
+window.shareLocation=()=>{
+  const now=new Date();
+  const time=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
+  CHANNELS[currentChannel].messages.push({id:++msgIdCtr,type:'location',author:myName||'You',emoji:myEmoji,color:myColor,time,locName:'My Location',dist:'0m — this is me'});
+  renderChat();toast('📍 Location shared');closeEmoji();
+};
+
+window.toggleReaction=(id,e)=>{
+  const ch=CHANNELS[currentChannel];
+  const msg=ch.messages.find(m=>m.id===id);if(!msg)return;
+  const r=msg.reactions.find(r=>r.e===e);
+  if(r){r.m=!r.m;r.n+=r.m?1:-1;if(r.n<=0)msg.reactions=msg.reactions.filter(x=>x.e!==e);}
+  else msg.reactions.push({e,n:1,m:true});
+  renderChat();
+};
+
+// Emoji picker
+window.toggleEmoji=()=>{
+  emojiOpen=!emojiOpen;
+  const ep=document.getElementById('epicker');
+  ep.classList.toggle('open',emojiOpen);
+  if(emojiOpen) ep.innerHTML='🎵 🎪 🍔 💧 🚻 🏥 🎉 🔥 ⚡ 🦋 👋 ❤️ 😂 🙏 👀 🎶 🍻 😍 💜 🤝'.split(' ').map(e=>`<div class="epick-opt" onclick="insertEmoji('${e}')">${e}</div>`).join('');
+};
+window.insertEmoji=e=>{
+  const input=document.getElementById('msgInput');
+  input.value+=e;input.focus();window.handleInputChange(input);closeEmoji();
+};
+function closeEmoji(){emojiOpen=false;document.getElementById('epicker').classList.remove('open');}
+document.addEventListener('click',e=>{if(emojiOpen&&!e.target.closest('#epicker')&&!e.target.closest('.ibtn'))closeEmoji();});
+
+// ── REPORTS ───────────────────────────────────────────────────────────────────
+function renderReports(){
+  document.getElementById('repGrid').innerHTML=REPORTS.map(r=>`
+    <button class="rep-btn${repSent[r.id]?' sent':''}" onclick="sendReport('${r.id}','${r.label}')">
+      <div class="rep-icon">${repSent[r.id]?'✅':r.icon}</div>
+      <div class="rep-label">${r.label}</div>
+    </button>`).join('');
+}
+window.sendReport=(id,label)=>{
+  if(repSent[id])return;
+  repSent[id]=true;renderReports();
+  toast(`📨 Sent to venue: ${label}`);
+  setTimeout(()=>{delete repSent[id];renderReports();},5000);
+};
+window.triggerPanic=()=>{
+  panicOn=!panicOn;
+  const btn=document.getElementById('panicBtn');
+  btn.classList.toggle('on',panicOn);
+  btn.textContent=panicOn?'🆘 Location Sent — Group Notified':'🆘 Send my location to group';
+  if(panicOn) toast('🆘 Your location shared with your group');
+};
+window.copyCode=()=>{
+  navigator.clipboard.writeText(`Join my group on Glyde! Code: ${myGroup}`).catch(()=>{});
+  toast('Code copied!');
+};
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+window.toast=(msg,type='')=>{
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.className='toast',3200);
+};
+
+// Device compass
+if(window.DeviceOrientationEvent)
+  window.addEventListener('deviceorientation',e=>{if(e.alpha!==null)heading=e.alpha;});
+</script>
 </body>
 </html>
