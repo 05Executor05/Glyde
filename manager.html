@@ -58,6 +58,20 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--tex
 .ldot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .event-code{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;background:var(--surface2);padding:4px 10px;border-radius:8px;border:1px solid var(--border);}
+.alert-broadcast-btn{font-size:11px;font-weight:700;padding:7px 14px;border-radius:20px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:var(--amber);cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.alert-broadcast-btn:hover{background:rgba(245,158,11,.22);}
+.alert-type-row{display:flex;gap:8px;margin-bottom:14px;}
+.alert-type-chip{flex:1;padding:10px 6px;text-align:center;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;}
+.alert-type-chip.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+.alert-sev-row{display:flex;gap:8px;margin-bottom:14px;}
+.alert-sev-chip{flex:1;padding:8px;text-align:center;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;}
+.alert-sev-chip.info.sel{border-color:#3b82f6;color:#3b82f6;background:rgba(59,130,246,.12);}
+.alert-sev-chip.warning.sel{border-color:var(--amber);color:var(--amber);background:rgba(245,158,11,.12);}
+.alert-sev-chip.severe.sel{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.12);}
+.alert-select{width:100%;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;margin-bottom:14px;}
+.alert-active-list{margin-top:16px;max-height:160px;overflow-y:auto;}
+.alert-active-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;}
+.alert-active-clear{margin-left:auto;font-size:11px;color:var(--red);cursor:pointer;font-weight:600;}
 
 /* ── LAYOUT ── */
 .app-body{display:flex;flex:1;overflow:hidden;}
@@ -216,6 +230,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   <div class="mgr-badge">🔒 Manager</div>
   <div class="venue-name" id="venueName">—</div>
   <div class="hdr-right">
+    <button class="alert-broadcast-btn" onclick="openAlertModal()">📢 Broadcast Alert</button>
     <div class="event-code" id="eventCodeDisplay">—</div>
     <div class="live-pill"><div class="ldot"></div>LIVE</div>
   </div>
@@ -296,6 +311,22 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 </div>
 
+<!-- ALERT BROADCAST MODAL -->
+<div class="modal-overlay" id="alertModal">
+  <div class="modal" style="width:360px">
+    <div class="modal-title">Broadcast Alert</div>
+    <div class="alert-type-row" id="alertTypeRow"></div>
+    <select class="alert-select" id="alertLocationSelect"></select>
+    <input class="login-field" id="alertLabelInput" placeholder="Alert message…" maxlength="80" style="margin-bottom:14px"/>
+    <div class="alert-sev-row" id="alertSevRow"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" onclick="closeAlertModal()">Cancel</button>
+      <button class="modal-btn modal-confirm" onclick="confirmBroadcastAlert()">📢 Send</button>
+    </div>
+    <div class="alert-active-list" id="alertActiveList"></div>
+  </div>
+</div>
+
 <!-- ASSIGN MODAL -->
 <div class="modal-overlay" id="assignModal">
   <div class="modal">
@@ -313,7 +344,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, update }
+import { getDatabase, ref, onValue, update, push }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const fbApp = initializeApp({
@@ -356,6 +387,7 @@ const PATHS=[
   [[.8,.33],[.8,.76],[.5,.83]],
   [[.2,.55],[.8,.55]],
 ];
+const PATH_LABELS=['North Concourse','Center Path','West Loop','East Loop','Mid Crossbar'];
 
 const STAFF = [
   {id:'s1', name:'Carlos R.',  zone:'North Zone',  emoji:'👷'},
@@ -375,6 +407,15 @@ let currentFilter = 'all';
 let assigningId = null;
 let selectedStaff = null;
 let scale = 1, panX = 0, panY = 0;
+let alerts = {};
+let alertType = 'hazard';
+let alertSeverity = 'warning';
+
+const ALERT_TYPES = [
+  {id:'hazard', label:'⚠️ Hazard', icon:'⚠️'},
+  {id:'closure', label:'🚧 Closure', icon:'🚧'},
+  {id:'weather', label:'⛈️ Weather', icon:'⛈️'},
+];
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 window.managerLogin = () => {
@@ -392,6 +433,7 @@ window.managerLogin = () => {
 
   listenAttendees();
   listenReports();
+  listenAlerts();
   renderReportList();
   updateStats();
   requestAnimationFrame(draw);
@@ -404,6 +446,73 @@ function listenAttendees() {
     updateStats();
   });
 }
+function listenAlerts() {
+  onValue(ref(db, `groups/${eventGroup}/alerts`), snap => {
+    alerts = snap.val() || {};
+    renderActiveAlertsList();
+  });
+}
+
+// ── ALERT BROADCAST ───────────────────────────────────────────────────────────
+window.openAlertModal = () => {
+  alertType='hazard';alertSeverity='warning';
+  renderAlertTypeRow();renderAlertSevRow();renderAlertLocationSelect();renderActiveAlertsList();
+  document.getElementById('alertLabelInput').value='';
+  document.getElementById('alertModal').classList.add('open');
+};
+window.closeAlertModal = () => document.getElementById('alertModal').classList.remove('open');
+function renderAlertTypeRow(){
+  document.getElementById('alertTypeRow').innerHTML = ALERT_TYPES.map(t=>
+    `<div class="alert-type-chip${alertType===t.id?' sel':''}" onclick="setAlertType('${t.id}')">${t.label}</div>`
+  ).join('');
+}
+window.setAlertType = id => { alertType=id; renderAlertTypeRow(); renderAlertLocationSelect(); };
+function renderAlertSevRow(){
+  document.getElementById('alertSevRow').innerHTML = ['info','warning','severe'].map(s=>
+    `<div class="alert-sev-chip ${s}${alertSeverity===s?' sel':''}" onclick="setAlertSeverity('${s}')">${s[0].toUpperCase()+s.slice(1)}</div>`
+  ).join('');
+}
+window.setAlertSeverity = s => { alertSeverity=s; renderAlertSevRow(); };
+function renderAlertLocationSelect(){
+  const sel=document.getElementById('alertLocationSelect');
+  if(alertType==='closure'){
+    sel.style.display='block';
+    sel.innerHTML = PATHS.map((p,i)=>`<option value="${i}">${PATH_LABELS[i]}</option>`).join('');
+  } else if(alertType==='hazard'){
+    sel.style.display='block';
+    sel.innerHTML = ZONES.map((z,i)=>`<option value="${i}">${z.label}</option>`).join('');
+  } else {
+    sel.style.display='none';
+  }
+}
+window.confirmBroadcastAlert = () => {
+  const label = document.getElementById('alertLabelInput').value.trim();
+  if(!label){ toast('Enter an alert message','w'); return; }
+  const data = {type:alertType, label, severity:alertSeverity, ts:Date.now(), active:true};
+  if(alertType==='hazard'){
+    const z=ZONES[+document.getElementById('alertLocationSelect').value];
+    data.x=z.x;data.y=z.y;data.locLabel=z.label;
+  } else if(alertType==='closure'){
+    data.pathIndex=+document.getElementById('alertLocationSelect').value;
+    data.locLabel=PATH_LABELS[data.pathIndex];
+  }
+  push(ref(db,`groups/${eventGroup}/alerts`), data);
+  toast(`📢 ${ALERT_TYPES.find(t=>t.id===alertType).label} broadcast sent`);
+  closeAlertModal();
+};
+function renderActiveAlertsList(){
+  const list=document.getElementById('alertActiveList');
+  const active=Object.entries(alerts).filter(([,a])=>a.active);
+  if(!active.length){list.innerHTML=`<div style="font-size:11px;color:var(--muted);padding-top:10px">No active alerts</div>`;return;}
+  list.innerHTML = active.map(([id,a])=>{
+    const t=ALERT_TYPES.find(x=>x.id===a.type)||{icon:'📢'};
+    return `<div class="alert-active-row"><span>${t.icon}</span><span>${esc(a.label)}${a.locLabel?' — '+esc(a.locLabel):''}</span><span class="alert-active-clear" onclick="clearAlert('${id}')">Clear</span></div>`;
+  }).join('');
+}
+window.clearAlert = id => {
+  update(ref(db,`groups/${eventGroup}/alerts/${id}`),{active:false});
+  toast('Alert cleared');
+};
 
 function listenReports() {
   onValue(ref(db, `groups/${eventGroup}/reports`), snap => {
@@ -587,6 +696,21 @@ function draw(ts) {
     ctx.fillStyle=z.color; ctx.fillText(z.icon,cx,cy-5);
     ctx.font=`700 ${Math.max(7,9*scale)}px Space Grotesk,sans-serif`; ctx.fillStyle=z.color+'bb';
     ctx.fillText(z.label,cx,cy+8);
+  });
+
+  // Active hazard/closure alerts
+  Object.values(alerts).filter(a=>a.active).forEach(a=>{
+    if(a.type==='closure'&&a.pathIndex!=null&&PATHS[a.pathIndex]){
+      ctx.strokeStyle='rgba(239,68,68,.8)';ctx.lineWidth=4*scale;ctx.setLineDash([8,6]);ctx.lineCap='round';
+      ctx.beginPath();PATHS[a.pathIndex].forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.setLineDash([]);
+    } else if(a.type==='hazard'&&a.x!=null){
+      const p=px(a.x,a.y);
+      const pulse=(ts%900)/900;
+      ctx.beginPath();ctx.arc(p.x,p.y,(12+pulse*14)*scale,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(245,158,11,${.7-pulse*.7})`;ctx.lineWidth=2;ctx.stroke();
+      ctx.font=`${16*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText('⚠️',p.x,p.y);
+    }
   });
 
   // Attendees as small dots
