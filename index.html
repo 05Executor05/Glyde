@@ -359,6 +359,7 @@ canvas:active{cursor:grabbing;}
     <div class="drawer-body" id="drawerBody"></div>
   </div>
   <div class="chat-layout">
+    <div class="chat-sidebar" id="chatSidebar"></div>
     <div class="chat-main">
       <div class="chat-header">
         <div class="chat-hamburger" onclick="openDrawer()">☰</div>
@@ -424,7 +425,7 @@ canvas:active{cursor:grabbing;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, onValue, onDisconnect }
+import { getDatabase, ref, set, update, onValue, onDisconnect, runTransaction }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
@@ -588,10 +589,31 @@ function setStatus(live){
 function pushLoop(){
   if(!myGroup)return;
   const r=ref(db,`groups/${myGroup}/users/${myId}`);
-  set(r,{name:myName,emoji:myEmoji,color:myColor,x:myX,y:myY,ts:Date.now()});
+  set(r,{name:myName,emoji:myEmoji,color:myColor,x:myX,y:myY,ts:Date.now(),panic:panicOn});
   onDisconnect(r).remove();
   clearTimeout(pushTmr);
   pushTmr=setTimeout(pushLoop,3000);
+}
+
+// ── VENUE REPORTS (synced to manager dashboard) ──────────────────────────────
+function nearestZone(x,y){
+  let best=ZONES[0],bi=0,bd=Infinity;
+  ZONES.forEach((z,i)=>{const dx=z.x-x,dy=z.y-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=z;bi=i;}});
+  return {z:best,i:bi};
+}
+function fileReport(type,label){
+  if(!myGroup)return;
+  const {z,i}=nearestZone(myX,myY);
+  const repRef=ref(db,`groups/${myGroup}/reports/${type}__${i}`);
+  runTransaction(repRef,cur=>{
+    if(cur){
+      cur.count=(cur.count||1)+1;
+      cur.time=Date.now();
+      cur.resolved=false;
+      return cur;
+    }
+    return {type,label,loc:z.label,x:z.x,y:z.y,count:1,time:Date.now(),resolved:false,assigned:null};
+  });
 }
 function listenGroup(){
   onValue(ref(db,`groups/${myGroup}/users`),snap=>{
@@ -666,18 +688,24 @@ function draw(ts){
   // Peers
   Object.values(peers).forEach(f=>{
     const p=px(f.x,f.y);
+    const ringColor=f.panic?'#ef4444':f.color;
     const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,24*scale);
-    g.addColorStop(0,f.color+'55');g.addColorStop(1,'transparent');
+    g.addColorStop(0,ringColor+'55');g.addColorStop(1,'transparent');
     ctx.fillStyle=g;ctx.beginPath();ctx.arc(p.x,p.y,24*scale,0,Math.PI*2);ctx.fill();
+    if(f.panic){
+      const pulse=(ts%800)/800;
+      ctx.beginPath();ctx.arc(p.x,p.y,(18+pulse*16)*scale,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(239,68,68,${.7-pulse*.7})`;ctx.lineWidth=3;ctx.stroke();
+    }
     ctx.fillStyle='rgba(0,0,0,.35)';ctx.beginPath();ctx.ellipse(p.x,p.y+3,9*scale,3*scale,0,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#181826';ctx.strokeStyle=f.color;ctx.lineWidth=2.5;
-    ctx.shadowColor=f.color;ctx.shadowBlur=10;
+    ctx.fillStyle='#181826';ctx.strokeStyle=ringColor;ctx.lineWidth=2.5;
+    ctx.shadowColor=ringColor;ctx.shadowBlur=10;
     ctx.beginPath();ctx.arc(p.x,p.y,14*scale,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;
-    ctx.font=`${12*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(f.emoji||'👤',p.x,p.y);
+    ctx.font=`${12*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(f.panic?'🆘':(f.emoji||'👤'),p.x,p.y);
     ctx.font=`700 ${Math.max(9,10*scale)}px Space Grotesk,sans-serif`;
     const tw=ctx.measureText(f.name).width;
     ctx.fillStyle='rgba(17,17,28,.85)';ctx.beginPath();ctx.roundRect(p.x-tw/2-5,p.y+17*scale,tw+10,14*scale,4);ctx.fill();
-    ctx.fillStyle=f.color;ctx.textBaseline='top';ctx.fillText(f.name,p.x,p.y+18*scale);
+    ctx.fillStyle=ringColor;ctx.textBaseline='top';ctx.fillText(f.name,p.x,p.y+18*scale);
   });
   // Me
   const me=px(myX,myY);
@@ -729,8 +757,8 @@ function renderMapBar(){
   const myChip=`<div class="mychip"><div class="ch-em">${myEmoji}</div><div><div class="ch-nm" style="color:var(--green)">${myName||'You'}</div><div class="ch-st" style="color:var(--green)">YOU</div></div></div>`;
   const chips=Object.entries(peers).map(([uid,f])=>`
     <div class="mchip" data-uid="${uid}" onclick="navTo('${uid}')">
-      <div class="ch-em">${f.emoji||'👤'}</div>
-      <div><div class="ch-nm" style="color:${f.color||'#a78bfa'}">${f.name}</div><div class="ch-st" style="color:var(--green)">Live 🟢</div></div>
+      <div class="ch-em">${f.panic?'🆘':(f.emoji||'👤')}</div>
+      <div><div class="ch-nm" style="color:${f.panic?'var(--red)':(f.color||'#a78bfa')}">${f.name}</div><div class="ch-st" style="color:${f.panic?'var(--red)':'var(--green)'}">${f.panic?'🆘 Alert':'Live 🟢'}</div></div>
     </div>`).join('');
   const empty=Object.keys(peers).length===0?`<div style="display:flex;align-items:center;padding:0 4px;font-size:11px;color:var(--muted)">Waiting for friends…</div>`:'';
   document.getElementById('mapBar').innerHTML=myChip+chips+empty;
@@ -946,6 +974,7 @@ function renderReports(){
 window.sendReport=(id,label)=>{
   if(repSent[id])return;
   repSent[id]=true;renderReports();
+  fileReport(id,label);
   toast(`📨 Sent to venue: ${label}`);
   setTimeout(()=>{delete repSent[id];renderReports();},5000);
 };
@@ -954,6 +983,7 @@ window.triggerPanic=()=>{
   const btn=document.getElementById('panicBtn');
   btn.classList.toggle('on',panicOn);
   btn.textContent=panicOn?'🆘 Location Sent — Group Notified':'🆘 Send my location to group';
+  if(myGroup) update(ref(db,`groups/${myGroup}/users/${myId}`),{panic:panicOn});
   if(panicOn) toast('🆘 Your location shared with your group');
 };
 window.copyCode=()=>{

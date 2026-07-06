@@ -244,11 +244,11 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
       <div class="stat-label">Resolved today</div>
     </div>
   </div>
-  <div class="stat">
-    <div class="stat-icon">⚡</div>
+  <div class="stat" style="display:none">
+    <div class="stat-icon">🆘</div>
     <div>
-      <div class="stat-val" id="statAvgTime">—</div>
-      <div class="stat-label">Avg response</div>
+      <div class="stat-val" id="statAlerts" style="color:var(--red)">0</div>
+      <div class="stat-label">Active alerts</div>
     </div>
   </div>
 </div>
@@ -273,6 +273,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
       <div class="legend-row"><div class="legend-dot" style="background:#8b5cf6"></div>Litter</div>
       <div class="legend-row"><div class="legend-dot" style="background:#f472b6"></div>Security</div>
       <div class="legend-row"><div class="legend-dot" style="background:#fff"></div>Attendee</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#ef4444"></div>🆘 Panic alert</div>
     </div>
   </div>
 
@@ -312,7 +313,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, push, remove }
+import { getDatabase, ref, onValue, update }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const fbApp = initializeApp({
@@ -370,21 +371,10 @@ let venueName = '';
 let staffName = '';
 let attendees = {};
 let reports = {};
-let resolvedCount = 0;
 let currentFilter = 'all';
 let assigningId = null;
 let selectedStaff = null;
 let scale = 1, panX = 0, panY = 0;
-
-// Demo reports to pre-populate
-const DEMO_REPORTS = [
-  {id:'r1', type:'medical', x:.50,y:.61, count:1, time:Date.now()-420000, resolved:false, assigned:null, loc:'Medical Tent Area'},
-  {id:'r2', type:'toilet',  x:.28,y:.63, count:5, time:Date.now()-180000, resolved:false, assigned:'Carlos R.', loc:'West Toilet Block'},
-  {id:'r3', type:'queue',   x:.61,y:.55, count:8, time:Date.now()-300000, resolved:false, assigned:null, loc:'Food Village'},
-  {id:'r4', type:'security',x:.76,y:.43, count:2, time:Date.now()-60000,  resolved:false, assigned:null, loc:'East Stage'},
-  {id:'r5', type:'water',   x:.38,y:.51, count:3, time:Date.now()-600000, resolved:true,  assigned:'Priya M.', loc:'Water Station A'},
-  {id:'r6', type:'litter',  x:.14,y:.43, count:2, time:Date.now()-900000, resolved:true,  assigned:'Tom K.', loc:'West Stage Area'},
-];
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
 window.managerLogin = () => {
@@ -399,10 +389,6 @@ window.managerLogin = () => {
   document.getElementById('loginOverlay').style.display = 'none';
   document.getElementById('venueName').textContent = venue;
   document.getElementById('eventCodeDisplay').textContent = code;
-
-  // Load demo reports
-  DEMO_REPORTS.forEach(r => { reports[r.id] = r; });
-  resolvedCount = DEMO_REPORTS.filter(r=>r.resolved).length;
 
   listenAttendees();
   listenReports();
@@ -421,10 +407,8 @@ function listenAttendees() {
 
 function listenReports() {
   onValue(ref(db, `groups/${eventGroup}/reports`), snap => {
-    const data = snap.val() || {};
-    Object.entries(data).forEach(([id, r]) => {
-      if (!reports[id]) reports[id] = r;
-    });
+    reports = snap.val() || {};
+    Object.entries(reports).forEach(([id, r]) => { r.id = id; });
     renderReportList();
     updateStats();
   });
@@ -433,10 +417,13 @@ function listenReports() {
 // ── STATS ─────────────────────────────────────────────────────────────────────
 function updateStats() {
   const openReps = Object.values(reports).filter(r=>!r.resolved);
-  document.getElementById('statAttendees').textContent = Object.keys(attendees).length || Math.floor(Math.random()*80+120);
+  const resolvedReps = Object.values(reports).filter(r=>r.resolved);
+  const panicking = Object.values(attendees).filter(u=>u.panic).length;
+  document.getElementById('statAttendees').textContent = Object.keys(attendees).length;
   document.getElementById('statOpen').textContent = openReps.length;
-  document.getElementById('statResolved').textContent = resolvedCount;
-  document.getElementById('statAvgTime').textContent = '4m';
+  document.getElementById('statResolved').textContent = resolvedReps.length;
+  document.getElementById('statAlerts').textContent = panicking;
+  document.getElementById('statAlerts').parentElement.parentElement.style.display = panicking > 0 ? 'flex' : 'none';
   document.getElementById('openCount').textContent = `${openReps.length} open`;
   document.getElementById('openCount').style.display = openReps.length > 0 ? 'block' : 'none';
 }
@@ -506,11 +493,7 @@ function timeAgo(ts) {
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 window.resolveReport = id => {
   if (!reports[id]) return;
-  reports[id].resolved = true;
-  reports[id].resolvedAt = Date.now();
-  resolvedCount++;
-  renderReportList();
-  updateStats();
+  update(ref(db, `groups/${eventGroup}/reports/${id}`), {resolved:true, resolvedAt:Date.now(), resolvedBy:staffName});
   toast(`✅ Report resolved`);
 };
 
@@ -545,9 +528,8 @@ window.closeAssign = () => {
 window.confirmAssign = () => {
   if (!selectedStaff || !assigningId) { toast('Select a staff member','w'); return; }
   const s = STAFF.find(x=>x.id===selectedStaff);
-  if (reports[assigningId]) reports[assigningId].assigned = s.name;
+  update(ref(db, `groups/${eventGroup}/reports/${assigningId}`), {assigned:s.name});
   closeAssign();
-  renderReportList();
   toast(`👷 Assigned to ${s.name}`);
 };
 
@@ -599,8 +581,18 @@ function draw(ts) {
   // Attendees as small dots
   Object.values(attendees).forEach(u=>{
     const p=px(u.x||.5, u.y||.5);
-    ctx.fillStyle='rgba(255,255,255,.4)';
-    ctx.beginPath(); ctx.arc(p.x,p.y,4*scale,0,Math.PI*2); ctx.fill();
+    if(u.panic){
+      const pulse=(ts%800)/800;
+      ctx.beginPath(); ctx.arc(p.x,p.y,(10+pulse*14)*scale,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(239,68,68,${.7-pulse*.7})`; ctx.lineWidth=2.5; ctx.stroke();
+      ctx.fillStyle='#ef4444';
+      ctx.shadowColor='#ef4444'; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.arc(p.x,p.y,6*scale,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+    } else {
+      ctx.fillStyle='rgba(255,255,255,.4)';
+      ctx.beginPath(); ctx.arc(p.x,p.y,4*scale,0,Math.PI*2); ctx.fill();
+    }
   });
 
   // Report pins
@@ -657,14 +649,6 @@ window.toast=(msg,type='')=>{
   setTimeout(()=>t.className='toast',3000);
 };
 
-// Auto-refresh stats every 30s
-setInterval(()=>{
-  Object.values(reports).filter(r=>!r.resolved).forEach(r=>{
-    if(Math.random()>.85) r.count++;
-  });
-  renderReportList();
-  updateStats();
-}, 30000);
 </script>
 </body>
 </html>
