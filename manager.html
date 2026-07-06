@@ -455,21 +455,31 @@ function renderReportList() {
 
   list.innerHTML = reps.map(r => {
     const t = REPORT_TYPES[r.type] || {label:r.type,icon:'📢',color:'#888',urgent:false};
-    const urgent = (t.urgent || r.count >= 5) && !r.resolved;
+    const urgent = (t.urgent || r.count >= 5 || r.priority==='high') && !r.resolved;
     const ago = timeAgo(r.time);
     const countClass = r.count >= 5 ? 'rep-count many' : 'rep-count';
+    const prioColor = r.priority==='high'?'#ef4444':r.priority==='low'?'#10b981':'#f59e0b';
+    const prioBadge = r.priority?`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:${prioColor}22;color:${prioColor};text-transform:uppercase;font-family:'Space Mono',monospace">${r.priority}</span>`:'';
+    const mediaLinks = [
+      r.photoUrl?`<a href="${r.photoUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-size:10px">📷 Photo</a>`:'',
+      r.videoUrl?`<a href="${r.videoUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-size:10px">🎥 Video</a>`:'',
+      r.voiceUrl?`<a href="${r.voiceUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-size:10px">🎙️ Voice</a>`:'',
+    ].filter(Boolean).join(' ');
+    const noteHtml = r.note?`<div style="font-size:11px;color:var(--text);margin-top:6px;font-style:italic">"${esc(r.note)}"</div>`:'';
 
     return `<div class="rep-card${urgent?' urgent':''}${r.resolved?' resolved':''}" id="card-${r.id}">
       <div class="rep-top">
         <div class="rep-icon-wrap" style="background:${t.color}18">${t.icon}</div>
         <div class="rep-info">
-          <div class="rep-type" style="color:${t.color}">${t.label}${urgent?' 🚨':''}</div>
+          <div class="rep-type" style="color:${t.color}">${t.label}${urgent?' 🚨':''} ${prioBadge}</div>
           <div class="rep-loc">📍 ${r.loc||'Venue area'}</div>
           <div class="rep-meta">
             <span class="rep-time">${ago}</span>
             <span class="${countClass}">${r.count} report${r.count>1?'s':''}</span>
             ${r.assigned?`<span style="font-size:10px;color:var(--blue)">👷 ${r.assigned}</span>`:''}
           </div>
+          ${noteHtml}
+          ${mediaLinks?`<div style="display:flex;gap:10px;margin-top:6px">${mediaLinks}</div>`:''}
         </div>
       </div>
       ${r.resolved
@@ -483,6 +493,7 @@ function renderReportList() {
   }).join('');
 }
 
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function timeAgo(ts) {
   const diff = Math.floor((Date.now()-ts)/1000);
   if (diff < 60) return `${diff}s ago`;

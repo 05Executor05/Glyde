@@ -397,6 +397,35 @@ canvas:active{cursor:grabbing;}
 .panic-btn.on{background:var(--red);color:#fff;animation:ppulse 1s infinite;}
 @keyframes ppulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.5)}50%{box-shadow:0 0 0 10px rgba(239,68,68,0)}}
 .group-box{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;text-align:center;}
+.detail-rep-btn{width:100%;padding:14px;background:var(--surface2);border:1px dashed var(--border);border-radius:14px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;margin-bottom:20px;display:flex;align-items:center;justify-content:center;gap:8px;}
+.detail-rep-btn:hover{border-color:var(--neon);color:var(--neon);}
+.my-reports{margin-top:20px;}
+.my-reports-title{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:10px;font-family:'Space Mono',monospace;}
+.my-rep-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.my-rep-icon{font-size:20px;flex-shrink:0;}
+.my-rep-info{flex:1;min-width:0;}
+.my-rep-label{font-size:13px;font-weight:700;}
+.my-rep-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.my-rep-status{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;font-family:'Space Mono',monospace;white-space:nowrap;flex-shrink:0;}
+.my-rep-status.open{background:rgba(245,158,11,.15);color:var(--amber);}
+.my-rep-status.assigned{background:rgba(59,130,246,.15);color:#3b82f6;}
+.my-rep-status.resolved{background:rgba(16,185,129,.15);color:var(--green);}
+.priority-chip-row{display:flex;gap:8px;margin-bottom:14px;}
+.priority-chip{flex:1;padding:9px;text-align:center;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+.priority-chip.low.sel{background:rgba(16,185,129,.15);border-color:var(--green);color:var(--green);}
+.priority-chip.medium.sel{background:rgba(245,158,11,.15);border-color:var(--amber);color:var(--amber);}
+.priority-chip.high.sel{background:rgba(239,68,68,.15);border-color:var(--red);color:var(--red);}
+.rep-modal-cat-row{display:flex;gap:8px;overflow-x:auto;margin-bottom:14px;}
+.rep-modal-cat-row::-webkit-scrollbar{display:none;}
+.rep-modal-cat{flex-shrink:0;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 12px;border-radius:12px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:10px;font-weight:600;cursor:pointer;transition:all .15s;}
+.rep-modal-cat.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+.rep-modal-cat .rmc-icon{font-size:18px;}
+.attach-row{display:flex;gap:8px;margin-bottom:14px;}
+.attach-btn{flex:1;padding:10px 6px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;text-align:center;}
+.attach-btn.attached{border-color:var(--green);color:var(--green);background:rgba(16,185,129,.1);}
+.attach-btn.recording{border-color:var(--red);color:var(--red);animation:ppulse 1s infinite;}
+.rep-note-input{width:100%;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;resize:none;margin-bottom:14px;}
+.rep-note-input:focus{outline:none;border-color:var(--accent);}
 .group-code{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;color:var(--neon);letter-spacing:6px;margin:8px 0;}
 .copy-btn{padding:8px 20px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .2s;margin-top:8px;}
 .copy-btn:hover{opacity:.85;}
@@ -613,6 +642,7 @@ canvas:active{cursor:grabbing;}
     <div class="rep-title">Report an Issue</div>
     <div class="rep-sub">Reports go directly to venue staff</div>
     <div class="rep-grid" id="repGrid"></div>
+    <button class="detail-rep-btn" onclick="openReportModal()">📎 Detailed report (photo/video/voice/priority)</button>
     <div class="panic-wrap">
       <button class="panic-btn" id="panicBtn" onclick="triggerPanic()">🆘 Send my location to group</button>
     </div>
@@ -621,6 +651,31 @@ canvas:active{cursor:grabbing;}
       <div class="group-code" id="groupCodeDisplay">—</div>
       <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Share with friends to join your group</div>
       <button class="copy-btn" onclick="copyCode()">Copy & Share</button>
+    </div>
+    <div class="my-reports" id="myReportsSection" style="display:none">
+      <div class="my-reports-title">My Reports</div>
+      <div id="myReportsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- DETAILED REPORT MODAL -->
+<div class="modal-overlay" id="reportModal">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">New Report</div>
+    <div class="rep-modal-cat-row" id="repModalCatRow"></div>
+    <div class="priority-chip-row" id="repModalPriorityRow"></div>
+    <textarea class="rep-note-input" id="repNoteInput" rows="2" placeholder="Add a note (optional)…"></textarea>
+    <div class="attach-row">
+      <div class="attach-btn" id="attachPhotoBtn" onclick="pickReportPhoto()">📷 Photo</div>
+      <div class="attach-btn" id="attachVideoBtn" onclick="pickReportVideo()">🎥 Video</div>
+      <div class="attach-btn" id="attachVoiceBtn" onclick="toggleVoiceNote()">🎙️ Voice</div>
+    </div>
+    <input type="file" id="repPhotoInput" accept="image/*" style="display:none" onchange="handleReportMedia(this,'photoUrl')"/>
+    <input type="file" id="repVideoInput" accept="video/*" style="display:none" onchange="handleReportMedia(this,'videoUrl')"/>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeReportModal()">Cancel</button>
+      <button class="modal-btn modal-confirm" style="background:var(--accent);color:#fff" onclick="confirmSendReport()">📨 Send Report</button>
     </div>
   </div>
 </div>
@@ -721,13 +776,14 @@ const PATHS=[
 ];
 
 const REPORTS=[
-  {id:'toilet',icon:'🚻',label:'Dirty Toilet'},
-  {id:'queue', icon:'⏳',label:'Long Queue'},
-  {id:'water', icon:'💧',label:'No Water'},
-  {id:'medical',icon:'🏥',label:'Need Medical'},
-  {id:'litter',icon:'🗑️',label:'Litter Issue'},
-  {id:'security',icon:'🛡️',label:'Security Alert'},
+  {id:'toilet',icon:'🚻',label:'Dirty Toilet',priority:'medium'},
+  {id:'queue', icon:'⏳',label:'Long Queue',priority:'low'},
+  {id:'water', icon:'💧',label:'No Water',priority:'medium'},
+  {id:'medical',icon:'🏥',label:'Need Medical',priority:'high'},
+  {id:'litter',icon:'🗑️',label:'Litter Issue',priority:'low'},
+  {id:'security',icon:'🛡️',label:'Security Alert',priority:'high'},
 ];
+const PRIORITY_RANK={low:1,medium:2,high:3};
 
 const CHANNELS={
   'venue-main':{name:'# Festival Chat',icon:'🎪',badge:'Venue',badgeClass:'badge-v',ph:'Message everyone at the festival…',messages:[]},
@@ -760,6 +816,12 @@ let scale=1, panX=0, panY=0, heading=0;
 let pushTmr=null;
 let panicOn=false;
 let repSent={};
+let myReportKeys=new Set();
+try{ myReportKeys=new Set(JSON.parse(localStorage.getItem('glyde_my_reports')||'[]')); }catch(e){}
+let allReports={};
+let myReportsListenerAttached=false;
+let reportModalState={type:null,label:null,priority:'medium',photoUrl:null,videoUrl:null,voiceUrl:null};
+let voiceRecorder=null,voiceChunks=[],voiceRecording=false;
 let msgIdCtr=1000;
 let listenedChannels=new Set();
 let unreadCounts={};
@@ -809,7 +871,7 @@ function enterApp(name,code){
   startGPS();listenGroup();listenMeetingPoint();pushLoop();initBattery();
   requestAnimationFrame(draw);
   switchChannel(currentChannel);
-  renderSidebar();renderMobBar();renderReports();renderMapBar();
+  renderSidebar();renderMobBar();renderReports();renderMapBar();attachMyReportsListener();
   logEvent('join',{group:code});
 }
 
@@ -899,18 +961,31 @@ function nearestZone(x,y){
   ZONES.forEach((z,i)=>{const dx=z.x-x,dy=z.y-y,d=dx*dx+dy*dy;if(d<bd){bd=d;best=z;bi=i;}});
   return {z:best,i:bi};
 }
-function fileReport(type,label){
+function saveMyReportKeys(){try{localStorage.setItem('glyde_my_reports',JSON.stringify([...myReportKeys]));}catch(e){}}
+function fileReport(type,label,extra){
   if(!myGroup)return;
   const {z,i}=nearestZone(myX,myY);
-  const repRef=ref(db,`groups/${myGroup}/reports/${type}__${i}`);
+  const key=`${type}__${i}`;
+  const repRef=ref(db,`groups/${myGroup}/reports/${key}`);
+  const priority=(extra&&extra.priority)||REPORTS.find(r=>r.id===type)?.priority||'medium';
+  myReportKeys.add(key);saveMyReportKeys();
+  attachMyReportsListener();
   runTransaction(repRef,cur=>{
     if(cur){
       cur.count=(cur.count||1)+1;
       cur.time=Date.now();
       cur.resolved=false;
+      if(PRIORITY_RANK[priority]>PRIORITY_RANK[cur.priority||'low']) cur.priority=priority;
+      if(extra){
+        if(extra.photoUrl)cur.photoUrl=extra.photoUrl;
+        if(extra.videoUrl)cur.videoUrl=extra.videoUrl;
+        if(extra.voiceUrl)cur.voiceUrl=extra.voiceUrl;
+        if(extra.note)cur.note=extra.note;
+      }
       return cur;
     }
-    return {type,label,loc:z.label,x:z.x,y:z.y,count:1,time:Date.now(),resolved:false,assigned:null};
+    return {type,label,loc:z.label,x:z.x,y:z.y,count:1,time:Date.now(),resolved:false,assigned:null,priority,
+      photoUrl:extra?.photoUrl||null,videoUrl:extra?.videoUrl||null,voiceUrl:extra?.voiceUrl||null,note:extra?.note||null};
   }).catch(fbFail);
 }
 function listenGroup(){
@@ -1797,6 +1872,142 @@ window.sendReport=(id,label)=>{
   toast(`📨 Sent to venue: ${label}`);
   setTimeout(()=>{delete repSent[id];renderReports();},5000);
 };
+
+// ── DETAILED REPORT (photo/video/voice/priority) ─────────────────────────────
+window.openReportModal=()=>{
+  const first=REPORTS[0];
+  reportModalState={type:first.id,label:first.label,priority:first.priority,photoUrl:null,videoUrl:null,voiceUrl:null};
+  document.getElementById('repNoteInput').value='';
+  renderReportModalCats();renderReportModalPriority();resetAttachButtons();
+  document.getElementById('reportModal').classList.add('open');
+};
+window.closeReportModal=()=>{
+  document.getElementById('reportModal').classList.remove('open');
+  if(voiceRecording) stopVoiceNote(true);
+};
+function renderReportModalCats(){
+  document.getElementById('repModalCatRow').innerHTML=REPORTS.map(r=>`
+    <div class="rep-modal-cat${reportModalState.type===r.id?' sel':''}" onclick="selectReportCat('${r.id}')">
+      <div class="rmc-icon">${r.icon}</div><div>${r.label}</div>
+    </div>`).join('');
+}
+window.selectReportCat=id=>{
+  const r=REPORTS.find(x=>x.id===id);if(!r)return;
+  reportModalState.type=id;reportModalState.label=r.label;reportModalState.priority=r.priority;
+  renderReportModalCats();renderReportModalPriority();
+}
+function renderReportModalPriority(){
+  const levels=['low','medium','high'];
+  document.getElementById('repModalPriorityRow').innerHTML=levels.map(p=>
+    `<div class="priority-chip ${p}${reportModalState.priority===p?' sel':''}" onclick="setReportPriority('${p}')">${p[0].toUpperCase()+p.slice(1)}</div>`
+  ).join('');
+}
+window.setReportPriority=p=>{reportModalState.priority=p;renderReportModalPriority();};
+function resetAttachButtons(){
+  ['attachPhotoBtn','attachVideoBtn','attachVoiceBtn'].forEach(id=>document.getElementById(id).classList.remove('attached','recording'));
+  document.getElementById('attachPhotoBtn').textContent='📷 Photo';
+  document.getElementById('attachVideoBtn').textContent='🎥 Video';
+  document.getElementById('attachVoiceBtn').textContent='🎙️ Voice';
+}
+window.pickReportPhoto=()=>document.getElementById('repPhotoInput').click();
+window.pickReportVideo=()=>document.getElementById('repVideoInput').click();
+window.handleReportMedia=async(input,field)=>{
+  const file=input.files[0];input.value='';
+  if(!file||!myGroup)return;
+  if(file.size>15*1024*1024){toast('File too large (max 15MB)','w');return;}
+  const btnId=field==='photoUrl'?'attachPhotoBtn':'attachVideoBtn';
+  const btn=document.getElementById(btnId);
+  btn.textContent='Uploading…';
+  try{
+    const path=`report-media/${myGroup}/${Date.now()}_${myId}_${field}`;
+    const sRef=storageRef(storage,path);
+    await uploadBytes(sRef,file);
+    const url=await getDownloadURL(sRef);
+    reportModalState[field]=url;
+    btn.classList.add('attached');
+    btn.textContent=(field==='photoUrl'?'📷':'🎥')+' Attached ✓';
+  }catch(e){
+    btn.textContent=(field==='photoUrl'?'📷 Photo':'🎥 Video');
+    toast('⚠️ Upload failed','e');
+  }
+};
+window.toggleVoiceNote=async()=>{
+  if(voiceRecording){stopVoiceNote(false);return;}
+  if(!navigator.mediaDevices?.getUserMedia){toast('Voice recording not supported','w');return;}
+  try{
+    const stream=await navigator.mediaDevices.getUserMedia({audio:true});
+    voiceChunks=[];
+    voiceRecorder=new MediaRecorder(stream);
+    voiceRecorder.ondataavailable=e=>voiceChunks.push(e.data);
+    voiceRecorder.onstop=async()=>{
+      stream.getTracks().forEach(t=>t.stop());
+      const blob=new Blob(voiceChunks,{type:'audio/webm'});
+      const btn=document.getElementById('attachVoiceBtn');
+      btn.classList.remove('recording');btn.textContent='Uploading…';
+      try{
+        const path=`report-media/${myGroup}/${Date.now()}_${myId}_voice.webm`;
+        const sRef=storageRef(storage,path);
+        await uploadBytes(sRef,blob);
+        const url=await getDownloadURL(sRef);
+        reportModalState.voiceUrl=url;
+        btn.classList.add('attached');btn.textContent='🎙️ Attached ✓';
+      }catch(e){btn.textContent='🎙️ Voice';toast('⚠️ Upload failed','e');}
+    };
+    voiceRecorder.start();
+    voiceRecording=true;
+    const btn=document.getElementById('attachVoiceBtn');
+    btn.classList.add('recording');btn.textContent='⏹ Stop';
+  }catch(e){toast('Microphone access denied','w');}
+};
+function stopVoiceNote(discard){
+  if(!voiceRecorder)return;
+  if(discard) voiceRecorder.onstop=()=>voiceRecorder.stream?.getTracks().forEach(t=>t.stop());
+  voiceRecorder.stop();
+  voiceRecording=false;
+}
+window.confirmSendReport=()=>{
+  const note=document.getElementById('repNoteInput').value.trim();
+  fileReport(reportModalState.type,reportModalState.label,{
+    priority:reportModalState.priority,
+    photoUrl:reportModalState.photoUrl,
+    videoUrl:reportModalState.videoUrl,
+    voiceUrl:reportModalState.voiceUrl,
+    note:note||null,
+  });
+  logEvent('report_sent_detailed',{type:reportModalState.type,priority:reportModalState.priority});
+  toast(`📨 Detailed report sent: ${reportModalState.label}`);
+  closeReportModal();
+};
+
+// ── MY REPORTS (status tracking) ─────────────────────────────────────────────
+function attachMyReportsListener(){
+  if(myReportsListenerAttached||!myGroup)return;
+  myReportsListenerAttached=true;
+  onValue(ref(db,`groups/${myGroup}/reports`),snap=>{
+    allReports=snap.val()||{};
+    renderMyReports();
+  });
+}
+function renderMyReports(){
+  const section=document.getElementById('myReportsSection');
+  const mine=[...myReportKeys].map(k=>({key:k,r:allReports[k]})).filter(x=>x.r);
+  if(!mine.length){section.style.display='none';return;}
+  section.style.display='block';
+  document.getElementById('myReportsList').innerHTML=mine.map(({key,r})=>{
+    const status=r.resolved?'resolved':(r.assigned?'assigned':'open');
+    const statusText=r.resolved?'✅ Resolved':(r.assigned?`👷 Assigned to ${esc(r.assigned)}`:'⏳ Open');
+    const media=[r.photoUrl?'📷':'',r.videoUrl?'🎥':'',r.voiceUrl?'🎙️':''].filter(Boolean).join(' ');
+    const t=REPORTS.find(x=>x.id===r.type);
+    return `<div class="my-rep-card">
+      <div class="my-rep-icon">${t?t.icon:'📢'}</div>
+      <div class="my-rep-info">
+        <div class="my-rep-label">${esc(r.label)} <span style="color:var(--muted);font-weight:400">· ${esc(r.loc||'')}</span></div>
+        <div class="my-rep-meta">${r.count>1?`${r.count} reports at this spot`:'1 report'}${media?' · '+media:''}</div>
+      </div>
+      <div class="my-rep-status ${status}">${statusText}</div>
+    </div>`;
+  }).join('');
+}
 window.triggerPanic=()=>{
   panicOn=!panicOn;
   const btn=document.getElementById('panicBtn');
