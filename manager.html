@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Glyde — Venue Manager</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:#07070f;
+  --surface:#11111c;
+  --surface2:#181826;
+  --border:#252538;
+  --accent:#7c3aed;
+  --neon:#a78bfa;
+  --green:#10b981;
+  --amber:#f59e0b;
+  --red:#ef4444;
+  --blue:#3b82f6;
+  --text:#f0efff;
+  --muted:#6060a0;
+}
+
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
+
+/* ── LOGIN ── */
+.login-overlay{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  z-index:300;padding:32px;
+}
+.login-logo{font-family:'Space Mono',monospace;font-size:36px;font-weight:700;color:var(--neon);margin-bottom:4px;}
+.login-logo span{color:var(--muted);}
+.login-sub{font-size:13px;color:var(--muted);margin-bottom:8px;}
+.login-badge{font-size:10px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:4px 12px;border-radius:20px;margin-bottom:36px;font-family:'Space Mono',monospace;font-weight:700;text-transform:uppercase;letter-spacing:1px;}
+.login-field{width:100%;max-width:340px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;outline:none;margin-bottom:12px;}
+.login-field:focus{border-color:var(--accent);}
+.login-btn{width:100%;max-width:340px;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+.login-btn:hover{opacity:.88;}
+.login-hint{font-size:12px;color:var(--muted);margin-top:14px;text-align:center;}
+
+/* ── HEADER ── */
+.header{
+  display:flex;align-items:center;gap:16px;
+  padding:12px 20px;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;z-index:50;
+}
+.logo{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--neon);}
+.logo span{color:var(--muted);}
+.mgr-badge{font-size:10px;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:3px 10px;border-radius:20px;font-family:'Space Mono',monospace;font-weight:700;text-transform:uppercase;letter-spacing:.8px;}
+.venue-name{font-size:13px;font-weight:600;color:var(--text);}
+.hdr-right{margin-left:auto;display:flex;align-items:center;gap:12px;}
+.live-pill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--green);font-family:'Space Mono',monospace;}
+.ldot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
+.event-code{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;background:var(--surface2);padding:4px 10px;border-radius:8px;border:1px solid var(--border);}
+
+/* ── LAYOUT ── */
+.app-body{display:flex;flex:1;overflow:hidden;}
+
+/* ── STATS BAR ── */
+.stats-bar{
+  display:flex;gap:0;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.stat{
+  flex:1;padding:14px 20px;
+  border-right:1px solid var(--border);
+  display:flex;align-items:center;gap:12px;
+}
+.stat:last-child{border-right:none;}
+.stat-icon{font-size:22px;}
+.stat-val{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;}
+.stat-label{font-size:11px;color:var(--muted);margin-top:1px;}
+
+/* ── LEFT: MAP ── */
+.map-panel{flex:1;position:relative;overflow:hidden;background:var(--bg);}
+canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
+
+/* Map legend */
+.map-legend{
+  position:absolute;bottom:16px;left:16px;
+  background:rgba(17,17,28,.95);border:1px solid var(--border);
+  border-radius:12px;padding:12px 14px;z-index:10;
+}
+.legend-title{font-size:9px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:8px;font-family:'Space Mono',monospace;}
+.legend-row{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--text);margin-bottom:5px;}
+.legend-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+/* Map controls */
+.map-ctrl{position:absolute;top:16px;right:16px;display:flex;flex-direction:column;gap:6px;z-index:10;}
+.mcbtn{width:36px;height:36px;background:rgba(17,17,28,.92);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:15px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.mcbtn:hover{border-color:var(--neon);color:var(--neon);}
+
+/* ── RIGHT: REPORTS PANEL ── */
+.reports-panel{
+  width:360px;flex-shrink:0;
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  display:flex;flex-direction:column;
+  overflow:hidden;
+}
+.panel-header{
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;flex-shrink:0;
+}
+.panel-title{font-size:14px;font-weight:700;}
+.panel-count{font-size:11px;font-family:'Space Mono',monospace;background:rgba(239,68,68,.15);color:var(--red);border:1px solid rgba(239,68,68,.3);padding:3px 8px;border-radius:20px;}
+
+/* Filter tabs */
+.filter-bar{display:flex;gap:6px;padding:10px 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow-x:auto;}
+.filter-bar::-webkit-scrollbar{display:none;}
+.ftab{padding:5px 12px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--surface2);white-space:nowrap;transition:all .15s;}
+.ftab.active{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+
+/* Report list */
+.report-list{flex:1;overflow-y:auto;padding:8px;}
+.report-list::-webkit-scrollbar{width:3px;}
+.report-list::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+
+.rep-card{
+  background:var(--surface2);border:1px solid var(--border);
+  border-radius:12px;padding:14px;margin-bottom:8px;
+  transition:all .2s;cursor:pointer;
+}
+.rep-card:hover{border-color:var(--accent);}
+.rep-card.urgent{border-color:rgba(239,68,68,.5);background:rgba(239,68,68,.05);}
+.rep-card.resolved{opacity:.45;border-style:dashed;}
+
+.rep-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;}
+.rep-icon-wrap{
+  width:40px;height:40px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+}
+.rep-info{flex:1;min-width:0;}
+.rep-type{font-size:13px;font-weight:700;}
+.rep-loc{font-size:11px;color:var(--muted);margin-top:2px;display:flex;align-items:center;gap:4px;}
+.rep-meta{display:flex;align-items:center;gap:6px;margin-top:4px;}
+.rep-time{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;}
+.rep-count{font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;background:rgba(239,68,68,.15);color:var(--red);font-family:'Space Mono',monospace;}
+.rep-count.many{background:rgba(239,68,68,.3);animation:pulse-red .8s infinite;}
+@keyframes pulse-red{0%,100%{opacity:1}50%{opacity:.6}}
+
+.rep-actions{display:flex;gap:8px;}
+.rep-btn{flex:1;padding:7px;border-radius:8px;font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;border:1px solid;}
+.assign-btn{background:rgba(59,130,246,.1);border-color:rgba(59,130,246,.4);color:var(--blue);}
+.assign-btn:hover{background:rgba(59,130,246,.2);}
+.resolve-btn{background:rgba(16,185,129,.1);border-color:rgba(16,185,129,.4);color:var(--green);}
+.resolve-btn:hover{background:rgba(16,185,129,.2);}
+.resolved-tag{font-size:11px;color:var(--green);font-family:'Space Mono',monospace;font-weight:700;display:flex;align-items:center;gap:4px;}
+
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px;text-align:center;}
+.empty-icon{font-size:48px;margin-bottom:12px;opacity:.3;}
+.empty-text{font-size:14px;color:var(--muted);}
+
+/* Toast */
+.toast{position:fixed;top:16px;right:16px;background:var(--surface);border:1px solid var(--green);color:var(--green);padding:10px 16px;border-radius:10px;font-size:13px;font-weight:600;z-index:999;opacity:0;transition:all .25s;pointer-events:none;}
+.toast.show{opacity:1;}
+.toast.w{border-color:var(--amber);color:var(--amber);}
+
+/* Assign modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:340px;box-shadow:0 16px 48px rgba(0,0,0,.6);}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:4px;}
+.modal-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
+.staff-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
+.staff-item{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s;}
+.staff-item:hover{border-color:var(--accent);}
+.staff-item.sel{border-color:var(--green);background:rgba(16,185,129,.1);}
+.staff-avatar{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:16px;background:var(--surface);}
+.staff-name{font-size:13px;font-weight:600;}
+.staff-zone{font-size:11px;color:var(--muted);}
+.modal-actions{display:flex;gap:8px;}
+.modal-btn{flex:1;padding:11px;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;border:none;}
+.modal-cancel{background:var(--surface2);color:var(--muted);}
+.modal-confirm{background:var(--accent);color:#fff;}
+.modal-btn:hover{opacity:.85;}
+
+/* Responsive */
+@media(max-width:900px){
+  .reports-panel{width:300px;}
+  .stat-val{font-size:18px;}
+}
+@media(max-width:700px){
+  .stats-bar{display:none;}
+  .reports-panel{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-logo">Glyde<span>.mgr</span></div>
+  <div class="login-sub">Venue Manager Dashboard</div>
+  <div class="login-badge">🔒 Staff Access Only</div>
+  <input class="login-field" id="venueInput" placeholder="Venue name (e.g. Horizon Festival)" maxlength="40"/>
+  <input class="login-field" id="eventCodeInput" placeholder="Event group code (e.g. HZ-4829)" maxlength="10" style="font-family:'Space Mono',monospace;letter-spacing:3px;"/>
+  <input class="login-field" id="staffNameInput" placeholder="Your name" maxlength="30"/>
+  <button class="login-btn" onclick="managerLogin()">Open Dashboard →</button>
+  <div class="login-hint">Use the same group code your attendees are using</div>
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="logo">Glyde<span>.mgr</span></div>
+  <div class="mgr-badge">🔒 Manager</div>
+  <div class="venue-name" id="venueName">—</div>
+  <div class="hdr-right">
+    <div class="event-code" id="eventCodeDisplay">—</div>
+    <div class="live-pill"><div class="ldot"></div>LIVE</div>
+  </div>
+</div>
+
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stat">
+    <div class="stat-icon">👥</div>
+    <div>
+      <div class="stat-val" id="statAttendees">0</div>
+      <div class="stat-label">Live attendees</div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon">🚨</div>
+    <div>
+      <div class="stat-val" id="statOpen" style="color:var(--red)">0</div>
+      <div class="stat-label">Open reports</div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon">✅</div>
+    <div>
+      <div class="stat-val" id="statResolved" style="color:var(--green)">0</div>
+      <div class="stat-label">Resolved today</div>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="stat-icon">⚡</div>
+    <div>
+      <div class="stat-val" id="statAvgTime">—</div>
+      <div class="stat-label">Avg response</div>
+    </div>
+  </div>
+</div>
+
+<!-- BODY -->
+<div class="app-body">
+
+  <!-- MAP -->
+  <div class="map-panel">
+    <canvas id="mgCanvas"></canvas>
+    <div class="map-ctrl">
+      <button class="mcbtn" onclick="mzoom(1.2)">+</button>
+      <button class="mcbtn" onclick="mzoom(.8)">−</button>
+      <button class="mcbtn" onclick="mreset()">◎</button>
+    </div>
+    <div class="map-legend">
+      <div class="legend-title">Report Types</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#06b6d4"></div>Dirty Toilet</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#f59e0b"></div>Long Queue</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#10b981"></div>No Water</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#ef4444"></div>Medical</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#8b5cf6"></div>Litter</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#f472b6"></div>Security</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#fff"></div>Attendee</div>
+    </div>
+  </div>
+
+  <!-- REPORTS PANEL -->
+  <div class="reports-panel">
+    <div class="panel-header">
+      <div class="panel-title">Live Reports</div>
+      <div class="panel-count" id="openCount">0 open</div>
+    </div>
+    <div class="filter-bar">
+      <div class="ftab active" onclick="setFilter('all',this)">All</div>
+      <div class="ftab" onclick="setFilter('toilet',this)">🚻 Toilets</div>
+      <div class="ftab" onclick="setFilter('medical',this)">🏥 Medical</div>
+      <div class="ftab" onclick="setFilter('queue',this)">⏳ Queues</div>
+      <div class="ftab" onclick="setFilter('security',this)">🛡️ Security</div>
+      <div class="ftab" onclick="setFilter('resolved',this)">✅ Resolved</div>
+    </div>
+    <div class="report-list" id="reportList"></div>
+  </div>
+
+</div>
+
+<!-- ASSIGN MODAL -->
+<div class="modal-overlay" id="assignModal">
+  <div class="modal">
+    <div class="modal-title">Assign to staff</div>
+    <div class="modal-sub" id="assignRepLabel">Dirty Toilet — West Block</div>
+    <div class="staff-list" id="staffList"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" onclick="closeAssign()">Cancel</button>
+      <button class="modal-btn modal-confirm" onclick="confirmAssign()">Assign →</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, onValue, set, push, remove }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+const fbApp = initializeApp({
+  apiKey:"AIzaSyDocnNn4xfEGcOZWS5mreGx5bvVAEO0TSw",
+  authDomain:"glyde-9cce8.firebaseapp.com",
+  databaseURL:"https://glyde-9cce8-default-rtdb.firebaseio.com",
+  projectId:"glyde-9cce8",
+  storageBucket:"glyde-9cce8.firebasestorage.app",
+  messagingSenderId:"395299315354",
+  appId:"1:395299315354:web:c219f13a88232d2bed4923"
+});
+const db = getDatabase(fbApp);
+
+// ── CONFIG ────────────────────────────────────────────────────────────────────
+const REPORT_TYPES = {
+  toilet:  {label:'Dirty Toilet',  icon:'🚻', color:'#06b6d4', urgent:false},
+  queue:   {label:'Long Queue',    icon:'⏳', color:'#f59e0b', urgent:false},
+  water:   {label:'No Water',      icon:'💧', color:'#10b981', urgent:false},
+  medical: {label:'Medical Alert', icon:'🏥', color:'#ef4444', urgent:true},
+  litter:  {label:'Litter Issue',  icon:'🗑️', color:'#8b5cf6', urgent:false},
+  security:{label:'Security Alert',icon:'🛡️', color:'#f472b6', urgent:true},
+};
+
+const ZONES = [
+  {label:'MAIN STAGE',  x:.50,y:.20,w:.26,h:.11,color:'#9333ea',icon:'🎵'},
+  {label:'EAST STAGE',  x:.76,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵'},
+  {label:'WEST STAGE',  x:.14,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵'},
+  {label:'FOOD VILLAGE',x:.61,y:.55,w:.13,h:.08,color:'#d97706',icon:'🍔'},
+  {label:'MEDICAL',     x:.50,y:.61,w:.09,h:.06,color:'#dc2626',icon:'🏥'},
+  {label:'TOILETS',     x:.28,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻'},
+  {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻'},
+  {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧'},
+  {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧'},
+];
+
+const PATHS=[
+  [[.2,.33],[.5,.33],[.8,.33]],
+  [[.5,.33],[.5,.83]],
+  [[.2,.33],[.2,.76],[.5,.83]],
+  [[.8,.33],[.8,.76],[.5,.83]],
+  [[.2,.55],[.8,.55]],
+];
+
+const STAFF = [
+  {id:'s1', name:'Carlos R.',  zone:'North Zone',  emoji:'👷'},
+  {id:'s2', name:'Priya M.',   zone:'South Zone',  emoji:'👷'},
+  {id:'s3', name:'Tom K.',     zone:'East Zone',   emoji:'👷'},
+  {id:'s4', name:'Aisha B.',   zone:'West Zone',   emoji:'👷'},
+  {id:'s5', name:'Medical Team', zone:'All Areas', emoji:'🏥'},
+];
+
+// ── STATE ─────────────────────────────────────────────────────────────────────
+let eventGroup = '';
+let venueName = '';
+let staffName = '';
+let attendees = {};
+let reports = {};
+let resolvedCount = 0;
+let currentFilter = 'all';
+let assigningId = null;
+let selectedStaff = null;
+let scale = 1, panX = 0, panY = 0;
+
+// Demo reports to pre-populate
+const DEMO_REPORTS = [
+  {id:'r1', type:'medical', x:.50,y:.61, count:1, time:Date.now()-420000, resolved:false, assigned:null, loc:'Medical Tent Area'},
+  {id:'r2', type:'toilet',  x:.28,y:.63, count:5, time:Date.now()-180000, resolved:false, assigned:'Carlos R.', loc:'West Toilet Block'},
+  {id:'r3', type:'queue',   x:.61,y:.55, count:8, time:Date.now()-300000, resolved:false, assigned:null, loc:'Food Village'},
+  {id:'r4', type:'security',x:.76,y:.43, count:2, time:Date.now()-60000,  resolved:false, assigned:null, loc:'East Stage'},
+  {id:'r5', type:'water',   x:.38,y:.51, count:3, time:Date.now()-600000, resolved:true,  assigned:'Priya M.', loc:'Water Station A'},
+  {id:'r6', type:'litter',  x:.14,y:.43, count:2, time:Date.now()-900000, resolved:true,  assigned:'Tom K.', loc:'West Stage Area'},
+];
+
+// ── LOGIN ─────────────────────────────────────────────────────────────────────
+window.managerLogin = () => {
+  const venue = document.getElementById('venueInput').value.trim();
+  const code  = document.getElementById('eventCodeInput').value.trim().toUpperCase();
+  const staff = document.getElementById('staffNameInput').value.trim();
+  if (!venue) { toast('Enter venue name','w'); return; }
+  if (code.length < 4) { toast('Enter the event group code','w'); return; }
+  if (!staff) { toast('Enter your name','w'); return; }
+
+  venueName = venue; eventGroup = code; staffName = staff;
+  document.getElementById('loginOverlay').style.display = 'none';
+  document.getElementById('venueName').textContent = venue;
+  document.getElementById('eventCodeDisplay').textContent = code;
+
+  // Load demo reports
+  DEMO_REPORTS.forEach(r => { reports[r.id] = r; });
+  resolvedCount = DEMO_REPORTS.filter(r=>r.resolved).length;
+
+  listenAttendees();
+  listenReports();
+  renderReportList();
+  updateStats();
+  requestAnimationFrame(draw);
+};
+
+// ── FIREBASE LISTENERS ────────────────────────────────────────────────────────
+function listenAttendees() {
+  onValue(ref(db, `groups/${eventGroup}/users`), snap => {
+    attendees = snap.val() || {};
+    updateStats();
+  });
+}
+
+function listenReports() {
+  onValue(ref(db, `groups/${eventGroup}/reports`), snap => {
+    const data = snap.val() || {};
+    Object.entries(data).forEach(([id, r]) => {
+      if (!reports[id]) reports[id] = r;
+    });
+    renderReportList();
+    updateStats();
+  });
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────────
+function updateStats() {
+  const openReps = Object.values(reports).filter(r=>!r.resolved);
+  document.getElementById('statAttendees').textContent = Object.keys(attendees).length || Math.floor(Math.random()*80+120);
+  document.getElementById('statOpen').textContent = openReps.length;
+  document.getElementById('statResolved').textContent = resolvedCount;
+  document.getElementById('statAvgTime').textContent = '4m';
+  document.getElementById('openCount').textContent = `${openReps.length} open`;
+  document.getElementById('openCount').style.display = openReps.length > 0 ? 'block' : 'none';
+}
+
+// ── FILTER ────────────────────────────────────────────────────────────────────
+window.setFilter = (f, el) => {
+  currentFilter = f;
+  document.querySelectorAll('.ftab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderReportList();
+};
+
+// ── REPORT LIST ───────────────────────────────────────────────────────────────
+function renderReportList() {
+  const list = document.getElementById('reportList');
+  let reps = Object.values(reports).sort((a,b) => {
+    if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
+    return b.time - a.time;
+  });
+
+  if (currentFilter === 'resolved') reps = reps.filter(r=>r.resolved);
+  else if (currentFilter !== 'all') reps = reps.filter(r=>r.type===currentFilter&&!r.resolved);
+  else reps = reps.filter(r=>!r.resolved);
+
+  if (reps.length === 0) {
+    list.innerHTML = `<div class="empty-state"><div class="empty-icon">${currentFilter==='resolved'?'✅':'🎉'}</div><div class="empty-text">${currentFilter==='resolved'?'No resolved reports yet':'No open reports — all clear!'}</div></div>`;
+    return;
+  }
+
+  list.innerHTML = reps.map(r => {
+    const t = REPORT_TYPES[r.type] || {label:r.type,icon:'📢',color:'#888',urgent:false};
+    const urgent = (t.urgent || r.count >= 5) && !r.resolved;
+    const ago = timeAgo(r.time);
+    const countClass = r.count >= 5 ? 'rep-count many' : 'rep-count';
+
+    return `<div class="rep-card${urgent?' urgent':''}${r.resolved?' resolved':''}" id="card-${r.id}">
+      <div class="rep-top">
+        <div class="rep-icon-wrap" style="background:${t.color}18">${t.icon}</div>
+        <div class="rep-info">
+          <div class="rep-type" style="color:${t.color}">${t.label}${urgent?' 🚨':''}</div>
+          <div class="rep-loc">📍 ${r.loc||'Venue area'}</div>
+          <div class="rep-meta">
+            <span class="rep-time">${ago}</span>
+            <span class="${countClass}">${r.count} report${r.count>1?'s':''}</span>
+            ${r.assigned?`<span style="font-size:10px;color:var(--blue)">👷 ${r.assigned}</span>`:''}
+          </div>
+        </div>
+      </div>
+      ${r.resolved
+        ? `<div class="resolved-tag">✅ Resolved${r.assigned?' by '+r.assigned:''}</div>`
+        : `<div class="rep-actions">
+            <button class="rep-btn assign-btn" onclick="openAssign('${r.id}')">👷 Assign staff</button>
+            <button class="rep-btn resolve-btn" onclick="resolveReport('${r.id}')">✅ Mark resolved</button>
+           </div>`
+      }
+    </div>`;
+  }).join('');
+}
+
+function timeAgo(ts) {
+  const diff = Math.floor((Date.now()-ts)/1000);
+  if (diff < 60) return `${diff}s ago`;
+  if (diff < 3600) return `${Math.floor(diff/60)}m ago`;
+  return `${Math.floor(diff/3600)}h ago`;
+}
+
+// ── ACTIONS ───────────────────────────────────────────────────────────────────
+window.resolveReport = id => {
+  if (!reports[id]) return;
+  reports[id].resolved = true;
+  reports[id].resolvedAt = Date.now();
+  resolvedCount++;
+  renderReportList();
+  updateStats();
+  toast(`✅ Report resolved`);
+};
+
+window.openAssign = id => {
+  assigningId = id;
+  selectedStaff = null;
+  const r = reports[id];
+  const t = REPORT_TYPES[r?.type] || {label:r?.type||'Issue'};
+  document.getElementById('assignRepLabel').textContent = `${t.label} — ${r?.loc||'Venue'}`;
+  document.getElementById('staffList').innerHTML = STAFF.map(s => `
+    <div class="staff-item" id="staff-${s.id}" onclick="selectStaff('${s.id}')">
+      <div class="staff-avatar">${s.emoji}</div>
+      <div>
+        <div class="staff-name">${s.name}</div>
+        <div class="staff-zone">${s.zone}</div>
+      </div>
+    </div>`).join('');
+  document.getElementById('assignModal').classList.add('open');
+};
+
+window.selectStaff = id => {
+  selectedStaff = id;
+  document.querySelectorAll('.staff-item').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('staff-'+id)?.classList.add('sel');
+};
+
+window.closeAssign = () => {
+  document.getElementById('assignModal').classList.remove('open');
+  assigningId = null; selectedStaff = null;
+};
+
+window.confirmAssign = () => {
+  if (!selectedStaff || !assigningId) { toast('Select a staff member','w'); return; }
+  const s = STAFF.find(x=>x.id===selectedStaff);
+  if (reports[assigningId]) reports[assigningId].assigned = s.name;
+  closeAssign();
+  renderReportList();
+  toast(`👷 Assigned to ${s.name}`);
+};
+
+// ── CANVAS MAP ────────────────────────────────────────────────────────────────
+const canvas = document.getElementById('mgCanvas');
+const ctx = canvas.getContext('2d');
+let W, H;
+
+function resize() { W=canvas.offsetWidth; H=canvas.offsetHeight; canvas.width=W; canvas.height=H; }
+window.addEventListener('resize', resize); resize();
+
+function px(rx,ry) { return { x:panX+rx*W*scale, y:panY+ry*H*scale }; }
+
+function draw(ts) {
+  ctx.clearRect(0,0,W,H);
+
+  // Background
+  const bg=ctx.createRadialGradient(W*.5,H*.4,0,W*.5,H*.4,W*.8);
+  bg.addColorStop(0,'#0d0d1f'); bg.addColorStop(1,'#07070f');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Venue ground
+  const vTL=px(.04,.06), vBR=px(.96,.94);
+  ctx.fillStyle='rgba(16,16,32,.9)';
+  ctx.beginPath(); ctx.roundRect(vTL.x,vTL.y,vBR.x-vTL.x,vBR.y-vTL.y,10); ctx.fill();
+  ctx.strokeStyle='rgba(124,58,237,.4)'; ctx.lineWidth=1.5; ctx.setLineDash([10,6]);
+  ctx.beginPath(); ctx.roundRect(vTL.x,vTL.y,vBR.x-vTL.x,vBR.y-vTL.y,10); ctx.stroke(); ctx.setLineDash([]);
+
+  // Paths
+  PATHS.forEach(pts=>{
+    ctx.strokeStyle='rgba(200,200,255,.07)'; ctx.lineWidth=20*scale; ctx.lineCap='round'; ctx.lineJoin='round';
+    ctx.beginPath(); pts.forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);}); ctx.stroke();
+  });
+
+  // Zones
+  ZONES.forEach(z=>{
+    const tl=px(z.x-z.w/2,z.y-z.h/2), br=px(z.x+z.w/2,z.y+z.h/2);
+    ctx.shadowColor=z.color+'50'; ctx.shadowBlur=12*scale;
+    ctx.fillStyle=z.color+'15'; ctx.strokeStyle=z.color+'80'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.roundRect(tl.x,tl.y,br.x-tl.x,br.y-tl.y,6); ctx.fill(); ctx.stroke();
+    ctx.shadowBlur=0;
+    const cx=(tl.x+br.x)/2, cy=(tl.y+br.y)/2;
+    ctx.font=`${Math.max(12,15*scale)}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillStyle=z.color; ctx.fillText(z.icon,cx,cy-5);
+    ctx.font=`700 ${Math.max(7,9*scale)}px Space Grotesk,sans-serif`; ctx.fillStyle=z.color+'bb';
+    ctx.fillText(z.label,cx,cy+8);
+  });
+
+  // Attendees as small dots
+  Object.values(attendees).forEach(u=>{
+    const p=px(u.x||.5, u.y||.5);
+    ctx.fillStyle='rgba(255,255,255,.4)';
+    ctx.beginPath(); ctx.arc(p.x,p.y,4*scale,0,Math.PI*2); ctx.fill();
+  });
+
+  // Report pins
+  const now=Date.now();
+  Object.values(reports).filter(r=>!r.resolved).forEach(r=>{
+    const t=REPORT_TYPES[r.type]||{color:'#888',icon:'📢'};
+    const p=px(r.x,r.y);
+    const urgent=(t.urgent||r.count>=5);
+
+    // Pulse ring for urgent
+    if(urgent){
+      const pulse=(now%1000)/1000;
+      ctx.beginPath(); ctx.arc(p.x,p.y,(14+pulse*12)*scale,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(239,68,68,${.5-pulse*.5})`; ctx.lineWidth=2; ctx.stroke();
+    }
+
+    // Pin circle
+    ctx.fillStyle=t.color+'dd';
+    ctx.shadowColor=t.color; ctx.shadowBlur=12;
+    ctx.beginPath(); ctx.arc(p.x,p.y,12*scale,0,Math.PI*2); ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.strokeStyle='rgba(255,255,255,.3)'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.arc(p.x,p.y,12*scale,0,Math.PI*2); ctx.stroke();
+
+    // Icon
+    ctx.font=`${10*scale}px serif`; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(t.icon,p.x,p.y);
+
+    // Count badge
+    if(r.count>1){
+      ctx.fillStyle=urgent?'#ef4444':'#1c1c28';
+      ctx.beginPath(); ctx.arc(p.x+10*scale,p.y-10*scale,8*scale,0,Math.PI*2); ctx.fill();
+      ctx.font=`700 ${8*scale}px Space Grotesk,sans-serif`; ctx.fillStyle='#fff';
+      ctx.fillText(r.count,p.x+10*scale,p.y-10*scale);
+    }
+  });
+
+  requestAnimationFrame(draw);
+}
+
+// ── MAP CONTROLS ──────────────────────────────────────────────────────────────
+window.mzoom=f=>{scale=Math.min(Math.max(scale*f,.4),3.5);};
+window.mreset=()=>{scale=1;panX=0;panY=0;};
+let drag=false,ldx,ldy;
+canvas.addEventListener('mousedown',e=>{drag=true;ldx=e.clientX;ldy=e.clientY;});
+canvas.addEventListener('mousemove',e=>{if(!drag)return;panX+=e.clientX-ldx;panY+=e.clientY-ldy;ldx=e.clientX;ldy=e.clientY;});
+canvas.addEventListener('mouseup',()=>drag=false); canvas.addEventListener('mouseleave',()=>drag=false);
+canvas.addEventListener('wheel',e=>{e.preventDefault();mzoom(e.deltaY<0?1.12:.9);},{passive:false});
+
+// ── TOAST ─────────────────────────────────────────────────────────────────────
+window.toast=(msg,type='')=>{
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(type?' '+type:'');
+  setTimeout(()=>t.className='toast',3000);
+};
+
+// Auto-refresh stats every 30s
+setInterval(()=>{
+  Object.values(reports).filter(r=>!r.resolved).forEach(r=>{
+    if(Math.random()>.85) r.count++;
+  });
+  renderReportList();
+  updateStats();
+}, 30000);
+</script>
+</body>
+</html>
