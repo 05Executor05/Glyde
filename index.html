@@ -215,8 +215,12 @@ canvas:active{cursor:grabbing;}
 .search-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
 
 /* ── MAP LAYERS ── */
-.layers-popover{position:absolute;top:58px;left:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;z-index:22;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:160px;}
+.layers-popover{position:absolute;top:58px;left:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;z-index:22;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:170px;}
 .layers-popover.on{display:block;}
+.layers-hdr{display:flex;align-items:center;justify-content:space-between;padding:2px 4px 8px;margin-bottom:4px;border-bottom:1px solid var(--border);}
+.layers-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;}
+.layers-close{width:22px;height:22px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--muted);flex-shrink:0;transition:all .15s;}
+.layers-close:hover{color:var(--red);border-color:var(--red);}
 .layer-row{display:flex;align-items:center;gap:8px;padding:7px 6px;font-size:13px;cursor:pointer;border-radius:8px;transition:background .12s;}
 .layer-row:hover{background:var(--surface2);}
 .layer-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
@@ -459,7 +463,13 @@ canvas:active{cursor:grabbing;}
       <button class="mbtn" onclick="doZoom(.8)" aria-label="Zoom out">−</button>
       <button class="mbtn" onclick="resetView()" aria-label="Recenter">◎</button>
     </div>
-    <div class="layers-popover" id="layersPopover"></div>
+    <div class="layers-popover" id="layersPopover">
+      <div class="layers-hdr">
+        <div class="layers-title">Map Layers</div>
+        <div class="layers-close" onclick="toggleLayers()">✕</div>
+      </div>
+      <div id="layersList"></div>
+    </div>
     <div class="compass"><div class="ci"><div class="cn">N</div><div class="cneedle" id="needle"></div></div></div>
     <div class="nav-card" id="navCard">
       <div class="ntop">
@@ -1186,7 +1196,7 @@ window.toggleLayers=()=>{
   if(pop.classList.contains('on')) renderLayersPopover();
 };
 function renderLayersPopover(){
-  document.getElementById('layersPopover').innerHTML=CATEGORIES.map(c=>{
+  document.getElementById('layersList').innerHTML=CATEGORIES.map(c=>{
     const on=!hiddenCategories.has(c.id);
     return `<div class="layer-row" onclick="toggleLayerCat('${c.id}')">
       <div class="layer-check${on?' on':''}">${on?'✓':''}</div>
@@ -1200,8 +1210,14 @@ window.toggleLayerCat=catId=>{
   saveHiddenLayers();renderLayersPopover();
   logEvent('layer_toggle',{category:catId,hidden:hiddenCategories.has(catId)});
 };
+// Clicks inside the popover must never reach the document-level closer below —
+// re-rendering the list on every toggle detaches the clicked row from the DOM,
+// which breaks e.target.closest() lookups done *after* the mutation. Stopping
+// propagation here happens on the fixed event path computed before dispatch,
+// so it's unaffected by that detachment.
+document.getElementById('layersPopover').addEventListener('click',e=>e.stopPropagation());
 document.addEventListener('click',e=>{
-  if(!e.target.closest('#layersPopover')&&!e.target.closest('[onclick="toggleLayers()"]')){
+  if(!e.target.closest('[onclick="toggleLayers()"]')){
     document.getElementById('layersPopover')?.classList.remove('on');
   }
 });
