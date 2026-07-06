@@ -378,6 +378,9 @@ const ZONES = [
   {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻'},
   {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧'},
   {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧'},
+  {label:'SECURITY',    x:.42,y:.61,w:.07,h:.05,color:'#f472b6',icon:'🛡️'},
+  {label:'NORTH EXIT',  x:.50,y:.05,w:.10,h:.04,color:'#4ade80',icon:'🚪'},
+  {label:'SOUTH EXIT',  x:.50,y:.92,w:.10,h:.04,color:'#4ade80',icon:'🚪'},
 ];
 
 const PATHS=[
@@ -415,6 +418,7 @@ const ALERT_TYPES = [
   {id:'hazard', label:'⚠️ Hazard', icon:'⚠️'},
   {id:'closure', label:'🚧 Closure', icon:'🚧'},
   {id:'weather', label:'⛈️ Weather', icon:'⛈️'},
+  {id:'incident', label:'🚨 Incident', icon:'🚨'},
 ];
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
@@ -478,7 +482,7 @@ function renderAlertLocationSelect(){
   if(alertType==='closure'){
     sel.style.display='block';
     sel.innerHTML = PATHS.map((p,i)=>`<option value="${i}">${PATH_LABELS[i]}</option>`).join('');
-  } else if(alertType==='hazard'){
+  } else if(alertType==='hazard'||alertType==='incident'){
     sel.style.display='block';
     sel.innerHTML = ZONES.map((z,i)=>`<option value="${i}">${z.label}</option>`).join('');
   } else {
@@ -489,7 +493,7 @@ window.confirmBroadcastAlert = () => {
   const label = document.getElementById('alertLabelInput').value.trim();
   if(!label){ toast('Enter an alert message','w'); return; }
   const data = {type:alertType, label, severity:alertSeverity, ts:Date.now(), active:true};
-  if(alertType==='hazard'){
+  if(alertType==='hazard'||alertType==='incident'){
     const z=ZONES[+document.getElementById('alertLocationSelect').value];
     data.x=z.x;data.y=z.y;data.locLabel=z.label;
   } else if(alertType==='closure'){
@@ -703,13 +707,14 @@ function draw(ts) {
     if(a.type==='closure'&&a.pathIndex!=null&&PATHS[a.pathIndex]){
       ctx.strokeStyle='rgba(239,68,68,.8)';ctx.lineWidth=4*scale;ctx.setLineDash([8,6]);ctx.lineCap='round';
       ctx.beginPath();PATHS[a.pathIndex].forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.setLineDash([]);
-    } else if(a.type==='hazard'&&a.x!=null){
+    } else if((a.type==='hazard'||a.type==='incident')&&a.x!=null){
       const p=px(a.x,a.y);
       const pulse=(ts%900)/900;
+      const c=a.type==='incident'?'239,68,68':'245,158,11';
       ctx.beginPath();ctx.arc(p.x,p.y,(12+pulse*14)*scale,0,Math.PI*2);
-      ctx.strokeStyle=`rgba(245,158,11,${.7-pulse*.7})`;ctx.lineWidth=2;ctx.stroke();
+      ctx.strokeStyle=`rgba(${c},${.7-pulse*.7})`;ctx.lineWidth=2;ctx.stroke();
       ctx.font=`${16*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('⚠️',p.x,p.y);
+      ctx.fillText(a.type==='incident'?'🚨':'⚠️',p.x,p.y);
     }
   });
 

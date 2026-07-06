@@ -257,6 +257,21 @@ canvas:active{cursor:grabbing;}
 .menu-item-add.added{border-color:var(--green);color:var(--green);}
 .cuisine-chip{flex-shrink:0;padding:7px 13px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;}
 .cuisine-chip.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+
+/* ── SAFETY ── */
+.safety-section{margin-bottom:20px;}
+.safety-btn-row{display:flex;gap:8px;margin-bottom:14px;}
+.safety-btn{flex:1;padding:12px 6px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:11px;font-weight:600;cursor:pointer;text-align:center;transition:all .2s;}
+.safety-btn:hover{border-color:var(--neon);}
+.contact-card{display:flex;align-items:center;gap:10px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin-bottom:8px;}
+.contact-info{flex:1;min-width:0;}
+.contact-name{font-size:13px;font-weight:700;}
+.contact-phone{font-size:11px;color:var(--muted);}
+.contact-actions{display:flex;align-items:center;gap:6px;}
+.contact-action-btn{width:32px;height:32px;background:var(--surface);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;text-decoration:none;color:var(--text);}
+.contact-remove{color:var(--red);cursor:pointer;font-size:14px;margin-left:2px;padding:4px;}
+.add-contact-row{display:flex;gap:6px;margin-top:8px;}
+.add-contact-row input{flex:1;min-width:0;padding:9px 11px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;}
 .venue-sheet.on{display:block;}
 .vs-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .vs-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid;flex-shrink:0;}
@@ -781,6 +796,21 @@ canvas:active{cursor:grabbing;}
     <div class="panic-wrap">
       <button class="panic-btn" id="panicBtn" onclick="triggerPanic()">🆘 Send my location to group</button>
     </div>
+    <div class="safety-section">
+      <div class="my-reports-title">Safety</div>
+      <div class="safety-btn-row">
+        <div class="safety-btn" onclick="navToNearest('medical')">🏥 Nearest<br>Medical</div>
+        <div class="safety-btn" onclick="navToNearest('security')">🛡️ Nearest<br>Security</div>
+        <div class="safety-btn" onclick="navToNearestExit()">🚪 Safe<br>Exit</div>
+      </div>
+      <div class="my-reports-title">Emergency Contacts</div>
+      <div id="contactsList"></div>
+      <div class="add-contact-row">
+        <input id="contactNameInput" placeholder="Name" maxlength="20"/>
+        <input id="contactPhoneInput" placeholder="Phone" maxlength="20"/>
+        <button class="copy-btn" style="padding:9px 14px" onclick="addContact()">+ Add</button>
+      </div>
+    </div>
     <div class="group-box">
       <div style="font-size:11px;color:var(--muted)">Your group code</div>
       <div class="group-code" id="groupCodeDisplay">—</div>
@@ -892,6 +922,9 @@ const ZONES=[
   {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
   {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
   {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+  {label:'SECURITY',    x:.42,y:.61,w:.07,h:.05,color:'#f472b6',icon:'🛡️',floors:1,category:'security'},
+  {label:'NORTH EXIT',  x:.50,y:.05,w:.10,h:.04,color:'#4ade80',icon:'🚪',floors:1,category:'exit'},
+  {label:'SOUTH EXIT',  x:.50,y:.92,w:.10,h:.04,color:'#4ade80',icon:'🚪',floors:1,category:'exit'},
 ];
 
 const CATEGORIES=[
@@ -899,6 +932,8 @@ const CATEGORIES=[
   {id:'food',label:'Food',icon:'🍔'},
   {id:'restroom',label:'Restrooms',icon:'🚻'},
   {id:'water',label:'Water',icon:'💧'},
+  {id:'security',label:'Security',icon:'🛡️'},
+  {id:'exit',label:'Exits',icon:'🚪'},
   {id:'medical',label:'Medical',icon:'🏥'},
 ];
 
@@ -999,6 +1034,7 @@ ZONES.forEach((z,i)=>{
 const myId='u_'+Math.random().toString(36).slice(2,9);
 let myEmoji=EMOJIS[0], myColor=COLORS[0], myName='', myGroup='';
 let myX=.50, myY=.65;
+let myRealLat=null,myRealLng=null;
 let peers={};
 let navUid=null;
 let navZoneIdx=null;
@@ -1071,7 +1107,7 @@ function enterApp(name,code){
   startGPS();listenGroup();listenMeetingPoint();listenAlerts();pushLoop();initBattery();
   requestAnimationFrame(draw);
   switchChannel(currentChannel);
-  renderSidebar();renderMobBar();renderReports();renderMapBar();attachMyReportsListener();renderNowPlaying();
+  renderSidebar();renderMobBar();renderReports();renderMapBar();attachMyReportsListener();renderNowPlaying();renderContacts();
   logEvent('join',{group:code});
 }
 
@@ -1129,6 +1165,7 @@ function startGPS(){
   if(!navigator.geolocation){setStatus(false);return;}
   navigator.geolocation.watchPosition(pos=>{
     setStatus(true);
+    myRealLat=pos.coords.latitude;myRealLng=pos.coords.longitude;
     const seed=parseInt(myId.slice(2,4),36)/36;
     myX=.28+seed*.44+Math.sin(Date.now()/9000)*.025;
     myY=.38+seed*.28+Math.cos(Date.now()/8000)*.025;
@@ -1272,13 +1309,14 @@ function draw(ts){
     if(a.type==='closure'&&a.pathIndex!=null&&PATHS[a.pathIndex]){
       ctx.strokeStyle='rgba(239,68,68,.8)';ctx.lineWidth=4*scale;ctx.setLineDash([8,6]);ctx.lineCap='round';
       ctx.beginPath();PATHS[a.pathIndex].forEach(([rx,ry],pi)=>{const p=px(rx,ry);pi===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.setLineDash([]);
-    } else if(a.type==='hazard'&&a.x!=null){
+    } else if((a.type==='hazard'||a.type==='incident')&&a.x!=null){
       const p=px(a.x,a.y);
       const pulse=(ts%900)/900;
+      const c=a.type==='incident'?'239,68,68':'245,158,11';
       ctx.beginPath();ctx.arc(p.x,p.y,(12+pulse*14)*scale,0,Math.PI*2);
-      ctx.strokeStyle=`rgba(245,158,11,${.7-pulse*.7})`;ctx.lineWidth=2;ctx.stroke();
+      ctx.strokeStyle=`rgba(${c},${.7-pulse*.7})`;ctx.lineWidth=2;ctx.stroke();
       ctx.font=`${16*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-      ctx.fillText('⚠️',p.x,p.y);
+      ctx.fillText(ALERT_ICONS[a.type],p.x,p.y);
     }
   });
   // Zones
@@ -2000,13 +2038,14 @@ function scheduleReminder(entry){
   },delay);
 }
 
-// ── ALERTS (hazards, closures, weather — broadcast by venue manager) ─────────
+// ── ALERTS (hazards, closures, weather, incidents — broadcast by venue manager) ─
+const ALERT_ICONS={weather:'⛈️',closure:'🚧',incident:'🚨',hazard:'⚠️'};
 function listenAlerts(){
   onValue(ref(db,`groups/${myGroup}/alerts`),snap=>{
     const prev=alerts;
     alerts=snap.val()||{};
     Object.entries(alerts).forEach(([id,a])=>{
-      if(a.active&&!prev[id]) toast(`${a.type==='weather'?'⛈️':a.type==='closure'?'🚧':'⚠️'} ${a.label}`, a.severity==='severe'?'e':'w');
+      if(a.active&&!prev[id]) toast(`${ALERT_ICONS[a.type]||'⚠️'} ${a.label}`, a.severity==='severe'?'e':'w');
     });
     renderAlertBanner();
   });
@@ -2014,7 +2053,7 @@ function listenAlerts(){
 function renderAlertBanner(){
   const active=Object.entries(alerts).filter(([id,a])=>a.active&&!dismissedAlerts.has(id));
   document.getElementById('alertBanner').innerHTML=active.map(([id,a])=>{
-    const icon=a.type==='weather'?'⛈️':a.type==='closure'?'🚧':'⚠️';
+    const icon=ALERT_ICONS[a.type]||'⚠️';
     return `<div class="alert-banner-row ${a.severity||'warning'}">
       <span>${icon}</span>
       <span class="alert-banner-txt">${esc(a.label)}${a.locLabel?' — '+esc(a.locLabel):''}</span>
@@ -2696,6 +2735,73 @@ window.triggerPanic=()=>{
 window.copyCode=()=>{
   navigator.clipboard.writeText(`Join my group on Glyde! Code: ${myGroup}`).catch(()=>{});
   toast('Code copied!');
+};
+
+// ── SAFETY: nearest medical/security, safe exit, emergency contacts ─────────
+function nearestZoneByCategory(cat){
+  let best=null,bd=Infinity;
+  ZONES.forEach((z,i)=>{
+    if(z.category!==cat)return;
+    const d=(z.x-myX)**2+(z.y-myY)**2;
+    if(d<bd){bd=d;best=i;}
+  });
+  return best;
+}
+window.navToNearest=cat=>{
+  const idx=nearestZoneByCategory(cat);
+  if(idx==null){toast(`No ${cat} zone found`,'w');return;}
+  switchTab('map');
+  navToZone(idx);
+  logEvent('nav_nearest',{category:cat});
+};
+window.navToNearestExit=()=>{
+  const idx=nearestZoneByCategory('exit');
+  if(idx==null)return;
+  switchTab('map');
+  navToZone(idx);
+  const hasClosure=Object.values(alerts).some(a=>a.active&&a.type==='closure');
+  if(hasClosure) toast('⚠️ Some routes may be closed — check the map for closures','w');
+  logEvent('safe_exit',{});
+};
+
+let emergencyContacts=[];
+try{ emergencyContacts=JSON.parse(localStorage.getItem('glyde_contacts')||'[]'); }catch(e){}
+function saveContacts(){try{localStorage.setItem('glyde_contacts',JSON.stringify(emergencyContacts));}catch(e){}}
+function renderContacts(){
+  const el=document.getElementById('contactsList');
+  if(!emergencyContacts.length){el.innerHTML='<div style="font-size:11px;color:var(--muted);margin-bottom:6px">No emergency contacts added yet</div>';return;}
+  el.innerHTML=emergencyContacts.map((c,i)=>`
+    <div class="contact-card">
+      <div class="contact-info"><div class="contact-name">${esc(c.name)}</div><div class="contact-phone">${esc(c.phone)}</div></div>
+      <div class="contact-actions">
+        <a class="contact-action-btn" href="tel:${esc(c.phone)}" aria-label="Call ${esc(c.name)}">📞</a>
+        <div class="contact-action-btn" onclick="sendLocationToContact(${i})" aria-label="Send location to ${esc(c.name)}">📍</div>
+        <div class="contact-remove" onclick="removeContact(${i})" aria-label="Remove ${esc(c.name)}">✕</div>
+      </div>
+    </div>`).join('');
+}
+window.addContact=()=>{
+  const name=document.getElementById('contactNameInput').value.trim();
+  const phone=document.getElementById('contactPhoneInput').value.trim();
+  if(!name||!phone){toast('Enter a name and phone number','w');return;}
+  emergencyContacts.push({name,phone});
+  saveContacts();renderContacts();
+  document.getElementById('contactNameInput').value='';document.getElementById('contactPhoneInput').value='';
+  logEvent('contact_add',{});
+};
+window.removeContact=i=>{emergencyContacts.splice(i,1);saveContacts();renderContacts();};
+window.sendLocationToContact=i=>{
+  const c=emergencyContacts[i];if(!c)return;
+  let msg;
+  if(myRealLat!=null&&myRealLng!=null){
+    msg=`I'm sharing my location from Glyde: https://maps.google.com/?q=${myRealLat},${myRealLng}`;
+  } else {
+    const {z}=nearestZone(myX,myY);
+    msg=`I'm at the festival (group ${myGroup}) using Glyde — couldn't get an exact GPS fix, but my last known spot on the venue map was near ${z.label}.`;
+  }
+  const phoneDigits=c.phone.replace(/[^\d+]/g,'');
+  window.location.href=`sms:${phoneDigits}?body=${encodeURIComponent(msg)}`;
+  logEvent('contact_notify',{});
 };
 
 // ── TOAST ─────────────────────────────────────────────────────────────────────
