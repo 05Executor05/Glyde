@@ -211,6 +211,31 @@ canvas:active{cursor:grabbing;}
 .sched-now-tag{font-size:9px;font-weight:700;background:var(--accent);color:#fff;padding:2px 7px;border-radius:20px;margin-left:6px;text-transform:uppercase;}
 .sched-bio{font-size:11px;color:var(--muted);margin-top:6px;}
 .sched-predict{font-size:10px;color:var(--muted);opacity:.6;margin-top:6px;font-style:italic;}
+
+/* ── MERCHANDISE ── */
+.merch-tab-row{display:flex;gap:8px;margin-bottom:12px;}
+.merch-tab{flex:1;text-align:center;padding:8px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:700;cursor:pointer;}
+.merch-tab.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+.merch-cat-row{display:flex;gap:8px;margin-bottom:12px;overflow-x:auto;}
+.merch-cat-chip{flex-shrink:0;padding:7px 13px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;}
+.merch-cat-chip.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+.merch-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.merch-product-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;text-align:center;transition:all .15s;position:relative;}
+.merch-product-card:hover{border-color:var(--neon);}
+.merch-product-icon{font-size:32px;margin-bottom:6px;}
+.merch-product-name{font-size:12px;font-weight:700;}
+.merch-product-price{font-size:12px;color:var(--neon);font-weight:700;margin-top:2px;}
+.merch-stock-tag{position:absolute;top:6px;right:6px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;}
+.merch-stock-tag.low{background:rgba(245,158,11,.2);color:var(--amber);}
+.merch-stock-tag.out{background:rgba(239,68,68,.2);color:var(--red);}
+.merch-drop-tag{position:absolute;top:6px;left:6px;font-size:9px;font-weight:700;padding:2px 6px;border-radius:8px;background:rgba(124,58,237,.2);color:var(--neon);}
+.variant-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;}
+.variant-chip{padding:7px 13px;border-radius:8px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;}
+.variant-chip.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+.variant-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;}
+.pickup-code{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--neon);letter-spacing:4px;text-align:center;margin:10px 0;}
+.order-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;}
+.order-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(245,158,11,.15);color:var(--amber);}
 .venue-sheet.on{display:block;}
 .vs-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
 .vs-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid;flex-shrink:0;}
@@ -508,6 +533,7 @@ canvas:active{cursor:grabbing;}
     <div class="ldot" id="ldot" style="background:var(--amber)"></div>
     <span id="llbl" style="color:var(--amber)">CONNECTING</span>
   </div>
+  <button class="profile-btn" onclick="openMerch()" aria-label="Merchandise">🛍️</button>
   <button class="profile-btn" onclick="openSchedule()" aria-label="Event schedule">📅</button>
   <button class="profile-btn" onclick="openFriends()" aria-label="Friends">👥</button>
   <button class="profile-btn" onclick="openProfile()" aria-label="Your profile">👤</button>
@@ -634,6 +660,21 @@ canvas:active{cursor:grabbing;}
     </div>
     <div class="now-playing" id="nowPlaying" onclick="openSchedule()"></div>
     <div class="map-bar" id="mapBar"></div>
+  </div>
+</div>
+
+<!-- MERCHANDISE PANEL -->
+<div class="modal-overlay" id="merchPanel">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Merch</div>
+    <div class="merch-tab-row">
+      <div class="merch-tab" id="merchTabShop" onclick="setMerchTab('shop')">Shop</div>
+      <div class="merch-tab" id="merchTabOrders" onclick="setMerchTab('orders')">My Orders</div>
+    </div>
+    <div id="merchBody" style="max-height:400px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeMerch()">Close</button>
+    </div>
   </div>
 </div>
 
@@ -841,6 +882,30 @@ const SCHEDULE=[
   {id:'w2',artist:'Prism',zoneIdx:2,genre:'Pop',bio:'Breakout pop act closing the west stage.',offsetStart:70,offsetEnd:130},
 ];
 function scheduleTime(offsetMin){return EVENT_EPOCH+offsetMin*60000;}
+
+// ── MERCHANDISE (web-only simulation — no real payments backend) ────────────
+const MERCH_CATEGORIES=[
+  {id:'apparel',label:'Apparel',icon:'👕'},
+  {id:'accessories',label:'Accessories',icon:'🧢'},
+  {id:'music',label:'Music',icon:'💿'},
+];
+const PRODUCTS=[
+  {id:'p1',name:'Horizon Tee',category:'apparel',icon:'👕',price:35,sizes:['S','M','L','XL'],colors:['Black','White'],stock:40},
+  {id:'p2',name:'Festival Hoodie',category:'apparel',icon:'🧥',price:65,sizes:['S','M','L','XL'],colors:['Black'],stock:18},
+  {id:'p3',name:'Sunset Cap',category:'accessories',icon:'🧢',sizes:null,colors:['Black','Tan'],price:28,stock:6},
+  {id:'p4',name:'Glow Wristband',category:'accessories',icon:'💫',sizes:null,colors:null,price:12,stock:120},
+  {id:'p5',name:'Horizon Vinyl LP',category:'music',icon:'💿',sizes:null,colors:null,price:40,stock:15},
+  {id:'p6',name:'Limited Drop Tee',category:'apparel',icon:'✨',sizes:['S','M','L'],colors:['Purple'],price:45,stock:25,dropOffset:15},
+];
+let merchStock={};
+let merchOrders=[];
+let merchListenerAttached=false;
+let merchTab='shop';
+let merchCatFilter='apparel';
+let openProductId=null;
+let selectedSize=null,selectedColor=null;
+let merchNotifySubs=new Set();
+try{ merchNotifySubs=new Set(JSON.parse(localStorage.getItem('glyde_merch_notify')||'[]')); }catch(e){}
 
 const PATHS=[
   [[.2,.33],[.5,.33],[.8,.33]],
@@ -1496,6 +1561,154 @@ document.addEventListener('click',e=>{
     document.getElementById('layersPopover')?.classList.remove('on');
   }
 });
+
+// ── MERCHANDISE ────────────────────────────────────────────────────────────────
+function attachMerchListener(){
+  if(merchListenerAttached||!myGroup)return;
+  merchListenerAttached=true;
+  PRODUCTS.forEach(p=>{
+    runTransaction(ref(db,`groups/${myGroup}/merchStock/${p.id}`),cur=>cur===null?p.stock:cur).catch(()=>{});
+  });
+  onValue(ref(db,`groups/${myGroup}/merchStock`),snap=>{
+    merchStock=snap.val()||{};
+    if(document.getElementById('merchPanel').classList.contains('open')) renderMerchPanel();
+  });
+  onValue(ref(db,`groups/${myGroup}/merchOrders/${myId}`),snap=>{
+    const data=snap.val()||{};
+    merchOrders=Object.entries(data).map(([id,o])=>({...o,id})).sort((a,b)=>b.ts-a.ts);
+    if(document.getElementById('merchPanel').classList.contains('open')) renderMerchPanel();
+  });
+}
+window.openMerch=()=>{
+  attachMerchListener();
+  document.getElementById('merchPanel').classList.add('open');
+  merchTab='shop';openProductId=null;
+  renderMerchPanel();
+};
+window.closeMerch=()=>document.getElementById('merchPanel').classList.remove('open');
+window.setMerchTab=tab=>{merchTab=tab;openProductId=null;renderMerchPanel();};
+
+function renderMerchPanel(){
+  document.getElementById('merchTabShop').classList.toggle('sel',merchTab==='shop');
+  document.getElementById('merchTabOrders').classList.toggle('sel',merchTab==='orders');
+  if(merchTab==='orders'){renderMerchOrders();return;}
+  if(openProductId){renderProductDetail(openProductId);return;}
+  renderMerchGrid();
+}
+function stockFor(id){
+  const p=PRODUCTS.find(x=>x.id===id);
+  const s=merchStock[id];
+  return s===undefined?p.stock:s;
+}
+function renderMerchGrid(){
+  const catRow=MERCH_CATEGORIES.map(c=>`<div class="merch-cat-chip${merchCatFilter===c.id?' sel':''}" onclick="setMerchCat('${c.id}')">${c.icon} ${c.label}</div>`).join('');
+  const now=Date.now();
+  const items=PRODUCTS.filter(p=>p.category===merchCatFilter).map(p=>{
+    const stock=stockFor(p.id);
+    const isDrop=p.dropOffset!=null&&now<scheduleTime(p.dropOffset);
+    const stockTag=isDrop?'':(stock<=0?'<div class="merch-stock-tag out">Sold out</div>':(stock<=5?`<div class="merch-stock-tag low">${stock} left</div>`:''));
+    const dropTag=isDrop?'<div class="merch-drop-tag">Drops soon</div>':'';
+    return `<div class="merch-product-card" onclick="openProduct('${p.id}')">
+      ${stockTag}${dropTag}
+      <div class="merch-product-icon">${p.icon}</div>
+      <div class="merch-product-name">${esc(p.name)}</div>
+      <div class="merch-product-price">$${p.price}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('merchBody').innerHTML=`<div class="merch-cat-row">${catRow}</div><div class="merch-grid">${items}</div>`;
+}
+window.setMerchCat=id=>{merchCatFilter=id;renderMerchGrid();};
+
+window.openProduct=id=>{
+  openProductId=id;
+  const p=PRODUCTS.find(x=>x.id===id);
+  selectedSize=p.sizes?p.sizes[0]:null;
+  selectedColor=p.colors?p.colors[0]:null;
+  renderProductDetail(id);
+};
+function renderProductDetail(id){
+  const p=PRODUCTS.find(x=>x.id===id);if(!p)return;
+  const stock=stockFor(id);
+  const now=Date.now();
+  const isDrop=p.dropOffset!=null&&now<scheduleTime(p.dropOffset);
+  const subscribed=merchNotifySubs.has(id);
+  let html=`<div style="text-align:center;font-size:56px;margin-bottom:6px">${p.icon}</div>
+    <div style="text-align:center;font-size:16px;font-weight:700">${esc(p.name)}</div>
+    <div style="text-align:center;color:var(--neon);font-weight:700;margin-bottom:14px">$${p.price}</div>`;
+  if(p.sizes){
+    html+=`<div class="variant-label">Size</div><div class="variant-row">${p.sizes.map(s=>`<div class="variant-chip${selectedSize===s?' sel':''}" onclick="selectVariant('size','${s}')">${s}</div>`).join('')}</div>`;
+  }
+  if(p.colors){
+    html+=`<div class="variant-label">Color</div><div class="variant-row">${p.colors.map(c=>`<div class="variant-chip${selectedColor===c?' sel':''}" onclick="selectVariant('color','${c}')">${c}</div>`).join('')}</div>`;
+  }
+  if(isDrop){
+    const dropDate=new Date(scheduleTime(p.dropOffset));
+    html+=`<div style="font-size:12px;color:var(--muted);margin-bottom:12px">🔒 Drops at ${dropDate.getHours()%12||12}:${String(dropDate.getMinutes()).padStart(2,'0')}${dropDate.getHours()<12?'am':'pm'}</div>
+      <button class="vs-btn ${subscribed?'vs-btn-primary':''}" style="width:100%" onclick="toggleDropNotify('${id}')">${subscribed?'🔔 Notifying you':'🔕 Notify me when it drops'}</button>`;
+  } else {
+    html+=`<div style="font-size:12px;color:var(--muted);margin-bottom:12px">${stock<=0?'Sold out':stock<=5?`Only ${stock} left!`:'In stock'}</div>
+      <button class="vs-btn vs-btn-primary" style="width:100%" ${stock<=0?'disabled':''} onclick="confirmReserve('${id}')">${stock<=0?'Sold Out':'🎟️ Reserve for pickup'}</button>`;
+  }
+  html+=`<div style="margin-top:10px"><span class="msg-action-btn" onclick="backToMerchGrid()">‹ Back to shop</span></div>`;
+  document.getElementById('merchBody').innerHTML=html;
+}
+window.selectVariant=(kind,val)=>{
+  if(kind==='size')selectedSize=val;else selectedColor=val;
+  renderProductDetail(openProductId);
+};
+window.backToMerchGrid=()=>{openProductId=null;renderMerchGrid();};
+window.confirmReserve=id=>{
+  if(!myGroup)return;
+  const p=PRODUCTS.find(x=>x.id===id);if(!p)return;
+  runTransaction(ref(db,`groups/${myGroup}/merchStock/${id}`),cur=>{
+    const c=cur===null?p.stock:cur;
+    return c<=0?c:c-1;
+  }).catch(fbFail);
+  const pickupCode=Math.random().toString(36).slice(2,8).toUpperCase();
+  const orderRef=push(ref(db,`groups/${myGroup}/merchOrders/${myId}`),{
+    productId:id,name:p.name,size:selectedSize,color:selectedColor,price:p.price,
+    ts:Date.now(),pickupCode,status:'reserved'
+  });
+  toast(`🎟️ Reserved! Pickup code: ${pickupCode}`);
+  logEvent('merch_reserve',{product:p.name});
+  openProductId=null;merchTab='orders';renderMerchPanel();
+};
+window.toggleDropNotify=id=>{
+  const p=PRODUCTS.find(x=>x.id===id);if(!p)return;
+  if(merchNotifySubs.has(id)){merchNotifySubs.delete(id);}
+  else{
+    merchNotifySubs.add(id);
+    if(window.Notification&&Notification.permission==='default')Notification.requestPermission().catch(()=>{});
+    const delay=scheduleTime(p.dropOffset)-Date.now();
+    if(delay>0&&delay<2*60*60000){
+      setTimeout(()=>{
+        if(!merchNotifySubs.has(id))return;
+        const msg=`✨ ${p.name} just dropped — get it before it's gone!`;
+        if(window.Notification&&Notification.permission==='granted')new Notification('Glyde',{body:msg});
+        else toast(msg);
+      },delay);
+    }
+    toast(`🔔 We'll notify you when ${p.name} drops`);
+  }
+  try{localStorage.setItem('glyde_merch_notify',JSON.stringify([...merchNotifySubs]));}catch(e){}
+  renderProductDetail(id);
+};
+function renderMerchOrders(){
+  if(!merchOrders.length){
+    document.getElementById('merchBody').innerHTML=`<div class="search-empty">No orders yet — browse the shop!</div>`;
+    return;
+  }
+  document.getElementById('merchBody').innerHTML=merchOrders.map(o=>`
+    <div class="order-card">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div style="font-weight:700;font-size:13px">${esc(o.name)}</div>
+        <div class="order-status">${o.status==='picked_up'?'✅ Picked up':'⏳ Reserved'}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${o.size?o.size+' · ':''}${o.color?o.color+' · ':''}$${o.price}</div>
+      <div class="pickup-code">${o.pickupCode}</div>
+      <div style="font-size:10px;color:var(--muted);text-align:center">Show this code at the merch tent to collect your item</div>
+    </div>`).join('');
+}
 
 // ── EVENT SCHEDULE (schedule, bookmarks, reminders, now-playing, occupancy) ──
 let scheduleBookmarks=new Set();
