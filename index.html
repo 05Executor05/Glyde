@@ -188,6 +188,40 @@ canvas:active{cursor:grabbing;}
 .vs-btn-primary:hover{opacity:.88;}
 .fav-chip{border-color:rgba(250,204,21,.4)!important;}
 
+/* ── SEARCH ── */
+.search-overlay{position:fixed;inset:0;background:var(--bg);z-index:250;display:none;flex-direction:column;}
+.search-overlay.on{display:flex;}
+.search-hdr{display:flex;align-items:center;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.search-input-wrap{flex:1;display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:8px 12px;}
+.search-input-wrap:focus-within{border-color:var(--accent);}
+.search-input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;}
+.search-mic{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px;}
+.search-mic.listening{color:var(--red);animation:ppulse 1s infinite;}
+.search-cancel{font-size:13px;font-weight:600;color:var(--neon);cursor:pointer;flex-shrink:0;}
+.search-body{flex:1;overflow-y:auto;padding:14px;}
+.search-cat-row{display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;}
+.search-cat-row::-webkit-scrollbar{display:none;}
+.search-cat{flex-shrink:0;display:flex;align-items:center;gap:6px;padding:8px 14px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.search-cat.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+.search-section-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin:14px 0 8px;font-family:'Space Mono',monospace;}
+.search-chip-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px;}
+.search-chip{padding:7px 13px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;}
+.search-chip:hover{border-color:var(--neon);}
+.search-result{display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:12px;cursor:pointer;transition:background .12s;}
+.search-result:hover{background:var(--surface2);}
+.search-result-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0;}
+.search-result-name{font-size:14px;font-weight:600;}
+.search-result-cat{font-size:11px;color:var(--muted);text-transform:capitalize;}
+.search-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
+
+/* ── MAP LAYERS ── */
+.layers-popover{position:absolute;top:58px;left:12px;background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:10px;z-index:22;display:none;box-shadow:0 8px 32px rgba(0,0,0,.5);min-width:160px;}
+.layers-popover.on{display:block;}
+.layer-row{display:flex;align-items:center;gap:8px;padding:7px 6px;font-size:13px;cursor:pointer;border-radius:8px;transition:background .12s;}
+.layer-row:hover{background:var(--surface2);}
+.layer-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
+.layer-check.on{background:var(--accent);border-color:var(--accent);color:#fff;}
+
 /* Friend chips at bottom of map */
 .map-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(11,11,20,.97);border-top:1px solid var(--border);padding:8px 10px;display:flex;gap:8px;z-index:20;overflow-x:auto;}
 .map-bar::-webkit-scrollbar{display:none;}
@@ -396,6 +430,22 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
+<!-- SEARCH -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-hdr">
+    <div class="search-input-wrap">
+      <span>🔍</span>
+      <input class="search-input" id="searchInput" placeholder="Search stages, food, restrooms…" oninput="runSearch(this.value)" onkeydown="if(event.key==='Enter')runSearch(this.value)"/>
+      <button class="search-mic" id="searchMic" onclick="toggleVoiceSearch()" style="display:none">🎤</button>
+    </div>
+    <div class="search-cancel" onclick="closeSearch()">Cancel</div>
+  </div>
+  <div class="search-body">
+    <div class="search-cat-row" id="searchCatRow"></div>
+    <div id="searchResults"></div>
+  </div>
+</div>
+
 <!-- ── SCREENS ── -->
 
 <!-- MAP -->
@@ -403,10 +453,13 @@ canvas:active{cursor:grabbing;}
   <div class="map-wrap">
     <canvas id="mapCanvas"></canvas>
     <div class="map-controls">
-      <button class="mbtn" onclick="doZoom(1.25)">+</button>
-      <button class="mbtn" onclick="doZoom(.8)">−</button>
-      <button class="mbtn" onclick="resetView()">◎</button>
+      <button class="mbtn" onclick="openSearch()" aria-label="Search">🔍</button>
+      <button class="mbtn" onclick="toggleLayers()" aria-label="Map layers">🎚️</button>
+      <button class="mbtn" onclick="doZoom(1.25)" aria-label="Zoom in">+</button>
+      <button class="mbtn" onclick="doZoom(.8)" aria-label="Zoom out">−</button>
+      <button class="mbtn" onclick="resetView()" aria-label="Recenter">◎</button>
     </div>
+    <div class="layers-popover" id="layersPopover"></div>
     <div class="compass"><div class="ci"><div class="cn">N</div><div class="cneedle" id="needle"></div></div></div>
     <div class="nav-card" id="navCard">
       <div class="ntop">
@@ -563,15 +616,23 @@ const EMOJIS=['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🎯','🌙','�
 const COLORS=['#f472b6','#fb923c','#facc15','#a78bfa','#34d399','#f87171','#60a5fa','#4ade80','#c084fc','#38bdf8'];
 
 const ZONES=[
-  {label:'MAIN STAGE',  x:.50,y:.20,w:.26,h:.11,color:'#9333ea',icon:'🎵',floors:3},
-  {label:'EAST STAGE',  x:.76,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2},
-  {label:'WEST STAGE',  x:.14,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2},
-  {label:'FOOD VILLAGE',x:.61,y:.55,w:.13,h:.08,color:'#d97706',icon:'🍔',floors:1},
-  {label:'MEDICAL',     x:.50,y:.61,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1},
-  {label:'TOILETS',     x:.28,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1},
-  {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1},
-  {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1},
-  {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1},
+  {label:'MAIN STAGE',  x:.50,y:.20,w:.26,h:.11,color:'#9333ea',icon:'🎵',floors:3,category:'stage'},
+  {label:'EAST STAGE',  x:.76,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2,category:'stage'},
+  {label:'WEST STAGE',  x:.14,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2,category:'stage'},
+  {label:'FOOD VILLAGE',x:.61,y:.55,w:.13,h:.08,color:'#d97706',icon:'🍔',floors:1,category:'food'},
+  {label:'MEDICAL',     x:.50,y:.61,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1,category:'medical'},
+  {label:'TOILETS',     x:.28,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
+  {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
+  {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+  {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+];
+
+const CATEGORIES=[
+  {id:'stage',label:'Stages',icon:'🎵'},
+  {id:'food',label:'Food',icon:'🍔'},
+  {id:'restroom',label:'Restrooms',icon:'🚻'},
+  {id:'water',label:'Water',icon:'💧'},
+  {id:'medical',label:'Medical',icon:'🏥'},
 ];
 
 const PATHS=[
@@ -840,6 +901,7 @@ function draw(ts){
   }
   // Zones
   ZONES.forEach(z=>{
+    if(hiddenCategories.has(z.category))return;
     const tl=px(z.x-z.w/2,z.y-z.h/2),br=px(z.x+z.w/2,z.y+z.h/2);
     const bw=br.x-tl.x,bh=br.y-tl.y;
     ctx.shadowColor=z.color+'60';ctx.shadowBlur=16*scale;
@@ -912,6 +974,7 @@ function handleTapIfClick(clientX,clientY){
   const x=clientX-rect.left,y=clientY-rect.top;
   for(let i=ZONES.length-1;i>=0;i--){
     const z=ZONES[i];
+    if(hiddenCategories.has(z.category))continue;
     const tl=px(z.x-z.w/2,z.y-z.h/2),br=px(z.x+z.w/2,z.y+z.h/2);
     if(x>=tl.x&&x<=br.x&&y>=tl.y&&y<=br.y){openVenueSheet(i);return;}
   }
@@ -1015,6 +1078,133 @@ window.shareDestination=()=>{
   }
   logEvent('share_destination',{zone:z.label});
 };
+
+// ── SEARCH & DISCOVERY ────────────────────────────────────────────────────────
+const POPULAR_SEARCHES=['Main Stage','Toilets','Water','Food Village','Medical'];
+let searchCatFilter=null;
+let recentSearches=[];
+try{ recentSearches=JSON.parse(localStorage.getItem('glyde_recent_searches')||'[]'); }catch(e){}
+function saveRecentSearches(){ try{ localStorage.setItem('glyde_recent_searches',JSON.stringify(recentSearches)); }catch(e){} }
+
+window.openSearch=()=>{
+  document.getElementById('searchOverlay').classList.add('on');
+  document.getElementById('searchInput').value='';
+  document.getElementById('searchCatRow').innerHTML=CATEGORIES.map(c=>
+    `<div class="search-cat${searchCatFilter===c.id?' sel':''}" onclick="selectCategory('${c.id}')">${c.icon} ${c.label}</div>`
+  ).join('');
+  if(window.SpeechRecognition||window.webkitSpeechRecognition) document.getElementById('searchMic').style.display='flex';
+  runSearch('');
+  setTimeout(()=>document.getElementById('searchInput').focus(),50);
+  logEvent('search_open');
+};
+window.closeSearch=()=>{
+  document.getElementById('searchOverlay').classList.remove('on');
+  stopVoiceSearch();
+};
+window.selectCategory=catId=>{
+  searchCatFilter=searchCatFilter===catId?null:catId;
+  document.querySelectorAll('.search-cat').forEach(el=>el.classList.remove('sel'));
+  if(searchCatFilter){
+    const i=CATEGORIES.findIndex(c=>c.id===searchCatFilter);
+    document.querySelectorAll('.search-cat')[i]?.classList.add('sel');
+  }
+  runSearch(document.getElementById('searchInput').value);
+};
+window.runSearch=q=>{
+  const query=(q||'').trim().toLowerCase();
+  const results=document.getElementById('searchResults');
+  let matches=ZONES.map((z,i)=>({z,i})).filter(({z})=>{
+    if(searchCatFilter&&z.category!==searchCatFilter)return false;
+    if(!query)return true;
+    return z.label.toLowerCase().includes(query)||z.category.includes(query);
+  });
+  if(!query&&!searchCatFilter){
+    let html='';
+    if(recentSearches.length){
+      html+=`<div class="search-section-label">Recent</div><div class="search-chip-row">${recentSearches.map(t=>`<div class="search-chip" onclick="quickSearch('${t.replace(/'/g,"\\'")}')">${t}</div>`).join('')}</div>`;
+    }
+    html+=`<div class="search-section-label">Popular</div><div class="search-chip-row">${POPULAR_SEARCHES.map(t=>`<div class="search-chip" onclick="quickSearch('${t.replace(/'/g,"\\'")}')">${t}</div>`).join('')}</div>`;
+    html+=`<div class="search-section-label">All Venues</div>`;
+    results.innerHTML=html+renderSearchResultRows(matches);
+    return;
+  }
+  results.innerHTML=matches.length?renderSearchResultRows(matches):`<div class="search-empty">No results for "${esc(q)}"</div>`;
+};
+function renderSearchResultRows(matches){
+  return matches.map(({z,i})=>`
+    <div class="search-result" onclick="selectSearchResult(${i})">
+      <div class="search-result-icon" style="background:${z.color}22;color:${z.color}">${z.icon}</div>
+      <div><div class="search-result-name">${z.label}</div><div class="search-result-cat">${z.category}${favorites.has(i)?' · ★ favorite':''}</div></div>
+    </div>`).join('');
+}
+window.quickSearch=term=>{
+  document.getElementById('searchInput').value=term;
+  runSearch(term);
+};
+window.selectSearchResult=idx=>{
+  const z=ZONES[idx];
+  const term=document.getElementById('searchInput').value.trim()||z.label;
+  recentSearches=[z.label,...recentSearches.filter(t=>t!==z.label)].slice(0,6);
+  saveRecentSearches();
+  logEvent('search_select',{zone:z.label,query:term});
+  closeSearch();
+  panX=W/2-z.x*W*scale;panY=H/2-z.y*H*scale;
+  openVenueSheet(idx);
+};
+
+// Voice search (Web Speech API, optional per roadmap)
+let voiceRecognition=null,voiceListening=false;
+window.toggleVoiceSearch=()=>{
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return;
+  if(voiceListening){stopVoiceSearch();return;}
+  voiceRecognition=new SR();
+  voiceRecognition.lang='en-US';voiceRecognition.interimResults=false;
+  voiceRecognition.onresult=e=>{
+    const text=e.results[0][0].transcript;
+    document.getElementById('searchInput').value=text;
+    runSearch(text);
+  };
+  voiceRecognition.onend=()=>{voiceListening=false;document.getElementById('searchMic').classList.remove('listening');};
+  voiceListening=true;
+  document.getElementById('searchMic').classList.add('listening');
+  voiceRecognition.start();
+};
+function stopVoiceSearch(){
+  if(voiceRecognition&&voiceListening) voiceRecognition.stop();
+  voiceListening=false;
+  document.getElementById('searchMic')?.classList.remove('listening');
+}
+
+// ── MAP LAYERS ────────────────────────────────────────────────────────────────
+let hiddenCategories=new Set();
+try{ hiddenCategories=new Set(JSON.parse(localStorage.getItem('glyde_hidden_layers')||'[]')); }catch(e){}
+function saveHiddenLayers(){ try{ localStorage.setItem('glyde_hidden_layers',JSON.stringify([...hiddenCategories])); }catch(e){} }
+window.toggleLayers=()=>{
+  const pop=document.getElementById('layersPopover');
+  pop.classList.toggle('on');
+  if(pop.classList.contains('on')) renderLayersPopover();
+};
+function renderLayersPopover(){
+  document.getElementById('layersPopover').innerHTML=CATEGORIES.map(c=>{
+    const on=!hiddenCategories.has(c.id);
+    return `<div class="layer-row" onclick="toggleLayerCat('${c.id}')">
+      <div class="layer-check${on?' on':''}">${on?'✓':''}</div>
+      <div>${c.icon} ${c.label}</div>
+    </div>`;
+  }).join('');
+}
+window.toggleLayerCat=catId=>{
+  if(hiddenCategories.has(catId)) hiddenCategories.delete(catId);
+  else hiddenCategories.add(catId);
+  saveHiddenLayers();renderLayersPopover();
+  logEvent('layer_toggle',{category:catId,hidden:hiddenCategories.has(catId)});
+};
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#layersPopover')&&!e.target.closest('[onclick="toggleLayers()"]')){
+    document.getElementById('layersPopover')?.classList.remove('on');
+  }
+});
 
 // ── MAP BAR ───────────────────────────────────────────────────────────────────
 function renderMapBar(){
