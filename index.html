@@ -169,6 +169,25 @@ canvas:active{cursor:grabbing;}
 .cbtn{width:100%;padding:9px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
 .cbtn:hover{border-color:var(--red);color:var(--red);}
 
+/* Venue detail bottom sheet */
+.venue-sheet{position:absolute;bottom:8px;left:12px;right:12px;background:rgba(17,17,28,.97);border:1px solid var(--border);border-radius:16px;padding:14px;z-index:21;display:none;box-shadow:0 8px 32px rgba(0,0,0,.6);}
+.venue-sheet.on{display:block;}
+.vs-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.vs-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;border:2px solid;flex-shrink:0;}
+.vs-name{font-size:15px;font-weight:700;flex:1;}
+.vs-close{width:28px;height:28px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--muted);flex-shrink:0;transition:all .15s;}
+.vs-close:hover{color:var(--text);border-color:var(--red);}
+.vs-floors{display:none;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
+.floor-chip{padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;}
+.floor-chip.sel{background:var(--accent);color:#fff;border-color:var(--accent);}
+.vs-actions{display:flex;gap:8px;}
+.vs-btn{flex:1;padding:10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
+.vs-btn:hover{border-color:var(--neon);}
+.vs-btn.on{border-color:#facc15;color:#facc15;background:rgba(250,204,21,.1);}
+.vs-btn-primary{background:var(--accent);border-color:var(--accent);color:#fff;}
+.vs-btn-primary:hover{opacity:.88;}
+.fav-chip{border-color:rgba(250,204,21,.4)!important;}
+
 /* Friend chips at bottom of map */
 .map-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(11,11,20,.97);border-top:1px solid var(--border);padding:8px 10px;display:flex;gap:8px;z-index:20;overflow-x:auto;}
 .map-bar::-webkit-scrollbar{display:none;}
@@ -404,6 +423,19 @@ canvas:active{cursor:grabbing;}
       </div>
       <button class="cbtn" onclick="cancelNav()">Stop navigating</button>
     </div>
+    <div class="venue-sheet" id="venueSheet">
+      <div class="vs-top">
+        <div class="vs-icon" id="vsIcon">🎪</div>
+        <div class="vs-name" id="vsName">—</div>
+        <div class="vs-close" onclick="closeVenueSheet()">✕</div>
+      </div>
+      <div class="vs-floors" id="vsFloors"></div>
+      <div class="vs-actions">
+        <button class="vs-btn vs-btn-primary" onclick="navToZoneBtn()">🧭 Navigate</button>
+        <button class="vs-btn" id="vsFavBtn" onclick="toggleFavorite()">☆ Favorite</button>
+        <button class="vs-btn" onclick="shareDestination()">📤 Share</button>
+      </div>
+    </div>
     <div class="map-bar" id="mapBar"></div>
   </div>
 </div>
@@ -599,6 +631,11 @@ let myEmoji=EMOJIS[0], myColor=COLORS[0], myName='', myGroup='';
 let myX=.50, myY=.65;
 let peers={};
 let navUid=null;
+let navZoneIdx=null;
+let openZoneIdx=null;
+let zoneFloors={};
+let favorites=new Set();
+try{ favorites=new Set(JSON.parse(localStorage.getItem('glyde_favorites')||'[]')); }catch(e){}
 let scale=1, panX=0, panY=0, heading=0;
 let pushTmr=null;
 let panicOn=false;
@@ -787,14 +824,17 @@ function draw(ts){
     ctx.beginPath();pts.forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.setLineDash([]);
   });
   // Nav line
-  if(navUid&&peers[navUid]){
-    const f=peers[navUid],me=px(myX,myY),dst=px(f.x,f.y);
+  let navPos=null;
+  if(navUid&&peers[navUid]) navPos={x:peers[navUid].x,y:peers[navUid].y};
+  else if(navZoneIdx!=null&&ZONES[navZoneIdx]) navPos={x:ZONES[navZoneIdx].x,y:ZONES[navZoneIdx].y};
+  if(navPos){
+    const me=px(myX,myY),dst=px(navPos.x,navPos.y);
     ctx.strokeStyle='rgba(167,139,250,.85)';ctx.lineWidth=2.5*scale;ctx.setLineDash([12,7]);ctx.lineCap='round';
     ctx.beginPath();ctx.moveTo(me.x,me.y);ctx.lineTo(dst.x,dst.y);ctx.stroke();ctx.setLineDash([]);
     const pulse=(ts%1400)/1400;
     ctx.beginPath();ctx.arc(dst.x,dst.y,(10+pulse*14)*scale,0,Math.PI*2);
     ctx.strokeStyle=`rgba(167,139,250,${.55-pulse*.55})`;ctx.lineWidth=2;ctx.stroke();
-    const dx=f.x-myX,dy=f.y-myY;
+    const dx=navPos.x-myX,dy=navPos.y-myY;
     document.getElementById('arrowSvg').style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI+90}deg)`;
     document.getElementById('navDst').textContent=Math.round(Math.sqrt(dx*dx+dy*dy)*1000)+'m';
   }
@@ -856,18 +896,31 @@ function draw(ts){
 // ── MAP CONTROLS ──────────────────────────────────────────────────────────────
 window.doZoom=f=>{scale=Math.min(Math.max(scale*f,.4),3.5);};
 window.resetView=()=>{scale=1;panX=0;panY=0;};
-let drag=false,ldx,ldy;
-canvas.addEventListener('mousedown',e=>{drag=true;ldx=e.clientX;ldy=e.clientY;});
+let drag=false,ldx,ldy,downX,downY,downTime;
+canvas.addEventListener('mousedown',e=>{drag=true;ldx=e.clientX;ldy=e.clientY;downX=e.clientX;downY=e.clientY;downTime=Date.now();});
 canvas.addEventListener('mousemove',e=>{if(!drag)return;panX+=e.clientX-ldx;panY+=e.clientY-ldy;ldx=e.clientX;ldy=e.clientY;});
-canvas.addEventListener('mouseup',()=>drag=false);canvas.addEventListener('mouseleave',()=>drag=false);
-canvas.addEventListener('touchstart',e=>{const t=e.touches[0];drag=true;ldx=t.clientX;ldy=t.clientY;},{passive:true});
+canvas.addEventListener('mouseup',e=>{drag=false;handleTapIfClick(e.clientX,e.clientY);});
+canvas.addEventListener('mouseleave',()=>drag=false);
+canvas.addEventListener('touchstart',e=>{const t=e.touches[0];drag=true;ldx=t.clientX;ldy=t.clientY;downX=t.clientX;downY=t.clientY;downTime=Date.now();},{passive:true});
 canvas.addEventListener('touchmove',e=>{if(!drag)return;const t=e.touches[0];panX+=t.clientX-ldx;panY+=t.clientY-ldy;ldx=t.clientX;ldy=t.clientY;},{passive:true});
-canvas.addEventListener('touchend',()=>drag=false);
+canvas.addEventListener('touchend',e=>{drag=false;const t=e.changedTouches[0];if(t)handleTapIfClick(t.clientX,t.clientY);});
 canvas.addEventListener('wheel',e=>{e.preventDefault();doZoom(e.deltaY<0?1.12:.9);},{passive:false});
+
+function handleTapIfClick(clientX,clientY){
+  if(downX==null||Math.abs(clientX-downX)>=6||Math.abs(clientY-downY)>=6||Date.now()-downTime>=500)return;
+  const rect=canvas.getBoundingClientRect();
+  const x=clientX-rect.left,y=clientY-rect.top;
+  for(let i=ZONES.length-1;i>=0;i--){
+    const z=ZONES[i];
+    const tl=px(z.x-z.w/2,z.y-z.h/2),br=px(z.x+z.w/2,z.y+z.h/2);
+    if(x>=tl.x&&x<=br.x&&y>=tl.y&&y<=br.y){openVenueSheet(i);return;}
+  }
+}
 
 // ── NAV ───────────────────────────────────────────────────────────────────────
 window.navTo=uid=>{
   const f=peers[uid];if(!f)return;
+  navZoneIdx=null;
   navUid=uid;
   document.getElementById('navCard').classList.add('on');
   document.getElementById('navAv').textContent=f.emoji;
@@ -879,18 +932,107 @@ window.navTo=uid=>{
   document.querySelector(`[data-uid="${uid}"]`)?.classList.add('on');
   toast(`Navigating to ${f.emoji} ${f.name}`);
 };
-window.cancelNav=()=>{navUid=null;document.getElementById('navCard').classList.remove('on');document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));};
+window.cancelNav=()=>{navUid=null;navZoneIdx=null;document.getElementById('navCard').classList.remove('on');document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));};
+
+// ── VENUE DETAIL BOTTOM SHEET ─────────────────────────────────────────────────
+window.openVenueSheet=idx=>{
+  openZoneIdx=idx;
+  const z=ZONES[idx];
+  document.getElementById('venueSheet').classList.add('on');
+  document.getElementById('vsIcon').textContent=z.icon;
+  document.getElementById('vsIcon').style.borderColor=z.color;
+  document.getElementById('vsIcon').style.background=z.color+'22';
+  document.getElementById('vsName').textContent=z.label;
+  document.getElementById('vsName').style.color=z.color;
+  const floorsWrap=document.getElementById('vsFloors');
+  if(z.floors>1){
+    floorsWrap.style.display='flex';
+    const cur=zoneFloors[idx]||1;
+    floorsWrap.innerHTML=Array.from({length:z.floors},(_,fi)=>{
+      const f=fi+1;
+      return `<div class="floor-chip${f===cur?' sel':''}" onclick="setZoneFloor(${idx},${f})">Floor ${f}</div>`;
+    }).join('');
+  } else {
+    floorsWrap.style.display='none';
+  }
+  updateFavBtn();
+};
+window.setZoneFloor=(idx,f)=>{
+  zoneFloors[idx]=f;
+  openVenueSheet(idx);
+  toast(`📍 ${ZONES[idx].label} — now viewing Floor ${f}`);
+};
+window.closeVenueSheet=()=>{
+  document.getElementById('venueSheet').classList.remove('on');
+  openZoneIdx=null;
+};
+window.navToZoneBtn=()=>{
+  if(openZoneIdx==null)return;
+  navToZone(openZoneIdx);
+  closeVenueSheet();
+};
+function navToZone(idx){
+  const z=ZONES[idx];
+  navUid=null;navZoneIdx=idx;
+  document.getElementById('navCard').classList.add('on');
+  document.getElementById('navAv').textContent=z.icon;
+  document.getElementById('navAv').style.borderColor=z.color;
+  document.getElementById('navAv').style.background=z.color+'22';
+  document.getElementById('navNm').textContent=z.label;
+  document.getElementById('navNm').style.color=z.color;
+  document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
+  toast(`Navigating to ${z.icon} ${z.label}`);
+  logEvent('nav_to_zone',{zone:z.label});
+}
+window.navToZone=navToZone;
+
+// ── FAVORITES ─────────────────────────────────────────────────────────────────
+function saveFavorites(){ try{ localStorage.setItem('glyde_favorites',JSON.stringify([...favorites])); }catch(e){} }
+function updateFavBtn(){
+  const btn=document.getElementById('vsFavBtn');
+  const on=favorites.has(openZoneIdx);
+  btn.textContent=on?'★ Favorited':'☆ Favorite';
+  btn.classList.toggle('on',on);
+}
+window.toggleFavorite=()=>{
+  if(openZoneIdx==null)return;
+  if(favorites.has(openZoneIdx)) favorites.delete(openZoneIdx);
+  else favorites.add(openZoneIdx);
+  saveFavorites();updateFavBtn();renderMapBar();
+  logEvent('favorite_toggle',{zone:ZONES[openZoneIdx].label,on:favorites.has(openZoneIdx)});
+};
+
+// ── SHARE DESTINATION ─────────────────────────────────────────────────────────
+window.shareDestination=()=>{
+  if(openZoneIdx==null)return;
+  const z=ZONES[openZoneIdx];
+  const text=`📍 Meet me at ${z.label} — navigating there now on Glyde!`;
+  if(navigator.share){
+    navigator.share({title:'Glyde',text}).catch(()=>{});
+  } else {
+    navigator.clipboard.writeText(text).catch(()=>{});
+    toast('📋 Destination copied — paste to share!');
+  }
+  logEvent('share_destination',{zone:z.label});
+};
 
 // ── MAP BAR ───────────────────────────────────────────────────────────────────
 function renderMapBar(){
   const myChip=`<div class="mychip"><div class="ch-em">${myEmoji}</div><div><div class="ch-nm" style="color:var(--green)">${myName||'You'}</div><div class="ch-st" style="color:var(--green)">YOU</div></div></div>`;
+  const favChips=[...favorites].map(idx=>{
+    const z=ZONES[idx];if(!z)return'';
+    return `<div class="mchip fav-chip" onclick="navToZone(${idx})">
+      <div class="ch-em">★</div>
+      <div><div class="ch-nm" style="color:${z.color}">${z.label}</div><div class="ch-st" style="color:var(--muted)">Favorite</div></div>
+    </div>`;
+  }).join('');
   const chips=Object.entries(peers).map(([uid,f])=>`
     <div class="mchip" data-uid="${uid}" onclick="navTo('${uid}')">
       <div class="ch-em">${f.panic?'🆘':(f.emoji||'👤')}</div>
       <div><div class="ch-nm" style="color:${f.panic?'var(--red)':(f.color||'#a78bfa')}">${f.name}</div><div class="ch-st" style="color:${f.panic?'var(--red)':'var(--green)'}">${f.panic?'🆘 Alert':'Live 🟢'}</div></div>
     </div>`).join('');
   const empty=Object.keys(peers).length===0?`<div style="display:flex;align-items:center;padding:0 4px;font-size:11px;color:var(--muted)">Waiting for friends…</div>`:'';
-  document.getElementById('mapBar').innerHTML=myChip+chips+empty;
+  document.getElementById('mapBar').innerHTML=myChip+favChips+chips+empty;
 }
 
 // ── CHAT ──────────────────────────────────────────────────────────────────────
