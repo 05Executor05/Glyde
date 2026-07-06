@@ -316,6 +316,17 @@ canvas:active{cursor:grabbing;}
 .loc-pin:hover{border-color:var(--neon);}
 
 .typing-bar{padding:3px 16px 6px;font-size:11px;color:var(--muted);font-style:italic;min-height:22px;}
+.reply-bar{display:flex;align-items:center;gap:8px;padding:7px 14px;background:var(--surface2);border-top:1px solid var(--border);}
+.reply-quote{flex:1;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.reply-quote b{color:var(--neon);}
+.reply-cancel{cursor:pointer;color:var(--muted);font-size:13px;flex-shrink:0;}
+.reply-cancel:hover{color:var(--red);}
+.msg-reply-ref{font-size:11px;color:var(--muted);background:rgba(124,58,237,.08);border-left:2px solid var(--accent);padding:3px 8px;border-radius:4px;margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:260px;}
+.msg-fwd-ref{font-size:10px;color:var(--muted);font-style:italic;margin-bottom:2px;}
+.msg-action-btn{font-size:11px;color:var(--muted);cursor:pointer;opacity:.6;transition:opacity .15s;}
+.msg-action-btn:hover{opacity:1;color:var(--neon);}
+.msg-img{max-width:220px;max-height:220px;border-radius:12px;margin-top:4px;display:block;object-fit:cover;}
+.msg-seen{font-size:9px;color:var(--muted);margin-left:6px;}
 .tdot span{display:inline-block;width:4px;height:4px;background:var(--muted);border-radius:50%;animation:tdot 1.2s infinite;margin-right:2px;}
 .tdot span:nth-child(2){animation-delay:.2s;}
 .tdot span:nth-child(3){animation-delay:.4s;}
@@ -472,6 +483,17 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
+<!-- FORWARD MESSAGE MODAL -->
+<div class="modal-overlay" id="forwardModal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-title">Forward to…</div>
+    <div id="forwardList" style="max-height:300px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeForwardModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <!-- SEARCH -->
 <div class="search-overlay" id="searchOverlay">
   <div class="search-hdr">
@@ -566,17 +588,20 @@ canvas:active{cursor:grabbing;}
       </div>
       <div class="messages" id="messages"></div>
       <div class="typing-bar" id="typingBar"></div>
+      <div class="reply-bar" id="replyBar" style="display:none"></div>
       <div class="chat-input-area" style="position:relative">
         <div class="input-row">
           <textarea class="msg-input" id="msgInput" placeholder="Message…" rows="1" onkeydown="handleKey(event)" oninput="handleInputChange(this)"></textarea>
           <div style="display:flex;align-items:center;gap:3px">
             <button class="ibtn" onclick="toggleEmoji()">😊</button>
+            <button class="ibtn" onclick="pickImage()" aria-label="Send image">🖼️</button>
             <button class="ibtn" onclick="shareLocation()">📍</button>
             <button class="sbtn" id="sendBtn" onclick="sendMessage()" disabled>↑</button>
           </div>
         </div>
         <button class="loc-share-btn" onclick="shareLocation()">📍 Share my location</button>
         <div class="epicker" id="epicker"></div>
+        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageChosen(this)"/>
       </div>
     </div>
   </div>
@@ -609,7 +634,7 @@ canvas:active{cursor:grabbing;}
   <div class="tab" id="tab-chat" onclick="switchTab('chat')">
     <div class="tab-icon">💬</div>
     <span>Chat</span>
-    <div class="tab-badge" id="chatBadge">3</div>
+    <div class="tab-badge" id="chatBadge">0</div>
   </div>
   <div class="tab" id="tab-report" onclick="switchTab('report')">
     <div class="tab-icon">📢</div>
@@ -623,6 +648,8 @@ canvas:active{cursor:grabbing;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, onDisconnect, runTransaction, push }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getStorage, ref as storageRef, uploadBytes, getDownloadURL }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
 const fbApp = initializeApp({
@@ -635,6 +662,7 @@ const fbApp = initializeApp({
   appId:"1:395299315354:web:c219f13a88232d2bed4923"
 });
 const db = getDatabase(fbApp);
+const storage = getStorage(fbApp);
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
 function setTheme(t){
@@ -702,38 +730,14 @@ const REPORTS=[
 ];
 
 const CHANNELS={
-  'venue-main':{name:'# Horizon Festival',icon:'🎪',badge:'Venue',badgeClass:'badge-v',online:'1,247 online',ph:'Message # Horizon Festival…',
-    messages:[
-      {type:'date',label:'Today'},
-      {type:'sys',text:'Welcome to Horizon Festival 2026! 🎪'},
-      {id:1,author:'festlvr22',emoji:'🌈',color:'#34d399',time:'14:02',loc:'Gate A',text:'MAIN STAGE IS LIT 🔥 Headliner in 20 mins!',reactions:[{e:'🔥',n:24,m:false},{e:'🎵',n:11,m:false}]},
-      {id:2,author:'Alex_P',emoji:'🎸',color:'#60a5fa',time:'14:05',loc:'Main Stage',text:'Anyone know which side has shorter drink queue?',reactions:[]},
-      {id:3,author:'nightowl',emoji:'🦉',color:'#c084fc',time:'14:07',loc:'Food Village',text:'Right side of main bar is way shorter! Thai place also has no queue 🍜',reactions:[{e:'🙏',n:8,m:true}]},
-    ]},
-  'venue-lost':{name:'# Lost & Found',icon:'🆘',badge:'Venue',badgeClass:'badge-v',online:'1,247 online',ph:'Post a lost or found item…',
-    messages:[
-      {type:'date',label:'Today'},
-      {type:'sys',text:'Post here if you lost or found something.'},
-      {id:10,author:'user_k33',emoji:'😟',color:'#94a3b8',time:'13:40',text:'Lost: black North Face backpack near east stage, has a carabiner. DM if found 🙏',reactions:[{e:'🙏',n:3,m:false}]},
-    ]},
-  'venue-tips':{name:'# Tips & Shortcuts',icon:'💡',badge:'Venue',badgeClass:'badge-v',online:'1,247 online',ph:'Share a tip…',
-    messages:[
-      {type:'date',label:'Today'},
-      {id:20,author:'local_legend',emoji:'🧠',color:'#f59e0b',time:'12:30',text:'PRO TIP: Side gate B has zero queue right now. Save 20 mins 👌',reactions:[{e:'👀',n:41,m:false}]},
-    ]},
-  'group-main':{name:'Group Chat',icon:'👥',badge:'Group',badgeClass:'badge-g',online:'',ph:'Message your group…',
-    messages:[
-      {type:'date',label:'Today'},
-      {type:'sys',text:'Group created. Share your code to invite friends.'},
-    ]},
-  'dm-1':{name:'Maya',icon:'🦋',badge:'DM',badgeClass:'badge-d',online:'Active now',ph:'Message Maya…',
-    messages:[
-      {type:'date',label:'Today'},
-      {id:40,author:'Maya',emoji:'🦋',color:'#f472b6',time:'13:30',text:'heyy where are you?? heading to main stage 👀',reactions:[]},
-      {id:41,author:'You',emoji:'📍',color:'#a78bfa',own:true,time:'13:31',text:'omw! 5 mins',reactions:[]},
-      {id:42,author:'Maya',emoji:'🦋',color:'#f472b6',time:'13:32',text:'ok we\'re by the big speaker left side 🦋',reactions:[]},
-    ]},
+  'venue-main':{name:'# Festival Chat',icon:'🎪',badge:'Venue',badgeClass:'badge-v',ph:'Message everyone at the festival…',messages:[]},
+  'venue-lost':{name:'# Lost & Found',icon:'🆘',badge:'Venue',badgeClass:'badge-v',ph:'Post a lost or found item…',messages:[]},
+  'venue-tips':{name:'# Tips & Shortcuts',icon:'💡',badge:'Venue',badgeClass:'badge-v',ph:'Share a tip…',messages:[]},
+  'group-main':{name:'Group Chat',icon:'👥',badge:'Group',badgeClass:'badge-g',ph:'Message your group…',messages:[]},
 };
+ZONES.forEach((z,i)=>{
+  if(z.category==='stage') CHANNELS['stage-'+i]={name:'# '+z.label,icon:z.icon,badge:'Venue',badgeClass:'badge-v',ph:`Message ${z.label} chat…`,messages:[]};
+});
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const myId='u_'+Math.random().toString(36).slice(2,9);
@@ -757,10 +761,17 @@ let pushTmr=null;
 let panicOn=false;
 let repSent={};
 let msgIdCtr=1000;
+let listenedChannels=new Set();
+let unreadCounts={};
+let lastMsgCount={};
+let typingByChannel={};
+let readsByChannel={};
+let replyTarget=null;
+let forwardTarget=null;
+let typingTmr=null;
 let emojiOpen=false;
 let currentTab='map';
 let currentChannel='venue-main';
-let unreadChat=3;
 
 // ── EMOJI SETUP ───────────────────────────────────────────────────────────────
 let selIdx=0;
@@ -793,11 +804,12 @@ function enterApp(name,code){
   document.getElementById('groupCodeDisplay').textContent=code;
   document.getElementById('profName').textContent=`${myEmoji} ${myName}`;
   document.getElementById('profGroup').textContent=code;
-  // Add join message to group chat
-  CHANNELS['group-main'].messages.push({type:'sys',text:`${myEmoji} ${myName} joined the group`});
+  Object.keys(CHANNELS).forEach(attachChannelListener);
+  postMessage('group-main',{type:'sys',text:`${myEmoji} ${myName} joined the group`,ts:Date.now()});
   startGPS();listenGroup();listenMeetingPoint();pushLoop();initBattery();
   requestAnimationFrame(draw);
-  renderChat();renderSidebar();renderMobBar();renderReports();renderMapBar();
+  switchChannel(currentChannel);
+  renderSidebar();renderMobBar();renderReports();renderMapBar();
   logEvent('join',{group:code});
 }
 
@@ -840,9 +852,13 @@ window.switchTab=tab=>{
   document.getElementById('screen-'+tab).classList.add('active');
   document.getElementById('tab-'+tab).classList.add('active');
   if(tab==='chat'){
-    unreadChat=0;
-    document.getElementById('chatBadge').classList.remove('on');
+    unreadCounts[currentChannel]=0;
+    markRead(currentChannel);
+    updateChatBadge();
+    renderSidebar();renderMobBar();
     scrollMessages();
+  } else {
+    updateChatBadge();
   }
 };
 
@@ -905,8 +921,8 @@ function listenGroup(){
     renderMapBar();renderMobBar();
     const n=Object.keys(peers).length+1;
     document.getElementById('grpLabel').textContent=`${myGroup} · ${n} online`;
-    // Update group chat online count
-    CHANNELS['group-main'].online=`${n} members`;
+    ensureDMChannels();
+    if(!currentChannel.startsWith('dm-')) document.getElementById('chOnline').textContent=`${n} online`;
     checkArrivals();
   });
 }
@@ -1332,8 +1348,7 @@ function checkArrivals(){
   renderFriendsList();
 }
 function announceMeetingPoint(label){
-  CHANNELS['group-main'].messages.push({type:'sys',text:`🚩 ${myName} set a meeting point at ${label} — check Friends to navigate`});
-  if(currentChannel==='group-main') renderChat();
+  postMessage('group-main',{type:'sys',text:`🚩 ${myName} set a meeting point at ${label} — check Friends to navigate`,ts:Date.now()});
 }
 window.setMeetingPointHere=()=>{
   if(!myGroup)return;
@@ -1434,31 +1449,85 @@ function renderMapBar(){
   document.getElementById('mapBar').innerHTML=myChip+favChips+chips+empty;
 }
 
-// ── CHAT ──────────────────────────────────────────────────────────────────────
-function renderSidebar(){
-  const sections=[
-    {label:'Venue',chs:['venue-main','venue-lost','venue-tips'],unreads:{},},
-    {label:`Group · ${myGroup||'—'}`,chs:['group-main'],unreads:{}},
-    {label:'Direct Messages',chs:['dm-1'],unreads:{'dm-1':1}},
-  ];
-  // Add live peers as DMs
-  Object.entries(peers).forEach(([uid,f])=>{
-    const key='dm-'+uid;
-    if(!CHANNELS[key]) CHANNELS[key]={name:f.name,icon:f.emoji,badge:'DM',badgeClass:'badge-d',online:'Active now',ph:`Message ${f.name}…`,messages:[{type:'date',label:'Today'},{type:'sys',text:`${f.emoji} ${f.name} is in your group`}]};
+// ── CHAT (Firebase-backed) ────────────────────────────────────────────────────
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function dmKey(uid){return 'dm-'+[myId,uid].sort().join('_');}
+function fmtTime(ts){const d=new Date(ts||Date.now());return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;}
+
+function postMessage(channelKey,data){
+  if(!myGroup)return;
+  push(ref(db,`groups/${myGroup}/chat/${channelKey}/messages`),data).catch(fbFail);
+}
+function attachChannelListener(key){
+  if(listenedChannels.has(key)||!myGroup)return;
+  listenedChannels.add(key);
+  onValue(ref(db,`groups/${myGroup}/chat/${key}/messages`),snap=>{
+    const data=snap.val()||{};
+    const list=Object.entries(data).map(([id,m])=>({...m,id})).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    const seenBefore=lastMsgCount[key]||0;
+    const isActive=currentChannel===key&&currentTab==='chat';
+    CHANNELS[key].messages=list;
+    if(isActive){unreadCounts[key]=0;markRead(key);}
+    else if(list.length>seenBefore) unreadCounts[key]=(unreadCounts[key]||0)+(list.length-seenBefore);
+    lastMsgCount[key]=list.length;
+    if(currentChannel===key)renderChat();
+    renderSidebar();renderMobBar();updateChatBadge();
   });
+  onValue(ref(db,`groups/${myGroup}/chat/${key}/typing`),snap=>{
+    typingByChannel[key]=snap.val()||{};
+    if(currentChannel===key)renderTypingBar();
+  });
+  if(key.startsWith('dm-')){
+    onValue(ref(db,`groups/${myGroup}/chat/${key}/reads`),snap=>{
+      readsByChannel[key]=snap.val()||{};
+      if(currentChannel===key)renderChat();
+    });
+  }
+}
+function ensureDMChannels(){
+  Object.entries(peers).forEach(([uid,f])=>{
+    const key=dmKey(uid);
+    if(!CHANNELS[key]) CHANNELS[key]={badge:'DM',badgeClass:'badge-d',messages:[],peerUid:uid};
+    CHANNELS[key].name=f.name;CHANNELS[key].icon=f.emoji;CHANNELS[key].ph=`Message ${f.name}…`;
+    attachChannelListener(key);
+  });
+}
+function markRead(key){
+  if(!myGroup)return;
+  set(ref(db,`groups/${myGroup}/chat/${key}/reads/${myId}`),Date.now()).catch(()=>{});
+}
+function updateChatBadge(){
+  const total=Object.values(unreadCounts).reduce((a,b)=>a+b,0);
+  const badge=document.getElementById('chatBadge');
+  badge.textContent=total>99?'99+':total;
+  badge.classList.toggle('on',total>0&&currentTab!=='chat');
+}
+
+function buildChatSections(){
+  const stageKeys=Object.keys(CHANNELS).filter(k=>k.startsWith('stage-'));
+  return [
+    {label:'Venue',chs:['venue-main','venue-lost','venue-tips']},
+    {label:'Stage Channels',chs:stageKeys},
+    {label:`Group · ${myGroup||'—'}`,chs:['group-main']},
+    {label:'Direct Messages',chs:Object.keys(CHANNELS).filter(k=>k.startsWith('dm-'))},
+  ];
+}
+function renderSidebar(){
   let html='';
-  sections.forEach(sec=>{
+  buildChatSections().forEach(sec=>{
+    if(!sec.chs.length)return;
     html+=`<div class="cs-section"><div class="cs-label">${sec.label}</div>`;
     sec.chs.forEach(key=>{
       const ch=CHANNELS[key];if(!ch)return;
       const active=currentChannel===key?'active':'';
-      const unread=sec.unreads[key]?`<div class="ch-unread">${sec.unreads[key]}</div>`:'';
+      const n=unreadCounts[key];
+      const unread=n?`<div class="ch-unread">${n}</div>`:'';
       const lastMsg=ch.messages.filter(m=>m.text).slice(-1)[0];
       html+=`<div class="ch-item ${active}" onclick="switchChannel('${key}')">
         <div class="ch-icon" style="background:rgba(124,58,237,.12)">${ch.icon}</div>
         <div style="flex:1;min-width:0">
           <div class="ch-item-name">${ch.name}</div>
-          ${lastMsg?`<div class="ch-preview">${lastMsg.author||''}: ${lastMsg.text||''}</div>`:''}
+          ${lastMsg?`<div class="ch-preview">${esc(lastMsg.author||'')}: ${esc(lastMsg.text||'📷 Photo')}</div>`:''}
         </div>${unread}</div>`;
     });
     html+='</div>';
@@ -1468,25 +1537,22 @@ function renderSidebar(){
 }
 
 function renderMobBar(){
-  // Build drawer channel list
-  const sections=[
-    {label:'Venue Channels',chs:['venue-main','venue-lost','venue-tips'],unreads:{}},
-    {label:`Group · ${myGroup||'—'}`,chs:['group-main'],unreads:{}},
-    {label:'Direct Messages',chs:['dm-1',...Object.keys(CHANNELS).filter(k=>k.startsWith('dm-')&&k!=='dm-1')],unreads:{'dm-1':1}},
-  ];
   let html='';
+  const sections=buildChatSections();
   sections.forEach((sec,si)=>{
+    if(!sec.chs.length)return;
     html+=`<div class="drawer-section-label">${sec.label}</div>`;
     sec.chs.forEach(key=>{
       const ch=CHANNELS[key];if(!ch)return;
       const active=currentChannel===key?'active':'';
       const lastMsg=ch.messages.filter(m=>m.text).slice(-1)[0];
-      const unread=sec.unreads[key]?`<div class="drawer-unread">${sec.unreads[key]}</div>`:'';
+      const n=unreadCounts[key];
+      const unread=n?`<div class="drawer-unread">${n}</div>`:'';
       html+=`<div class="drawer-ch ${active}" onclick="switchChannelDrawer('${key}')">
         <div class="drawer-ch-icon">${ch.icon}</div>
         <div style="flex:1;min-width:0">
           <div class="drawer-ch-name">${ch.name}</div>
-          ${lastMsg?`<div class="drawer-ch-preview">${lastMsg.author?lastMsg.author+': ':''}${lastMsg.text}</div>`:''}
+          ${lastMsg?`<div class="drawer-ch-preview">${esc(lastMsg.author?lastMsg.author+': ':'')}${esc(lastMsg.text||'📷 Photo')}</div>`:''}
         </div>${unread}
       </div>`;
     });
@@ -1512,49 +1578,81 @@ window.switchChannelDrawer=key=>{
 window.switchChannel=key=>{
   currentChannel=key;
   const ch=CHANNELS[key];if(!ch)return;
+  attachChannelListener(key);
   document.getElementById('chHeaderIcon').textContent=ch.icon;
   document.getElementById('chHeaderName').textContent=ch.name;
   document.getElementById('chHeaderBadge').textContent=ch.badge;
   document.getElementById('chHeaderBadge').className='chat-badge '+ch.badgeClass;
-  document.getElementById('chOnline').textContent=ch.online;
+  if(key.startsWith('dm-')){
+    const p=peers[ch.peerUid];
+    document.getElementById('chOnline').textContent=p&&(Date.now()-(p.ts||0)<10000)?'Active now':'Away';
+  } else {
+    document.getElementById('chOnline').textContent=`${Object.keys(peers).length+1} online`;
+  }
   document.getElementById('msgInput').placeholder=ch.ph||'Message…';
-  renderSidebar();renderMobBar();renderChat();
+  unreadCounts[key]=0;markRead(key);
+  cancelReply();
+  renderSidebar();renderMobBar();renderChat();renderTypingBar();updateChatBadge();
 };
 
 function renderChat(){
   const ch=CHANNELS[currentChannel];if(!ch)return;
   const el=document.getElementById('messages');
-  el.innerHTML='';
+  let html=`<div class="date-div"><span>Today</span></div>`;
   ch.messages.forEach(msg=>{
-    if(msg.type==='date'){
-      el.innerHTML+=`<div class="date-div"><span>${msg.label}</span></div>`;
-    } else if(msg.type==='sys'){
-      el.innerHTML+=`<div class="sys-msg">${msg.text}</div>`;
-    } else if(msg.type==='location'){
-      el.innerHTML+=`<div class="msg-group">
+    if(msg.type==='sys'){
+      html+=`<div class="sys-msg">${esc(msg.text)}</div>`;
+      return;
+    }
+    const own=msg.uid===myId;
+    if(msg.type==='location'){
+      html+=`<div class="msg-group${own?' own':''}">
         <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
         <div class="msg-body">
-          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${msg.author}</span><span class="msg-time">${msg.time}</span></div>
-          <div class="loc-pin" onclick="toast('Navigating to ${msg.locName}')">
+          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${esc(msg.author)}</span><span class="msg-time">${fmtTime(msg.ts)}</span></div>
+          <div class="loc-pin" onclick="toast('📍 ${esc(msg.locName)}')">
             <div style="font-size:22px">📍</div>
-            <div><div style="font-size:13px;font-weight:700;color:var(--neon)">${msg.locName}</div><div style="font-size:11px;color:var(--muted)">${msg.dist} · Tap to navigate</div></div>
-            <div style="margin-left:8px;font-size:12px;color:var(--neon);font-weight:700">Go →</div>
+            <div><div style="font-size:13px;font-weight:700;color:var(--neon)">${esc(msg.locName)}</div><div style="font-size:11px;color:var(--muted)">Shared location</div></div>
           </div>
         </div></div>`;
-    } else {
-      const locTag=msg.loc?`<span class="msg-loc">📍 ${msg.loc}</span>`:'';
-      const reactions=(msg.reactions||[]).map(r=>
-        `<span class="reaction${r.m?' mine':''}" onclick="toggleReaction(${msg.id},'${r.e}')">${r.e}<span class="rc">${r.n}</span></span>`
-      ).join('');
-      el.innerHTML+=`<div class="msg-group${msg.own?' own':''}">
+      return;
+    }
+    if(msg.type==='image'){
+      html+=`<div class="msg-group${own?' own':''}">
         <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
         <div class="msg-body">
-          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${msg.author}</span><span class="msg-time">${msg.time}</span>${locTag}</div>
-          <div class="msg-text">${esc(msg.text)}</div>
-          ${reactions?`<div class="msg-reactions">${reactions}</div>`:''}
+          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${esc(msg.author)}</span><span class="msg-time">${fmtTime(msg.ts)}</span></div>
+          <img class="msg-img" src="${msg.url}" loading="lazy"/>
         </div></div>`;
+      return;
     }
+    const locTag=msg.loc?`<span class="msg-loc">📍 ${esc(msg.loc)}</span>`:'';
+    const reactMap=msg.reactions||{};
+    const reactions=Object.entries(reactMap).filter(([,uids])=>uids&&Object.keys(uids).length>0).map(([e,uids])=>
+      `<span class="reaction${uids[myId]?' mine':''}" onclick="toggleReaction('${msg.id}','${e}')">${e}<span class="rc">${Object.keys(uids).length}</span></span>`
+    ).join('');
+    const replyRef=msg.replyTo?`<div class="msg-reply-ref">↩ ${esc(msg.replyTo.author)}: ${esc(msg.replyTo.text)}</div>`:'';
+    const fwdRef=msg.forwardedFrom?`<div class="msg-fwd-ref">↪ Forwarded from ${esc(msg.forwardedFrom)}</div>`:'';
+    let seenTag='';
+    if(own&&currentChannel.startsWith('dm-')&&ch.peerUid){
+      const otherRead=(readsByChannel[currentChannel]||{})[ch.peerUid];
+      if(otherRead&&otherRead>=msg.ts) seenTag='<span class="msg-seen">Seen</span>';
+    }
+    html+=`<div class="msg-group${own?' own':''}">
+      <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
+      <div class="msg-body">
+        <div class="msg-hdr">
+          <span class="msg-author" style="color:${msg.color}">${esc(msg.author)}</span>
+          <span class="msg-time">${fmtTime(msg.ts)}</span>${locTag}
+          <span class="msg-action-btn" onclick="startReply('${msg.id}')">↩</span>
+          <span class="msg-action-btn" onclick="startForward('${msg.id}')">↪</span>
+        </div>
+        ${fwdRef}${replyRef}
+        <div class="msg-text">${esc(msg.text)}</div>${seenTag}
+        ${reactions?`<div class="msg-reactions">${reactions}</div>`:''}
+      </div></div>`;
   });
+  el.innerHTML=html;
   scrollMessages();
 }
 
@@ -1563,60 +1661,110 @@ function scrollMessages(){
   setTimeout(()=>el.scrollTop=el.scrollHeight,50);
 }
 
-function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
-
 window.sendMessage=()=>{
   const input=document.getElementById('msgInput');
   const text=input.value.trim();if(!text)return;
-  const now=new Date();
-  const time=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-  CHANNELS[currentChannel].messages.push({id:++msgIdCtr,author:myName||'You',emoji:myEmoji,color:myColor,own:true,time,text,reactions:[]});
+  const data={author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),text,reactions:{}};
+  if(replyTarget) data.replyTo={author:replyTarget.author,text:replyTarget.text};
+  postMessage(currentChannel,data);
   input.value='';input.style.height='36px';
   document.getElementById('sendBtn').disabled=true;
-  renderChat();
-  if(['venue-main','group-main'].includes(currentChannel)) simulateReply();
+  cancelReply();
+  clearTimeout(typingTmr);setTyping(false);
 };
-
-function simulateReply(){
-  const pool={
-    'venue-main':[{author:'festlvr22',emoji:'🌈',color:'#34d399',text:'totally! this crowd is insane 🎉'},{author:'Alex_P',emoji:'🎸',color:'#60a5fa',text:'loving every second 🎵'}],
-    'group-main':[{author:'Maya',emoji:'🦋',color:'#f472b6',text:'haha yes!! find us 🦋'},{author:'Jordan',emoji:'🔥',color:'#fb923c',text:'getting food, back in 5 🍔'}],
-  };
-  const p=pool[currentChannel];if(!p)return;
-  const r=p[Math.floor(Math.random()*p.length)];
-  const ti=document.getElementById('typingBar');
-  ti.innerHTML=`<span style="color:${r.color}">${r.emoji} ${r.author}</span>&nbsp;is typing <span class="tdot"><span></span><span></span><span></span></span>`;
-  setTimeout(()=>{
-    ti.innerHTML='';
-    const now=new Date();
-    const time=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-    CHANNELS[currentChannel].messages.push({id:++msgIdCtr,...r,time,reactions:[]});
-    renderChat();
-    // Badge if not on chat tab
-    if(currentTab!=='chat'){unreadChat++;document.getElementById('chatBadge').textContent=unreadChat;document.getElementById('chatBadge').classList.add('on');}
-  },1800);
-}
 
 window.handleKey=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}};
 window.handleInputChange=el=>{
   el.style.height='36px';el.style.height=Math.min(el.scrollHeight,100)+'px';
   document.getElementById('sendBtn').disabled=!el.value.trim();
+  setTyping(true);
+  clearTimeout(typingTmr);
+  typingTmr=setTimeout(()=>setTyping(false),2500);
 };
 
+function setTyping(isTyping){
+  if(!myGroup)return;
+  const r=ref(db,`groups/${myGroup}/chat/${currentChannel}/typing/${myId}`);
+  if(isTyping) set(r,{name:myName,ts:Date.now()}).catch(()=>{});
+  else set(r,null).catch(()=>{});
+}
+function renderTypingBar(){
+  const data=typingByChannel[currentChannel]||{};
+  const names=Object.entries(data).filter(([uid,t])=>uid!==myId&&Date.now()-(t.ts||0)<4000).map(([,t])=>t.name);
+  document.getElementById('typingBar').innerHTML=names.length?
+    `${esc(names.join(', '))} ${names.length>1?'are':'is'} typing <span class="tdot"><span></span><span></span><span></span></span>`:'';
+}
+setInterval(()=>renderTypingBar(),2000);
+
 window.shareLocation=()=>{
-  const now=new Date();
-  const time=`${now.getHours()}:${String(now.getMinutes()).padStart(2,'0')}`;
-  CHANNELS[currentChannel].messages.push({id:++msgIdCtr,type:'location',author:myName||'You',emoji:myEmoji,color:myColor,time,locName:'My Location',dist:'0m — this is me'});
-  renderChat();toast('📍 Location shared');closeEmoji();
+  postMessage(currentChannel,{type:'location',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),locName:'My Location'});
+  toast('📍 Location shared');closeEmoji();
 };
 
 window.toggleReaction=(id,e)=>{
   const ch=CHANNELS[currentChannel];
-  const msg=ch.messages.find(m=>m.id===id);if(!msg)return;
-  const r=msg.reactions.find(r=>r.e===e);
-  if(r){r.m=!r.m;r.n+=r.m?1:-1;if(r.n<=0)msg.reactions=msg.reactions.filter(x=>x.e!==e);}
-  else msg.reactions.push({e,n:1,m:true});
-  renderChat();
+  const msg=ch.messages.find(m=>m.id===id);if(!msg||!myGroup)return;
+  const already=msg.reactions&&msg.reactions[e]&&msg.reactions[e][myId];
+  set(ref(db,`groups/${myGroup}/chat/${currentChannel}/messages/${id}/reactions/${e}/${myId}`),already?null:true).catch(fbFail);
+};
+
+// Reply
+window.startReply=msgId=>{
+  const msg=CHANNELS[currentChannel].messages.find(m=>m.id===msgId);
+  if(!msg)return;
+  replyTarget={author:msg.author,text:msg.text||'📷 Photo'};
+  renderReplyBar();
+  document.getElementById('msgInput').focus();
+};
+window.cancelReply=()=>{replyTarget=null;renderReplyBar();};
+function renderReplyBar(){
+  const el=document.getElementById('replyBar');
+  if(!replyTarget){el.style.display='none';el.innerHTML='';return;}
+  el.style.display='flex';
+  el.innerHTML=`<div class="reply-quote">↩ Replying to <b>${esc(replyTarget.author)}</b>: ${esc(replyTarget.text.slice(0,50))}</div><div class="reply-cancel" onclick="cancelReply()">✕</div>`;
+}
+
+// Forward
+window.startForward=msgId=>{
+  const msg=CHANNELS[currentChannel].messages.find(m=>m.id===msgId);
+  if(!msg)return;
+  forwardTarget={author:msg.author,text:msg.text,type:msg.type,url:msg.url,locName:msg.locName};
+  const list=Object.keys(CHANNELS).filter(k=>k!==currentChannel);
+  document.getElementById('forwardList').innerHTML=list.map(k=>`
+    <div class="search-result" onclick="confirmForward('${k}')">
+      <div class="search-result-icon" style="background:rgba(124,58,237,.15);color:var(--neon)">${CHANNELS[k].icon}</div>
+      <div class="search-result-name">${esc(CHANNELS[k].name)}</div>
+    </div>`).join('');
+  document.getElementById('forwardModal').classList.add('open');
+};
+window.closeForwardModal=()=>{document.getElementById('forwardModal').classList.remove('open');forwardTarget=null;};
+window.confirmForward=key=>{
+  if(!forwardTarget)return;
+  const data={author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),reactions:{},forwardedFrom:forwardTarget.author};
+  if(forwardTarget.type==='image'){data.type='image';data.url=forwardTarget.url;}
+  else if(forwardTarget.type==='location'){data.type='location';data.locName=forwardTarget.locName;}
+  else data.text=forwardTarget.text;
+  postMessage(key,data);
+  toast(`↪ Forwarded to ${CHANNELS[key].name}`);
+  closeForwardModal();
+};
+
+// Image sharing
+window.pickImage=()=>{document.getElementById('imageInput').click();};
+window.handleImageChosen=async input=>{
+  const file=input.files[0];input.value='';
+  if(!file||!myGroup)return;
+  if(file.size>5*1024*1024){toast('Image too large (max 5MB)','w');return;}
+  toast('📤 Uploading image…');
+  try{
+    const path=`chat-images/${myGroup}/${Date.now()}_${myId}`;
+    const sRef=storageRef(storage,path);
+    await uploadBytes(sRef,file);
+    const url=await getDownloadURL(sRef);
+    postMessage(currentChannel,{type:'image',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),url});
+  }catch(e){
+    toast('⚠️ Image upload failed','e');
+  }
 };
 
 // Emoji picker
