@@ -42,6 +42,21 @@ body.theme-light {
   --text:#1a1730;
   --muted:#6b6690;
 }
+body.theme-hc {
+  --bg:#000000;
+  --surface:#000000;
+  --surface2:#1a1a1a;
+  --border:#ffffff;
+  --accent:#ffd60a;
+  --neon:#ffd60a;
+  --green:#00ff5f;
+  --amber:#ffd60a;
+  --red:#ff3b30;
+  --text:#ffffff;
+  --muted:#e0e0e0;
+}
+body.large-text{font-size:118%;}
+body.large-text .tab-icon{font-size:24px;}
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 
@@ -595,6 +610,21 @@ canvas:active{cursor:grabbing;}
       <div class="theme-toggle">
         <div class="theme-opt" id="themeOptDark" onclick="setTheme('dark')">Dark</div>
         <div class="theme-opt" id="themeOptLight" onclick="setTheme('light')">Light</div>
+        <div class="theme-opt" id="themeOptHC" onclick="setTheme('hc')">High Contrast</div>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-row-label">Large text</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="largeTextOptOff" onclick="setLargeText(false)">Off</div>
+        <div class="theme-opt" id="largeTextOptOn" onclick="setLargeText(true)">On</div>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-row-label">Voice guidance</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="voiceGuideOptOff" onclick="setVoiceGuidance(false)">Off</div>
+        <div class="theme-opt" id="voiceGuideOptOn" onclick="setVoiceGuidance(true)">On</div>
       </div>
     </div>
     <div class="modal-actions">
@@ -887,8 +917,10 @@ const storage = getStorage(fbApp);
 // ── THEME ─────────────────────────────────────────────────────────────────────
 function setTheme(t){
   document.body.classList.toggle('theme-light',t==='light');
-  document.getElementById('themeOptDark').classList.toggle('sel',t!=='light');
+  document.body.classList.toggle('theme-hc',t==='hc');
+  document.getElementById('themeOptDark').classList.toggle('sel',t!=='light'&&t!=='hc');
   document.getElementById('themeOptLight').classList.toggle('sel',t==='light');
+  document.getElementById('themeOptHC')?.classList.toggle('sel',t==='hc');
   try{ localStorage.setItem('glyde_theme',t); }catch(e){}
 }
 window.setTheme=setTheme;
@@ -897,6 +929,43 @@ window.setTheme=setTheme;
   try{ saved=localStorage.getItem('glyde_theme'); }catch(e){}
   setTheme(saved||'dark');
 })();
+
+// ── ACCESSIBILITY: large text, voice guidance ────────────────────────────────
+let largeTextOn=false,voiceGuidanceOn=false;
+function setLargeText(on){
+  largeTextOn=on;
+  document.body.classList.toggle('large-text',on);
+  document.getElementById('largeTextOptOff')?.classList.toggle('sel',!on);
+  document.getElementById('largeTextOptOn')?.classList.toggle('sel',on);
+  try{ localStorage.setItem('glyde_large_text',on?'1':'0'); }catch(e){}
+}
+window.setLargeText=setLargeText;
+(function applySavedLargeText(){
+  let saved=false;
+  try{ saved=localStorage.getItem('glyde_large_text')==='1'; }catch(e){}
+  setLargeText(saved);
+})();
+function setVoiceGuidance(on){
+  voiceGuidanceOn=on;
+  document.getElementById('voiceGuideOptOff')?.classList.toggle('sel',!on);
+  document.getElementById('voiceGuideOptOn')?.classList.toggle('sel',on);
+  try{ localStorage.setItem('glyde_voice_guidance',on?'1':'0'); }catch(e){}
+}
+window.setVoiceGuidance=setVoiceGuidance;
+(function applySavedVoiceGuidance(){
+  let saved=false;
+  try{ saved=localStorage.getItem('glyde_voice_guidance')==='1'; }catch(e){}
+  setVoiceGuidance(saved);
+})();
+function speakGuidance(text){
+  if(!voiceGuidanceOn||!window.speechSynthesis)return;
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.rate=1;u.pitch=1;
+    speechSynthesis.speak(u);
+  }catch(e){}
+}
 
 // ── ANALYTICS (lightweight event logging) ────────────────────────────────────
 function logEvent(name,data){
@@ -917,14 +986,15 @@ const ZONES=[
   {label:'EAST STAGE',  x:.76,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2,category:'stage'},
   {label:'WEST STAGE',  x:.14,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2,category:'stage'},
   {label:'FOOD VILLAGE',x:.61,y:.55,w:.13,h:.08,color:'#d97706',icon:'🍔',floors:1,category:'food'},
-  {label:'MEDICAL',     x:.50,y:.61,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1,category:'medical'},
-  {label:'TOILETS',     x:.28,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
+  {label:'MEDICAL',     x:.50,y:.61,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1,category:'medical',accessible:true},
+  {label:'TOILETS',     x:.28,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1,category:'restroom',accessible:true},
   {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
   {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
   {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
   {label:'SECURITY',    x:.42,y:.61,w:.07,h:.05,color:'#f472b6',icon:'🛡️',floors:1,category:'security'},
-  {label:'NORTH EXIT',  x:.50,y:.05,w:.10,h:.04,color:'#4ade80',icon:'🚪',floors:1,category:'exit'},
-  {label:'SOUTH EXIT',  x:.50,y:.92,w:.10,h:.04,color:'#4ade80',icon:'🚪',floors:1,category:'exit'},
+  {label:'NORTH EXIT',  x:.50,y:.05,w:.10,h:.04,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
+  {label:'SOUTH EXIT',  x:.50,y:.92,w:.10,h:.04,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
+  {label:'QUIET ZONE',  x:.20,y:.20,w:.09,h:.06,color:'#38bdf8',icon:'🧘',floors:1,category:'quiet',accessible:true},
 ];
 
 const CATEGORIES=[
@@ -934,6 +1004,7 @@ const CATEGORIES=[
   {id:'water',label:'Water',icon:'💧'},
   {id:'security',label:'Security',icon:'🛡️'},
   {id:'exit',label:'Exits',icon:'🚪'},
+  {id:'quiet',label:'Quiet Zones',icon:'🧘'},
   {id:'medical',label:'Medical',icon:'🏥'},
 ];
 
@@ -1425,6 +1496,7 @@ window.navTo=uid=>{
   document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
   document.querySelector(`[data-uid="${uid}"]`)?.classList.add('on');
   toast(`Navigating to ${f.emoji} ${f.name}`);
+  speakGuidance(`Navigating to ${f.name}`);
 };
 window.cancelNav=()=>{navUid=null;navZoneIdx=null;navCustom=null;document.getElementById('navCard').classList.remove('on');document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));};
 
@@ -1477,6 +1549,7 @@ function navToZone(idx){
   document.getElementById('navNm').style.color=z.color;
   document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
   toast(`Navigating to ${z.icon} ${z.label}`);
+  speakGuidance(`Navigating to ${z.label}${z.accessible?', a wheelchair accessible location':''}`);
   logEvent('nav_to_zone',{zone:z.label});
 }
 window.navToZone=navToZone;
@@ -1514,16 +1587,20 @@ window.shareDestination=()=>{
 // ── SEARCH & DISCOVERY ────────────────────────────────────────────────────────
 const POPULAR_SEARCHES=['Main Stage','Toilets','Water','Food Village','Medical'];
 let searchCatFilter=null;
+let accessibleOnlyFilter=false;
 let recentSearches=[];
 try{ recentSearches=JSON.parse(localStorage.getItem('glyde_recent_searches')||'[]'); }catch(e){}
 function saveRecentSearches(){ try{ localStorage.setItem('glyde_recent_searches',JSON.stringify(recentSearches)); }catch(e){} }
 
+function renderSearchCatRow(){
+  document.getElementById('searchCatRow').innerHTML=CATEGORIES.map(c=>
+    `<div class="search-cat${searchCatFilter===c.id?' sel':''}" onclick="selectCategory('${c.id}')">${c.icon} ${c.label}</div>`
+  ).join('')+`<div class="search-cat${accessibleOnlyFilter?' sel':''}" onclick="toggleAccessibleFilter()">♿ Accessible only</div>`;
+}
 window.openSearch=()=>{
   document.getElementById('searchOverlay').classList.add('on');
   document.getElementById('searchInput').value='';
-  document.getElementById('searchCatRow').innerHTML=CATEGORIES.map(c=>
-    `<div class="search-cat${searchCatFilter===c.id?' sel':''}" onclick="selectCategory('${c.id}')">${c.icon} ${c.label}</div>`
-  ).join('');
+  renderSearchCatRow();
   if(window.SpeechRecognition||window.webkitSpeechRecognition) document.getElementById('searchMic').style.display='flex';
   runSearch('');
   setTimeout(()=>document.getElementById('searchInput').focus(),50);
@@ -1535,11 +1612,12 @@ window.closeSearch=()=>{
 };
 window.selectCategory=catId=>{
   searchCatFilter=searchCatFilter===catId?null:catId;
-  document.querySelectorAll('.search-cat').forEach(el=>el.classList.remove('sel'));
-  if(searchCatFilter){
-    const i=CATEGORIES.findIndex(c=>c.id===searchCatFilter);
-    document.querySelectorAll('.search-cat')[i]?.classList.add('sel');
-  }
+  renderSearchCatRow();
+  runSearch(document.getElementById('searchInput').value);
+};
+window.toggleAccessibleFilter=()=>{
+  accessibleOnlyFilter=!accessibleOnlyFilter;
+  renderSearchCatRow();
   runSearch(document.getElementById('searchInput').value);
 };
 window.runSearch=q=>{
@@ -1547,6 +1625,7 @@ window.runSearch=q=>{
   const results=document.getElementById('searchResults');
   let matches=ZONES.map((z,i)=>({z,i})).filter(({z})=>{
     if(searchCatFilter&&z.category!==searchCatFilter)return false;
+    if(accessibleOnlyFilter&&!z.accessible)return false;
     if(!query)return true;
     return z.label.toLowerCase().includes(query)||z.category.includes(query);
   });
@@ -1566,7 +1645,7 @@ function renderSearchResultRows(matches){
   return matches.map(({z,i})=>`
     <div class="search-result" onclick="selectSearchResult(${i})">
       <div class="search-result-icon" style="background:${z.color}22;color:${z.color}">${z.icon}</div>
-      <div><div class="search-result-name">${z.label}</div><div class="search-result-cat">${z.category}${favorites.has(i)?' · ★ favorite':''}</div></div>
+      <div><div class="search-result-name">${z.label}${z.accessible?' ♿':''}</div><div class="search-result-cat">${z.category}${favorites.has(i)?' · ★ favorite':''}</div></div>
     </div>`).join('');
 }
 window.quickSearch=term=>{
@@ -1763,6 +1842,7 @@ window.navToVendor=id=>{
   document.getElementById('navNm').textContent=v.name;
   document.getElementById('navNm').style.color='#d97706';
   toast(`Navigating to ${v.icon} ${v.name}`);
+  speakGuidance(`Navigating to ${v.name}`);
   closeFood();
 };
 window.preOrderItem=(vendorId,itemIdx)=>{
@@ -2089,6 +2169,7 @@ function renderZoneDensity(idx){
     const waitMin=Math.min(count*3,30);
     html+=` <span style="font-size:11px;color:var(--muted);margin-left:6px">~${waitMin<3?'no':waitMin}${waitMin<3?' wait':' min queue'}</span>`;
   }
+  if(z.accessible) html+=` <span class="density-tag" style="background:rgba(59,130,246,.15);color:#3b82f6">♿ Accessible</span>`;
   document.getElementById('vsDensity').innerHTML=html;
 }
 
@@ -2173,6 +2254,7 @@ function navToMeetingPoint(){
   document.getElementById('navNm').style.color='#facc15';
   document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
   toast(`Navigating to 🚩 ${meetingPoint.label}`);
+  speakGuidance(`Navigating to the meeting point at ${meetingPoint.label}`);
   logEvent('nav_to_meeting_point',{});
 }
 window.navToMeetingPoint=()=>{navToMeetingPoint();closeFriends();};
