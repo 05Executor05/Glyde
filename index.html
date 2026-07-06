@@ -180,7 +180,8 @@ canvas:active{cursor:grabbing;}
 .vs-floors{display:none;gap:6px;margin-bottom:10px;flex-wrap:wrap;}
 .floor-chip{padding:6px 12px;border-radius:20px;font-size:11px;font-weight:700;background:var(--surface2);border:1px solid var(--border);color:var(--muted);cursor:pointer;transition:all .15s;}
 .floor-chip.sel{background:var(--accent);color:#fff;border-color:var(--accent);}
-.vs-actions{display:flex;gap:8px;}
+.vs-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.vs-actions .vs-btn{flex:1 1 40%;}
 .vs-btn{flex:1;padding:10px;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:12px;font-weight:600;cursor:pointer;transition:all .2s;}
 .vs-btn:hover{border-color:var(--neon);}
 .vs-btn.on{border-color:#facc15;color:#facc15;background:rgba(250,204,21,.1);}
@@ -221,6 +222,22 @@ canvas:active{cursor:grabbing;}
 .layers-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-family:'Space Mono',monospace;}
 .layers-close{width:22px;height:22px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:11px;color:var(--muted);flex-shrink:0;transition:all .15s;}
 .layers-close:hover{color:var(--red);border-color:var(--red);}
+
+/* ── FRIENDS PANEL ── */
+.mp-box{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:14px;}
+.mp-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.mp-label{font-size:13px;font-weight:700;color:#facc15;}
+.mp-count{font-size:11px;font-family:'Space Mono',monospace;color:var(--muted);}
+.mp-actions{display:flex;gap:8px;}
+.mp-actions .vs-btn{flex:1;}
+.friend-row{display:flex;align-items:center;gap:10px;padding:10px 4px;border-bottom:1px solid var(--border);}
+.friend-row:last-child{border-bottom:none;}
+.friend-av{width:36px;height:36px;border-radius:50%;background:var(--surface2);border:2px solid;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.friend-info{flex:1;min-width:0;}
+.friend-name{font-size:13px;font-weight:700;}
+.friend-meta{font-size:11px;color:var(--muted);margin-top:1px;}
+.friend-nav-btn{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:9px;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .15s;}
+.friend-nav-btn:hover{border-color:var(--neon);}
 .layer-row{display:flex;align-items:center;gap:8px;padding:7px 6px;font-size:13px;cursor:pointer;border-radius:8px;transition:background .12s;}
 .layer-row:hover{background:var(--surface2);}
 .layer-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:10px;flex-shrink:0;}
@@ -411,7 +428,8 @@ canvas:active{cursor:grabbing;}
     <div class="ldot" id="ldot" style="background:var(--amber)"></div>
     <span id="llbl" style="color:var(--amber)">CONNECTING</span>
   </div>
-  <button class="profile-btn" onclick="openProfile()">👤</button>
+  <button class="profile-btn" onclick="openFriends()" aria-label="Friends">👥</button>
+  <button class="profile-btn" onclick="openProfile()" aria-label="Your profile">👤</button>
 </div>
 
 <!-- PROFILE MODAL -->
@@ -420,6 +438,14 @@ canvas:active{cursor:grabbing;}
     <div class="modal-title">Your profile</div>
     <div class="modal-row"><div class="modal-row-label">Name</div><div class="modal-row-val" id="profName">—</div></div>
     <div class="modal-row"><div class="modal-row-label">Group</div><div class="modal-row-val" id="profGroup">—</div></div>
+    <div class="modal-row"><div class="modal-row-label">Battery</div><div class="modal-row-val" id="profBattery">—</div></div>
+    <div class="modal-row">
+      <div class="modal-row-label">Location sharing</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="shareOptOn" onclick="setSharingPaused(false)">On</div>
+        <div class="theme-opt" id="shareOptPaused" onclick="setSharingPaused(true)">Paused</div>
+      </div>
+    </div>
     <div class="modal-row">
       <div class="modal-row-label">Theme</div>
       <div class="theme-toggle">
@@ -430,6 +456,18 @@ canvas:active{cursor:grabbing;}
     <div class="modal-actions">
       <button class="modal-btn modal-close-btn" onclick="closeProfile()">Close</button>
       <button class="modal-btn modal-leave-btn" onclick="leaveGroup()">Leave Group</button>
+    </div>
+  </div>
+</div>
+
+<!-- FRIENDS PANEL -->
+<div class="modal-overlay" id="friendsPanel">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Friends · <span id="friendsCount">0</span></div>
+    <div id="meetingPointBox"></div>
+    <div id="friendsList" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeFriends()">Close</button>
     </div>
   </div>
 </div>
@@ -497,6 +535,7 @@ canvas:active{cursor:grabbing;}
         <button class="vs-btn vs-btn-primary" onclick="navToZoneBtn()">🧭 Navigate</button>
         <button class="vs-btn" id="vsFavBtn" onclick="toggleFavorite()">☆ Favorite</button>
         <button class="vs-btn" onclick="shareDestination()">📤 Share</button>
+        <button class="vs-btn" onclick="setMeetingPointAtVenue()">🚩 Meet Here</button>
       </div>
     </div>
     <div class="map-bar" id="mapBar"></div>
@@ -703,7 +742,13 @@ let myX=.50, myY=.65;
 let peers={};
 let navUid=null;
 let navZoneIdx=null;
+let navCustom=null;
 let openZoneIdx=null;
+let meetingPoint=null;
+let arrivedState={};
+let batteryLevel=null;
+let sharingPaused=false;
+const ARRIVAL_THRESHOLD=.045;
 let zoneFloors={};
 let favorites=new Set();
 try{ favorites=new Set(JSON.parse(localStorage.getItem('glyde_favorites')||'[]')); }catch(e){}
@@ -750,7 +795,7 @@ function enterApp(name,code){
   document.getElementById('profGroup').textContent=code;
   // Add join message to group chat
   CHANNELS['group-main'].messages.push({type:'sys',text:`${myEmoji} ${myName} joined the group`});
-  startGPS();listenGroup();pushLoop();
+  startGPS();listenGroup();listenMeetingPoint();pushLoop();initBattery();
   requestAnimationFrame(draw);
   renderChat();renderSidebar();renderMobBar();renderReports();renderMapBar();
   logEvent('join',{group:code});
@@ -826,7 +871,7 @@ function fbFail(){
 function pushLoop(){
   if(!myGroup)return;
   const r=ref(db,`groups/${myGroup}/users/${myId}`);
-  set(r,{name:myName,emoji:myEmoji,color:myColor,x:myX,y:myY,ts:Date.now(),panic:panicOn}).catch(fbFail);
+  set(r,{name:myName,emoji:myEmoji,color:myColor,x:myX,y:myY,ts:Date.now(),panic:panicOn,battery:batteryLevel,paused:sharingPaused}).catch(fbFail);
   onDisconnect(r).remove();
   clearTimeout(pushTmr);
   pushTmr=setTimeout(pushLoop,3000);
@@ -862,6 +907,13 @@ function listenGroup(){
     document.getElementById('grpLabel').textContent=`${myGroup} · ${n} online`;
     // Update group chat online count
     CHANNELS['group-main'].online=`${n} members`;
+    checkArrivals();
+  });
+}
+function listenMeetingPoint(){
+  onValue(ref(db,`groups/${myGroup}/meetingPoint`),snap=>{
+    meetingPoint=snap.val();
+    checkArrivals();
   });
 }
 
@@ -898,6 +950,7 @@ function draw(ts){
   let navPos=null;
   if(navUid&&peers[navUid]) navPos={x:peers[navUid].x,y:peers[navUid].y};
   else if(navZoneIdx!=null&&ZONES[navZoneIdx]) navPos={x:ZONES[navZoneIdx].x,y:ZONES[navZoneIdx].y};
+  else if(navCustom) navPos=navCustom;
   if(navPos){
     const me=px(myX,myY),dst=px(navPos.x,navPos.y);
     ctx.strokeStyle='rgba(167,139,250,.85)';ctx.lineWidth=2.5*scale;ctx.setLineDash([12,7]);ctx.lineCap='round';
@@ -928,6 +981,7 @@ function draw(ts){
   });
   // Peers
   Object.values(peers).forEach(f=>{
+    if(f.paused)return;
     const p=px(f.x,f.y);
     const ringColor=f.panic?'#ef4444':f.color;
     const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,24*scale);
@@ -948,6 +1002,16 @@ function draw(ts){
     ctx.fillStyle='rgba(17,17,28,.85)';ctx.beginPath();ctx.roundRect(p.x-tw/2-5,p.y+17*scale,tw+10,14*scale,4);ctx.fill();
     ctx.fillStyle=ringColor;ctx.textBaseline='top';ctx.fillText(f.name,p.x,p.y+18*scale);
   });
+  // Meeting point
+  if(meetingPoint){
+    const p=px(meetingPoint.x,meetingPoint.y);
+    const pulse=(ts%1200)/1200;
+    ctx.beginPath();ctx.arc(p.x,p.y,(14+pulse*18)*scale,0,Math.PI*2);
+    ctx.strokeStyle=`rgba(250,204,21,${.6-pulse*.6})`;ctx.lineWidth=2;ctx.stroke();
+    ctx.font=`${20*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.shadowColor='#facc15';ctx.shadowBlur=10;
+    ctx.fillText('🚩',p.x,p.y-8*scale);ctx.shadowBlur=0;
+  }
   // Me
   const me=px(myX,myY);
   const pulse=(ts%2000)/2000;
@@ -993,7 +1057,7 @@ function handleTapIfClick(clientX,clientY){
 // ── NAV ───────────────────────────────────────────────────────────────────────
 window.navTo=uid=>{
   const f=peers[uid];if(!f)return;
-  navZoneIdx=null;
+  navZoneIdx=null;navCustom=null;
   navUid=uid;
   document.getElementById('navCard').classList.add('on');
   document.getElementById('navAv').textContent=f.emoji;
@@ -1005,7 +1069,7 @@ window.navTo=uid=>{
   document.querySelector(`[data-uid="${uid}"]`)?.classList.add('on');
   toast(`Navigating to ${f.emoji} ${f.name}`);
 };
-window.cancelNav=()=>{navUid=null;navZoneIdx=null;document.getElementById('navCard').classList.remove('on');document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));};
+window.cancelNav=()=>{navUid=null;navZoneIdx=null;navCustom=null;document.getElementById('navCard').classList.remove('on');document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));};
 
 // ── VENUE DETAIL BOTTOM SHEET ─────────────────────────────────────────────────
 window.openVenueSheet=idx=>{
@@ -1046,7 +1110,7 @@ window.navToZoneBtn=()=>{
 };
 function navToZone(idx){
   const z=ZONES[idx];
-  navUid=null;navZoneIdx=idx;
+  navUid=null;navZoneIdx=idx;navCustom=null;
   document.getElementById('navCard').classList.add('on');
   document.getElementById('navAv').textContent=z.icon;
   document.getElementById('navAv').style.borderColor=z.color;
@@ -1222,6 +1286,135 @@ document.addEventListener('click',e=>{
   }
 });
 
+// ── BATTERY ───────────────────────────────────────────────────────────────────
+function initBattery(){
+  if(!navigator.getBattery)return;
+  navigator.getBattery().then(bat=>{
+    batteryLevel=Math.round(bat.level*100);
+    bat.addEventListener('levelchange',()=>{batteryLevel=Math.round(bat.level*100);});
+  }).catch(()=>{});
+}
+
+// ── LOCATION SHARING PAUSE (privacy) ─────────────────────────────────────────
+function updateSharingUI(){
+  document.getElementById('shareOptOn')?.classList.toggle('sel',!sharingPaused);
+  document.getElementById('shareOptPaused')?.classList.toggle('sel',sharingPaused);
+}
+window.setSharingPaused=p=>{
+  sharingPaused=p;
+  updateSharingUI();
+  clearTimeout(pushTmr);pushLoop();
+  toast(p?'⏸️ Location sharing paused':'▶️ Location sharing resumed');
+  logEvent('sharing_pause_toggle',{paused:p});
+};
+
+// ── PROFILE MODAL (extend open to refresh battery/sharing state) ────────────
+const _openProfileBase=window.openProfile;
+window.openProfile=()=>{
+  _openProfileBase();
+  updateSharingUI();
+  document.getElementById('profBattery').textContent=batteryLevel!=null?batteryLevel+'%':'Not available';
+};
+
+// ── MEETING POINT & ARRIVAL STATUS ───────────────────────────────────────────
+function dist(a,b){const dx=a.x-b.x,dy=a.y-b.y;return Math.sqrt(dx*dx+dy*dy);}
+function isArrived(pos){return !!meetingPoint&&dist(pos,meetingPoint)<ARRIVAL_THRESHOLD;}
+function checkArrivals(){
+  if(!meetingPoint){arrivedState={};renderFriendsList();return;}
+  const meArrived=isArrived({x:myX,y:myY});
+  if(meArrived&&!arrivedState.me) toast("✅ You've arrived at the meeting point!");
+  arrivedState.me=meArrived;
+  Object.entries(peers).forEach(([uid,f])=>{
+    const arrived=isArrived(f);
+    if(arrived&&!arrivedState[uid]) toast(`✅ ${f.name} arrived at the meeting point!`);
+    arrivedState[uid]=arrived;
+  });
+  renderFriendsList();
+}
+function announceMeetingPoint(label){
+  CHANNELS['group-main'].messages.push({type:'sys',text:`🚩 ${myName} set a meeting point at ${label} — check Friends to navigate`});
+  if(currentChannel==='group-main') renderChat();
+}
+window.setMeetingPointHere=()=>{
+  if(!myGroup)return;
+  set(ref(db,`groups/${myGroup}/meetingPoint`),{x:myX,y:myY,label:'My Location',setBy:myName,ts:Date.now()}).catch(fbFail);
+  announceMeetingPoint('My Location');
+  toast('🚩 Meeting point set!');
+  logEvent('meeting_point_set',{});
+};
+window.setMeetingPointAtVenue=()=>{
+  if(openZoneIdx==null||!myGroup)return;
+  const z=ZONES[openZoneIdx];
+  set(ref(db,`groups/${myGroup}/meetingPoint`),{x:z.x,y:z.y,label:z.label,setBy:myName,ts:Date.now()}).catch(fbFail);
+  announceMeetingPoint(z.label);
+  toast(`🚩 Meeting point set at ${z.label}!`);
+  logEvent('meeting_point_set',{at:z.label});
+  closeVenueSheet();
+};
+window.clearMeetingPoint=()=>{
+  if(!myGroup)return;
+  set(ref(db,`groups/${myGroup}/meetingPoint`),null).catch(fbFail);
+  toast('Meeting point cleared');
+  logEvent('meeting_point_clear',{});
+};
+function navToMeetingPoint(){
+  if(!meetingPoint)return;
+  navUid=null;navZoneIdx=null;navCustom={x:meetingPoint.x,y:meetingPoint.y};
+  document.getElementById('navCard').classList.add('on');
+  document.getElementById('navAv').textContent='🚩';
+  document.getElementById('navAv').style.borderColor='#facc15';
+  document.getElementById('navAv').style.background='rgba(250,204,21,.2)';
+  document.getElementById('navNm').textContent=meetingPoint.label;
+  document.getElementById('navNm').style.color='#facc15';
+  document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
+  toast(`Navigating to 🚩 ${meetingPoint.label}`);
+  logEvent('nav_to_meeting_point',{});
+}
+window.navToMeetingPoint=()=>{navToMeetingPoint();closeFriends();};
+
+// ── FRIENDS PANEL ─────────────────────────────────────────────────────────────
+window.openFriends=()=>{
+  document.getElementById('friendsPanel').classList.add('open');
+  renderFriendsList();
+};
+window.closeFriends=()=>{document.getElementById('friendsPanel').classList.remove('open');};
+function renderFriendsList(){
+  const panel=document.getElementById('friendsPanel');
+  if(!panel||!panel.classList.contains('open'))return;
+  document.getElementById('friendsCount').textContent=Object.keys(peers).length+1;
+  const mpBox=document.getElementById('meetingPointBox');
+  if(meetingPoint){
+    const total=Object.keys(peers).length+1;
+    let arrivedN=isArrived({x:myX,y:myY})?1:0;
+    Object.values(peers).forEach(f=>{if(isArrived(f))arrivedN++;});
+    mpBox.innerHTML=`<div class="mp-box">
+      <div class="mp-row"><div class="mp-label">🚩 ${esc(meetingPoint.label)}</div><div class="mp-count">${arrivedN}/${total} arrived</div></div>
+      <div class="mp-actions">
+        <button class="vs-btn vs-btn-primary" onclick="navToMeetingPoint()">🧭 Navigate</button>
+        <button class="vs-btn" onclick="clearMeetingPoint()">✕ Clear</button>
+      </div>
+    </div>`;
+  } else {
+    mpBox.innerHTML=`<button class="vs-btn vs-btn-primary" style="width:100%;margin-bottom:14px" onclick="setMeetingPointHere()">🚩 Set Meeting Point Here</button>`;
+  }
+  const rows=[{uid:null,f:{name:(myName||'You')+' (You)',emoji:myEmoji,color:'#10b981',x:myX,y:myY,battery:batteryLevel,paused:sharingPaused,ts:Date.now()}}]
+    .concat(Object.entries(peers).map(([uid,f])=>({uid,f})));
+  document.getElementById('friendsList').innerHTML=rows.map(({uid,f})=>{
+    const stale=uid&&(Date.now()-(f.ts||0)>10000);
+    const arrived=isArrived(f);
+    const d=uid?Math.round(Math.sqrt((f.x-myX)**2+(f.y-myY)**2)*1000)+'m':'—';
+    const statusTag=f.paused?'⏸️ Paused':(stale?'⚪ Stale':'🟢 Live');
+    return `<div class="friend-row">
+      <div class="friend-av" style="border-color:${f.color}">${f.panic?'🆘':f.emoji}</div>
+      <div class="friend-info">
+        <div class="friend-name">${esc(f.name)}${arrived?' ✅':''}</div>
+        <div class="friend-meta">${statusTag}${f.battery!=null?` · 🔋${f.battery}%`:''}${uid?` · ${d}`:''}</div>
+      </div>
+      ${uid?`<button class="friend-nav-btn" onclick="navTo('${uid}')" aria-label="Navigate to ${esc(f.name)}">🧭</button>`:''}
+    </div>`;
+  }).join('');
+}
+
 // ── MAP BAR ───────────────────────────────────────────────────────────────────
 function renderMapBar(){
   const myChip=`<div class="mychip"><div class="ch-em">${myEmoji}</div><div><div class="ch-nm" style="color:var(--green)">${myName||'You'}</div><div class="ch-st" style="color:var(--green)">YOU</div></div></div>`;
@@ -1232,7 +1425,7 @@ function renderMapBar(){
       <div><div class="ch-nm" style="color:${z.color}">${z.label}</div><div class="ch-st" style="color:var(--muted)">Favorite</div></div>
     </div>`;
   }).join('');
-  const chips=Object.entries(peers).map(([uid,f])=>`
+  const chips=Object.entries(peers).filter(([,f])=>!f.paused).map(([uid,f])=>`
     <div class="mchip" data-uid="${uid}" onclick="navTo('${uid}')">
       <div class="ch-em">${f.panic?'🆘':(f.emoji||'👤')}</div>
       <div><div class="ch-nm" style="color:${f.panic?'var(--red)':(f.color||'#a78bfa')}">${f.name}</div><div class="ch-st" style="color:${f.panic?'var(--red)':'var(--green)'}">${f.panic?'🆘 Alert':'Live 🟢'}</div></div>
