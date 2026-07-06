@@ -350,8 +350,9 @@ Already shipped (pre-dates or was built alongside this roadmap):
 - Panic/SOS alert visible to group and venue staff on both maps (Phase 10, partial)
 - Venue manager dashboard: live reports feed, staff assignment, attendee/alert stats (Phase 14, partial)
 - Installable as an Android PWA: manifest, icons, offline app-shell service worker (Phase 15, partial — web equivalent of store readiness; native store submission is out of scope without a wrapped native build)
+- **Phase 0 – Foundation (done):** profile persistence across reloads (localStorage, auto-resume, Leave Group), light/dark theme toggle, a reusable profile/dialog modal component, offline/online + Firebase-write-failure toasts, lightweight per-group analytics event logging (join, tab switches, reports, panic, install prompts)
 
-Not yet started: Phases 0, 2, 6, 7, 8, 9, 11, 12, 13, and the remainder of 3/4/5/10/14/15.
+Not yet started: Phases 2, 6, 7, 8, 9, 11, 12, 13, and the remainder of 1/3/4/5/10/14/15.
 
 ## Stack (Planned Production)
 

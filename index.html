@@ -32,6 +32,17 @@
   --muted:#6060a0;
 }
 
+body.theme-light {
+  --bg:#f5f4fb;
+  --surface:#ffffff;
+  --surface2:#efedf9;
+  --border:#ddd8f0;
+  --accent:#7c3aed;
+  --neon:#7c3aed;
+  --text:#1a1730;
+  --muted:#6b6690;
+}
+
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 
 body {
@@ -76,7 +87,27 @@ body {
 .install-btn{display:none;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--neon);background:rgba(124,58,237,.14);border:1px solid rgba(124,58,237,.4);border-radius:20px;padding:5px 11px;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s;}
 .install-btn:hover{background:rgba(124,58,237,.25);}
 .install-btn.show{display:flex;}
+.profile-btn{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all .15s;flex-shrink:0;}
+.profile-btn:hover{border-color:var(--neon);}
 .live-pill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;}
+
+/* ── PROFILE MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:340px;box-shadow:0 16px 48px rgba(0,0,0,.5);}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:16px;}
+.modal-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
+.modal-row:last-of-type{border-bottom:none;}
+.modal-row-label{font-size:13px;color:var(--muted);}
+.modal-row-val{font-size:13px;font-weight:600;}
+.theme-toggle{display:flex;background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:3px;gap:2px;}
+.theme-opt{padding:5px 12px;border-radius:16px;font-size:11px;font-weight:700;cursor:pointer;color:var(--muted);transition:all .15s;}
+.theme-opt.sel{background:var(--accent);color:#fff;}
+.modal-actions{margin-top:18px;display:flex;flex-direction:column;gap:8px;}
+.modal-btn{width:100%;padding:11px;border-radius:10px;font-family:'Space Grotesk',sans-serif;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s;border:none;}
+.modal-close-btn{background:var(--surface2);color:var(--text);}
+.modal-leave-btn{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.35)!important;}
+.modal-btn:hover{opacity:.85;}
 .ldot{width:7px;height:7px;border-radius:50%;animation:blink 2s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 
@@ -323,6 +354,27 @@ canvas:active{cursor:grabbing;}
     <div class="ldot" id="ldot" style="background:var(--amber)"></div>
     <span id="llbl" style="color:var(--amber)">CONNECTING</span>
   </div>
+  <button class="profile-btn" onclick="openProfile()">👤</button>
+</div>
+
+<!-- PROFILE MODAL -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal">
+    <div class="modal-title">Your profile</div>
+    <div class="modal-row"><div class="modal-row-label">Name</div><div class="modal-row-val" id="profName">—</div></div>
+    <div class="modal-row"><div class="modal-row-label">Group</div><div class="modal-row-val" id="profGroup">—</div></div>
+    <div class="modal-row">
+      <div class="modal-row-label">Theme</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="themeOptDark" onclick="setTheme('dark')">Dark</div>
+        <div class="theme-opt" id="themeOptLight" onclick="setTheme('light')">Light</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeProfile()">Close</button>
+      <button class="modal-btn modal-leave-btn" onclick="leaveGroup()">Leave Group</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── SCREENS ── -->
@@ -435,7 +487,7 @@ canvas:active{cursor:grabbing;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, update, onValue, onDisconnect, runTransaction }
+import { getDatabase, ref, set, update, onValue, onDisconnect, runTransaction, push }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
@@ -449,6 +501,30 @@ const fbApp = initializeApp({
   appId:"1:395299315354:web:c219f13a88232d2bed4923"
 });
 const db = getDatabase(fbApp);
+
+// ── THEME ─────────────────────────────────────────────────────────────────────
+function setTheme(t){
+  document.body.classList.toggle('theme-light',t==='light');
+  document.getElementById('themeOptDark').classList.toggle('sel',t!=='light');
+  document.getElementById('themeOptLight').classList.toggle('sel',t==='light');
+  try{ localStorage.setItem('glyde_theme',t); }catch(e){}
+}
+window.setTheme=setTheme;
+(function applySavedTheme(){
+  let saved=null;
+  try{ saved=localStorage.getItem('glyde_theme'); }catch(e){}
+  setTheme(saved||'dark');
+})();
+
+// ── ANALYTICS (lightweight event logging) ────────────────────────────────────
+function logEvent(name,data){
+  if(!myGroup)return;
+  push(ref(db,`groups/${myGroup}/analytics`),{event:name,ts:Date.now(),uid:myId,...(data||{})}).catch(()=>{});
+}
+
+// ── CONNECTIVITY ──────────────────────────────────────────────────────────────
+window.addEventListener('offline',()=>toast('📴 You\'re offline — some features unavailable','w'));
+window.addEventListener('online',()=>toast('✅ Back online'));
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const EMOJIS=['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🎯','🌙','💎'];
@@ -553,20 +629,59 @@ window.joinGroup=()=>{
   const code=document.getElementById('codeInput').value.trim().toUpperCase();
   if(!name){toast('Enter your name','w');return;}
   if(code.length<4){toast('Enter a group code','w');return;}
+  enterApp(name,code);
+};
+
+function enterApp(name,code){
   myName=name;myGroup=code;
+  saveProfile();
   document.getElementById('joinOverlay').style.display='none';
   document.getElementById('grpLabel').textContent=code;
   document.getElementById('groupCodeDisplay').textContent=code;
+  document.getElementById('profName').textContent=`${myEmoji} ${myName}`;
+  document.getElementById('profGroup').textContent=code;
   // Add join message to group chat
   CHANNELS['group-main'].messages.push({type:'sys',text:`${myEmoji} ${myName} joined the group`});
   startGPS();listenGroup();pushLoop();
   requestAnimationFrame(draw);
   renderChat();renderSidebar();renderMobBar();renderReports();renderMapBar();
+  logEvent('join',{group:code});
+}
+
+// ── PROFILE PERSISTENCE (localStorage) ───────────────────────────────────────
+function saveProfile(){
+  try{ localStorage.setItem('glyde_profile',JSON.stringify({name:myName,group:myGroup,emoji:myEmoji,color:myColor})); }catch(e){}
+}
+function loadProfile(){
+  try{ return JSON.parse(localStorage.getItem('glyde_profile')||'null'); }catch(e){ return null; }
+}
+function tryResume(){
+  const p=loadProfile();
+  if(!p||!p.name||!p.group)return;
+  myEmoji=p.emoji||EMOJIS[0];myColor=p.color||COLORS[0];
+  const idx=EMOJIS.indexOf(myEmoji);
+  if(idx>=0&&idx<8) window.pickEmoji(idx);
+  enterApp(p.name,p.group);
+  toast(`👋 Welcome back, ${p.name}!`);
+}
+window.leaveGroup=()=>{
+  try{ localStorage.removeItem('glyde_profile'); }catch(e){}
+  if(myGroup) set(ref(db,`groups/${myGroup}/users/${myId}`),null).catch(()=>{});
+  location.reload();
+};
+
+// ── PROFILE MODAL ─────────────────────────────────────────────────────────────
+window.openProfile=()=>{
+  document.getElementById('profileModal').classList.add('open');
+};
+window.closeProfile=()=>{
+  document.getElementById('profileModal').classList.remove('open');
 };
 
 // ── TAB SWITCHING ─────────────────────────────────────────────────────────────
 window.switchTab=tab=>{
   currentTab=tab;
+  logEvent('tab_switch',{tab});
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('screen-'+tab).classList.add('active');
@@ -596,10 +711,14 @@ function setStatus(live){
 }
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
+let fbErrorShown=false;
+function fbFail(){
+  if(!fbErrorShown){fbErrorShown=true;toast('⚠️ Connection issue — retrying…','e');setTimeout(()=>fbErrorShown=false,15000);}
+}
 function pushLoop(){
   if(!myGroup)return;
   const r=ref(db,`groups/${myGroup}/users/${myId}`);
-  set(r,{name:myName,emoji:myEmoji,color:myColor,x:myX,y:myY,ts:Date.now(),panic:panicOn});
+  set(r,{name:myName,emoji:myEmoji,color:myColor,x:myX,y:myY,ts:Date.now(),panic:panicOn}).catch(fbFail);
   onDisconnect(r).remove();
   clearTimeout(pushTmr);
   pushTmr=setTimeout(pushLoop,3000);
@@ -623,7 +742,7 @@ function fileReport(type,label){
       return cur;
     }
     return {type,label,loc:z.label,x:z.x,y:z.y,count:1,time:Date.now(),resolved:false,assigned:null};
-  });
+  }).catch(fbFail);
 }
 function listenGroup(){
   onValue(ref(db,`groups/${myGroup}/users`),snap=>{
@@ -985,6 +1104,7 @@ window.sendReport=(id,label)=>{
   if(repSent[id])return;
   repSent[id]=true;renderReports();
   fileReport(id,label);
+  logEvent('report_sent',{type:id});
   toast(`📨 Sent to venue: ${label}`);
   setTimeout(()=>{delete repSent[id];renderReports();},5000);
 };
@@ -993,7 +1113,8 @@ window.triggerPanic=()=>{
   const btn=document.getElementById('panicBtn');
   btn.classList.toggle('on',panicOn);
   btn.textContent=panicOn?'🆘 Location Sent — Group Notified':'🆘 Send my location to group';
-  if(myGroup) update(ref(db,`groups/${myGroup}/users/${myId}`),{panic:panicOn});
+  if(myGroup) update(ref(db,`groups/${myGroup}/users/${myId}`),{panic:panicOn}).catch(fbFail);
+  logEvent('panic_toggle',{on:panicOn});
   if(panicOn) toast('🆘 Your location shared with your group');
 };
 window.copyCode=()=>{
@@ -1025,6 +1146,7 @@ window.installApp=async()=>{
   deferredInstallPrompt.prompt();
   const {outcome}=await deferredInstallPrompt.userChoice;
   if(outcome==='accepted') toast('📲 Glyde installed!');
+  logEvent('install_prompt',{outcome});
   deferredInstallPrompt=null;
 };
 window.addEventListener('appinstalled',()=>{
@@ -1038,6 +1160,9 @@ if('serviceWorker' in navigator){
     navigator.serviceWorker.register('sw.js').catch(()=>{});
   });
 }
+
+// ── RESUME SESSION (if returning attendee) ───────────────────────────────────
+tryResume();
 </script>
 </body>
 </html>
