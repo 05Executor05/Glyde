@@ -28,11 +28,310 @@ Glyde gives festival attendees real-time friend tracking, interactive venue maps
 
 ## Roadmap
 
-- [ ] Real GPS location
-- [ ] Firebase real-time multi-user
-- [ ] Venue manager dashboard
-- [ ] Merge map + chat into unified app
-- [ ] iOS + Android native apps
+Phase 0 – Foundation
+Objective:
+Complete this phase before moving to the next.
+1.	Set up design system (colors, typography, spacing, icons).
+2.	Create reusable UI components (buttons, cards, bottom sheets, chips, dialogs).
+3.	Set up navigation architecture.
+4.	Configure authentication and user profiles.
+5.	Implement theme support and responsive layouts.
+6.	Create loading, empty, and error states.
+7.	Implement analytics/event logging.
+8.	Add offline storage foundation.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 1 – Navigation
+Objective:
+Complete this phase before moving to the next.
+9.	Interactive map with zoom/pan.
+10.	User location (blue dot).
+11.	Compass & recenter.
+12.	Venue markers by category.
+13.	Bottom sheet for venue details.
+14.	Turn-by-turn navigation.
+15.	Estimated distance/time.
+16.	Route recalculation.
+17.	Indoor floor switching.
+18.	Favorite places.
+19.	Share destination.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 2 – Search & Discovery
+Objective:
+Complete this phase before moving to the next.
+20.	Universal search.
+21.	Autocomplete.
+22.	Recent searches.
+23.	Popular searches.
+24.	Category filters.
+25.	Map layer toggles.
+26.	Voice search (optional).
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 3 – Friends
+Objective:
+Complete this phase before moving to the next.
+27.	Friend list.
+28.	Friend requests.
+29.	Live location sharing.
+30.	Battery indicator.
+31.	Navigate to friend.
+32.	Meeting point creation.
+33.	Meeting invitations.
+34.	Arrival status.
+35.	Temporary location sharing.
+36.	Privacy controls.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 4 – Chat
+Objective:
+Complete this phase before moving to the next.
+37.	Direct messages.
+38.	Group chats.
+39.	Typing indicators.
+40.	Read receipts.
+41.	Emoji reactions.
+42.	Image sharing.
+43.	Live location sharing.
+44.	Reply/forward.
+45.	Stage chat channels.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 5 – Reports
+Objective:
+Complete this phase before moving to the next.
+46.	Report categories.
+47.	Auto GPS.
+48.	Photo upload.
+49.	Video upload.
+50.	Voice notes.
+51.	Priority levels.
+52.	Report status tracking.
+53.	Organizer dashboard integration.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 6 – Crowd Intelligence
+Objective:
+Complete this phase before moving to the next.
+54.	Crowd heatmap.
+55.	Queue times.
+56.	Crowd density labels.
+57.	Temporary hazards.
+58.	Closed routes.
+59.	Weather alerts.
+60.	Alternative routing.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 7 – Event Companion
+Objective:
+Complete this phase before moving to the next.
+61.	Event schedule.
+62.	Artist pages.
+63.	Bookmarks.
+64.	Reminder notifications.
+65.	Current performer banner.
+66.	Stage occupancy.
+67.	Setlist prediction placeholder.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 8 – Merchandise
+Objective:
+Complete this phase before moving to the next.
+68.	Merchandise home.
+69.	Categories.
+70.	Product page.
+71.	Variants (size/color).
+72.	Inventory status.
+73.	Reserve item.
+74.	Pickup QR.
+75.	Order history.
+76.	Notifications for drops.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 9 – Food
+Objective:
+Complete this phase before moving to the next.
+77.	Vendor list.
+78.	Cuisine filters.
+79.	Dietary tags.
+80.	Menus.
+81.	Ratings.
+82.	Queue estimates.
+83.	Pre-order.
+84.	Navigation to vendor.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 10 – Safety
+Objective:
+Complete this phase before moving to the next.
+85.	SOS screen.
+86.	Emergency contacts.
+87.	Nearest medical/security.
+88.	Safe exit routing.
+89.	Incident broadcasts.
+90.	Share live location.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 11 – Accessibility
+Objective:
+Complete this phase before moving to the next.
+91.	Wheelchair routes.
+92.	Accessible facilities.
+93.	High contrast mode.
+94.	Large text.
+95.	Voice guidance.
+96.	Quiet zones.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 12 – Gamification
+Objective:
+Complete this phase before moving to the next.
+97.	Badges.
+98.	XP system.
+99.	Challenges.
+100.	Leaderboards.
+101.	Daily quests.
+102.	Festival passport.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 13 – Memories
+Objective:
+Complete this phase before moving to the next.
+103.	Visited locations timeline.
+104.	Photos on map.
+105.	Distance walked.
+106.	Artists seen.
+107.	Festival recap card.
+108.	Share recap.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 14 – Organizer Dashboard
+Objective:
+Complete this phase before moving to the next.
+109.	Announcements.
+110.	Push notifications.
+111.	Vendor management.
+112.	Map management.
+113.	Live reports.
+114.	Analytics.
+115.	Crowd monitoring.
+116.	Sponsor management.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Phase 15 – Polish
+Objective:
+Complete this phase before moving to the next.
+117.	Animations.
+118.	Haptic feedback.
+119.	Skeleton loading.
+120.	Offline mode.
+121.	Battery saver.
+122.	Performance optimization.
+123.	Accessibility audit.
+124.	Bug fixing.
+125.	QA testing.
+126.	App Store/Play Store readiness.
+Deliverables:
+• UI completed
+• Backend/API completed (if needed)
+• Tested on device
+• Edge cases handled
+• Code committed
+
+Recommended Build Sequence
+•	Foundation
+•	Navigation
+•	Search
+•	Friends
+•	Chat
+•	Reports
+•	Crowd Intelligence
+•	Event Companion
+•	Merchandise
+•	Food
+•	Safety
+•	Accessibility
+•	Gamification
+•	Memories
+•	Organizer Dashboard
+•	Polish
+
 
 ## Stack (Planned Production)
 
