@@ -1221,6 +1221,8 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, signIn
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
+import { getFunctions, httpsCallable }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
 const fbApp = initializeApp({
@@ -1235,6 +1237,25 @@ const fbApp = initializeApp({
 const db = getDatabase(fbApp);
 const storage = getStorage(fbApp);
 const auth = getAuth(fbApp);
+
+// ── REAL PAYMENTS (Stripe Checkout) ──────────────────────────────────────────────────────
+// Get this from the Stripe Dashboard > Developers > API keys (the "Publishable key" — safe to
+// embed client-side; the secret key lives only in the Cloud Function, never here). Reservations
+// silently fall back to the existing free/simulated flow until this is filled in. getFunctions()
+// is only called once checkout actually starts, so this stays inert (no Functions SDK calls at
+// all) for every event that hasn't configured Stripe.
+const STRIPE_PUBLISHABLE_KEY = 'REPLACE_WITH_YOUR_STRIPE_PUBLISHABLE_KEY';
+const STRIPE_CONFIGURED = STRIPE_PUBLISHABLE_KEY !== 'REPLACE_WITH_YOUR_STRIPE_PUBLISHABLE_KEY';
+async function startCheckout(params){
+  const createCheckoutSession=httpsCallable(getFunctions(fbApp),'createCheckoutSession');
+  const returnUrl=window.location.origin+window.location.pathname;
+  const res=await createCheckoutSession({
+    ...params,
+    successUrl:`${returnUrl}?checkout=success`,
+    cancelUrl:`${returnUrl}?checkout=cancelled`,
+  });
+  if(res.data?.url) window.location.href=res.data.url;
+}
 
 // ── PUSH NOTIFICATIONS (Firebase Cloud Messaging — works even when the app is closed) ──
 // Get this from Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
@@ -2748,10 +2769,18 @@ window.navToVendor=id=>{
   speakGuidance(`Navigating to ${v.name}`);
   closeFood();
 };
-window.preOrderItem=(vendorId,itemIdx)=>{
+window.preOrderItem=async(vendorId,itemIdx)=>{
   if(!myGroup)return;
   if(vendorStatus[vendorId]?.closed){ toast('🚫 This vendor is closed','w'); return; }
   const v=FOOD_VENDORS.find(x=>x.id===vendorId);const item=v.menu[itemIdx];
+  if(STRIPE_CONFIGURED){
+    try{
+      toast('Redirecting to checkout…');
+      await startCheckout({code:myGroup,kind:'food',vendorId,itemIdx});
+    }catch(e){ toast('⚠️ Checkout failed','e'); }
+    return;
+  }
+  // Simulated flow (no payment processor configured) — creates the order directly, free.
   const pickupCode=Math.random().toString(36).slice(2,8).toUpperCase();
   push(ref(db,`groups/${myGroup}/foodOrders/${myId}`),{
     vendorId,vendorName:v.name,item:item.item,price:item.price,ts:Date.now(),pickupCode,status:'preparing'
@@ -2876,9 +2905,17 @@ window.selectVariant=(kind,val)=>{
   renderProductDetail(openProductId);
 };
 window.backToMerchGrid=()=>{openProductId=null;renderMerchGrid();};
-window.confirmReserve=id=>{
+window.confirmReserve=async id=>{
   if(!myGroup)return;
   const p=PRODUCTS.find(x=>x.id===id);if(!p)return;
+  if(STRIPE_CONFIGURED){
+    try{
+      toast('Redirecting to checkout…');
+      await startCheckout({code:myGroup,kind:'merch',productId:id,size:selectedSize,color:selectedColor});
+    }catch(e){ toast('⚠️ Checkout failed','e'); }
+    return;
+  }
+  // Simulated flow (no payment processor configured) — creates the order directly, free.
   runTransaction(ref(db,`groups/${myGroup}/merchStock/${id}`),cur=>{
     const c=cur===null?p.stock:cur;
     return c<=0?c:c-1;
@@ -3975,6 +4012,12 @@ function showAuthScreen(){
 function showAppAfterAuth(){
   document.getElementById('splashScreen').style.display='none';
   document.getElementById('authScreen').classList.remove('show');
+  const checkoutResult=new URLSearchParams(window.location.search).get('checkout');
+  if(checkoutResult){
+    if(checkoutResult==='success') toast('✅ Payment received — check My Orders for your pickup code');
+    else if(checkoutResult==='cancelled') toast('Checkout cancelled — nothing was charged');
+    window.history.replaceState({},'',window.location.pathname);
+  }
   const pending=checkPendingOpen();
   if(pending){
     enterApp(pending.name||(authProfile&&authProfile.name)||'Guest',pending.code);
