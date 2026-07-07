@@ -365,7 +365,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, update, push }
+import { getDatabase, ref, onValue, update, push, set, get }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
 const fbApp = initializeApp({
@@ -389,32 +389,37 @@ const REPORT_TYPES = {
   security:{label:'Security Alert',icon:'🛡️', color:'#f472b6', urgent:true},
 };
 
-// Mirrors index.html's ZONES/PATHS/PATH_LABELS for "Glyde Demo Festival" — keep in sync.
-const ZONES = [
-  {label:'MAIN STAGE',        x:.50,y:.14,w:.26,h:.10,color:'#9333ea',icon:'🎵'},
-  {label:'INDIE STAGE',       x:.78,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎸'},
-  {label:'EDM ARENA',         x:.22,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎧'},
-  {label:'BURGER HUB',        x:.35,y:.47,w:.08,h:.06,color:'#d97706',icon:'🍔'},
-  {label:'PIZZA CORNER',      x:.50,y:.47,w:.08,h:.06,color:'#d97706',icon:'🍕'},
-  {label:'COFFEE STOP',       x:.65,y:.47,w:.08,h:.06,color:'#d97706',icon:'☕'},
-  {label:'BEER GARDEN',       x:.40,y:.58,w:.09,h:.06,color:'#b45309',icon:'🍺'},
-  {label:'COCKTAIL BAR',      x:.60,y:.58,w:.09,h:.06,color:'#b45309',icon:'🍹'},
-  {label:'TOILETS',           x:.15,y:.55,w:.07,h:.05,color:'#0891b2',icon:'🚻'},
-  {label:'TOILETS',           x:.85,y:.55,w:.07,h:.05,color:'#0891b2',icon:'🚻'},
-  {label:'WATER STATION',     x:.25,y:.70,w:.05,h:.05,color:'#059669',icon:'💧'},
-  {label:'WATER STATION',     x:.75,y:.70,w:.05,h:.05,color:'#059669',icon:'💧'},
-  {label:'MEDICAL TENT',      x:.50,y:.72,w:.09,h:.06,color:'#dc2626',icon:'🏥'},
-  {label:'CHARGING STATION',  x:.35,y:.80,w:.07,h:.05,color:'#3b82f6',icon:'🔌'},
-  {label:'LOCKERS',           x:.65,y:.80,w:.07,h:.05,color:'#64748b',icon:'🔒'},
-  {label:'INFORMATION DESK',  x:.50,y:.85,w:.08,h:.05,color:'#eab308',icon:'ℹ️'},
-  {label:'MERCHANDISE STORE', x:.20,y:.85,w:.09,h:.06,color:'#ec4899',icon:'🛍️'},
-  {label:'SECURITY',          x:.80,y:.85,w:.07,h:.05,color:'#f472b6',icon:'🛡️'},
-  {label:'NORTH EXIT',        x:.50,y:.04,w:.10,h:.03,color:'#4ade80',icon:'🚪'},
-  {label:'SOUTH EXIT',        x:.50,y:.94,w:.10,h:.03,color:'#4ade80',icon:'🚪'},
-  {label:'QUIET ZONE',        x:.10,y:.15,w:.08,h:.06,color:'#38bdf8',icon:'🧘'},
+// Mirrors index.html's DEFAULT_ZONES/DEFAULT_PATHS/DEFAULT_PATH_LABELS for "Glyde Demo
+// Festival" — the built-in fallback + "reset to defaults" seed for the Venue Editor.
+// ZONES/PATHS/PATH_LABELS themselves are mutable, loaded per-event via loadVenueConfig().
+// Must stay a byte-for-byte field mirror of index.html's DEFAULT_ZONES — in particular
+// `category` (and `accessible`/`floors`) — since venueConfig written from here is read
+// directly by index.html's rendering/search/safety/schedule logic, all keyed off `category`.
+const DEFAULT_ZONES = [
+  {label:'MAIN STAGE',        x:.50,y:.14,w:.26,h:.10,color:'#9333ea',icon:'🎵',floors:3,category:'stage'},
+  {label:'INDIE STAGE',       x:.78,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎸',floors:2,category:'stage'},
+  {label:'EDM ARENA',         x:.22,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎧',floors:2,category:'stage'},
+  {label:'BURGER HUB',        x:.35,y:.47,w:.08,h:.06,color:'#d97706',icon:'🍔',floors:1,category:'food'},
+  {label:'PIZZA CORNER',      x:.50,y:.47,w:.08,h:.06,color:'#d97706',icon:'🍕',floors:1,category:'food'},
+  {label:'COFFEE STOP',       x:.65,y:.47,w:.08,h:.06,color:'#d97706',icon:'☕',floors:1,category:'food'},
+  {label:'BEER GARDEN',       x:.40,y:.58,w:.09,h:.06,color:'#b45309',icon:'🍺',floors:1,category:'drinks'},
+  {label:'COCKTAIL BAR',      x:.60,y:.58,w:.09,h:.06,color:'#b45309',icon:'🍹',floors:1,category:'drinks'},
+  {label:'TOILETS',           x:.15,y:.55,w:.07,h:.05,color:'#0891b2',icon:'🚻',floors:1,category:'restroom',accessible:true},
+  {label:'TOILETS',           x:.85,y:.55,w:.07,h:.05,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
+  {label:'WATER STATION',     x:.25,y:.70,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+  {label:'WATER STATION',     x:.75,y:.70,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+  {label:'MEDICAL TENT',      x:.50,y:.72,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1,category:'medical',accessible:true},
+  {label:'CHARGING STATION',  x:.35,y:.80,w:.07,h:.05,color:'#3b82f6',icon:'🔌',floors:1,category:'charging'},
+  {label:'LOCKERS',           x:.65,y:.80,w:.07,h:.05,color:'#64748b',icon:'🔒',floors:1,category:'lockers'},
+  {label:'INFORMATION DESK',  x:.50,y:.85,w:.08,h:.05,color:'#eab308',icon:'ℹ️',floors:1,category:'info',accessible:true},
+  {label:'MERCHANDISE STORE', x:.20,y:.85,w:.09,h:.06,color:'#ec4899',icon:'🛍️',floors:1,category:'merch'},
+  {label:'SECURITY',          x:.80,y:.85,w:.07,h:.05,color:'#f472b6',icon:'🛡️',floors:1,category:'security'},
+  {label:'NORTH EXIT',        x:.50,y:.04,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
+  {label:'SOUTH EXIT',        x:.50,y:.94,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
+  {label:'QUIET ZONE',        x:.10,y:.15,w:.08,h:.06,color:'#38bdf8',icon:'🧘',floors:1,category:'quiet',accessible:true},
 ];
 
-const PATHS=[
+const DEFAULT_PATHS=[
   [[.22,.28],[.50,.14],[.78,.28]],
   [[.50,.14],[.50,.90]],
   [[.22,.28],[.15,.55],[.20,.85]],
@@ -423,7 +428,38 @@ const PATHS=[
   [[.50,.04],[.50,.14]],
   [[.50,.90],[.50,.94]],
 ];
-const PATH_LABELS=['Stage Concourse','Center Spine','West Loop','East Loop','Mid Crossbar','North Exit Path','South Exit Path'];
+const DEFAULT_PATH_LABELS=['Stage Concourse','Center Spine','West Loop','East Loop','Mid Crossbar','North Exit Path','South Exit Path'];
+let ZONES=DEFAULT_ZONES;
+let PATHS=DEFAULT_PATHS;
+let PATH_LABELS=DEFAULT_PATH_LABELS;
+
+// ── PER-EVENT VENUE CONFIG (mirrors index.html's loadVenueConfig) ────────────────────────
+// Keeps the organizer's own map preview and the alert-broadcast location dropdown in sync
+// with whichever venue is actually configured (default demo, or this organizer's own).
+function applyVenueConfig(cfg) {
+  // Only fall back to the demo defaults when no venueConfig exists at all — an organizer who
+  // has deliberately deleted every zone (cfg.zones === []) gets a genuinely empty editor, not
+  // a silent revert to the demo venue.
+  if (cfg && Array.isArray(cfg.zones)) {
+    ZONES = cfg.zones;
+    PATHS = Array.isArray(cfg.paths) ? cfg.paths : [];
+    PATH_LABELS = Array.isArray(cfg.pathLabels) ? cfg.pathLabels : [];
+  } else {
+    ZONES = DEFAULT_ZONES;
+    PATHS = DEFAULT_PATHS;
+    PATH_LABELS = DEFAULT_PATH_LABELS;
+  }
+  if (mgmtTab === 'map') renderManageBody();
+}
+async function loadVenueConfig(code) {
+  try {
+    const snap = await get(ref(db, `groups/${code}/venueConfig`));
+    applyVenueConfig(snap.val());
+  } catch (e) {
+    applyVenueConfig(null);
+  }
+  onValue(ref(db, `groups/${code}/venueConfig`), snap => applyVenueConfig(snap.val()));
+}
 
 const STAFF = [
   {id:'s1', name:'Carlos R.',  zone:'North Zone',  emoji:'👷'},
@@ -503,6 +539,7 @@ window.managerLogin = () => {
   // otherwise only have the raw join code to show); doesn't touch createdAt if already set.
   update(ref(db, `groups/${code}/meta`), { name: venue }).catch(() => {});
 
+  loadVenueConfig(code);
   listenAttendees();
   listenReports();
   listenAlerts();
@@ -617,20 +654,141 @@ window.toggleVendorClosed = id => {
   update(ref(db, `groups/${eventGroup}/vendorStatus/${id}`), {closed: !closed});
 };
 
+// ── VENUE EDITOR (per-event map: add/edit/delete zones, connect them with paths) ─────────
+const VENUE_CATEGORY_OPTIONS = [
+  {id:'stage',label:'Stage'},{id:'food',label:'Food'},{id:'drinks',label:'Drinks'},
+  {id:'restroom',label:'Restroom'},{id:'water',label:'Water'},{id:'medical',label:'Medical'},
+  {id:'charging',label:'Charging'},{id:'lockers',label:'Lockers'},{id:'info',label:'Info Desk'},
+  {id:'merch',label:'Merch Store'},{id:'security',label:'Security'},{id:'exit',label:'Exit'},{id:'quiet',label:'Quiet Zone'},
+];
+let venueEditIdx = null; // null = adding a new zone, else index of the zone being edited
+
 function renderMapMgmtTab() {
-  return ZONES.map((z,i) => {
+  const zoneRows = ZONES.map((z,i) => {
     const closed = !!zoneStatus[i]?.closed;
-    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+    return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--border)">
       <span style="font-size:18px">${z.icon}</span>
-      <span style="flex:1;font-size:12px;font-weight:600">${z.label}</span>
+      <span style="flex:1;font-size:12px;font-weight:600">${esc(z.label)}</span>
       <span style="font-size:10px;font-weight:700;color:${closed?'var(--red)':'var(--green)'}">${closed?'CLOSED':'OPEN'}</span>
-      <button class="rep-btn ${closed?'resolve-btn':'assign-btn'}" style="flex:none;padding:6px 10px" onclick="toggleZoneClosed(${i})">${closed?'Reopen':'Close'}</button>
+      <button class="rep-btn ${closed?'resolve-btn':'assign-btn'}" style="flex:none;padding:5px 8px" onclick="toggleZoneClosed(${i})">${closed?'Reopen':'Close'}</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="editVenueZoneForm(${i})">Edit</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="deleteVenueZone(${i})">Delete</button>
     </div>`;
   }).join('');
+
+  const editing = venueEditIdx !== null;
+  const z = editing ? ZONES[venueEditIdx] : null;
+  const catOptions = VENUE_CATEGORY_OPTIONS.map(c =>
+    `<option value="${c.id}" ${editing && z.category===c.id ? 'selected' : ''}>${c.label}</option>`
+  ).join('');
+
+  const pathRows = PATHS.map((p,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
+      <span style="flex:1">${esc(PATH_LABELS[i]||'Path '+(i+1))} (${p.length} pts)</span>
+      <span style="color:var(--red);cursor:pointer;font-weight:600" onclick="deleteVenuePath(${i})">✕</span>
+    </div>`).join('');
+
+  const zonePickerOptions = ZONES.map((zz,i) => `<option value="${i}">${esc(zz.label)}</option>`).join('');
+
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Zones (${ZONES.length})</div>
+    ${zoneRows}
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${editing?'Edit zone':'+ Add zone'}</div>
+      <input class="login-field" id="veLabel" placeholder="Name (e.g. Main Stage)" value="${editing?esc(z.label):''}" style="margin-bottom:8px"/>
+      <select class="alert-select" id="veCategory" style="margin-bottom:8px">${catOptions}</select>
+      <input class="login-field" id="veIcon" placeholder="Icon (emoji)" value="${editing?esc(z.icon):'📍'}" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">X position (0-1)</div><input class="login-field" id="veX" type="number" min="0" max="1" step="0.01" value="${editing?z.x:'0.5'}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Y position (0-1)</div><input class="login-field" id="veY" type="number" min="0" max="1" step="0.01" value="${editing?z.y:'0.5'}" style="margin-bottom:0"/></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Width (0-1)</div><input class="login-field" id="veW" type="number" min="0.02" max="1" step="0.01" value="${editing?z.w:'0.08'}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Height (0-1)</div><input class="login-field" id="veH" type="number" min="0.02" max="1" step="0.01" value="${editing?z.h:'0.06'}" style="margin-bottom:0"/></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="modal-btn modal-confirm" onclick="saveVenueZoneForm()">${editing?'Save changes':'Add zone'}</button>
+        ${editing?'<button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="cancelVenueZoneEdit()">Cancel</button>':''}
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Paths (${PATHS.length})</div>
+    ${pathRows}
+    <div style="margin-top:10px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">+ Connect zones</div>
+      <select class="alert-select" id="vePathZones" multiple size="5" style="margin-bottom:8px;height:auto">${zonePickerOptions}</select>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Ctrl/Cmd-click to select 2+ zones, in the order to connect them</div>
+      <button class="modal-btn modal-confirm" onclick="addVenuePath()">Connect</button>
+    </div>
+
+    <button class="modal-btn" style="width:100%;margin-top:16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--red)" onclick="resetVenueToDemoDefaults()">↺ Reset to Demo Festival defaults</button>
+  `;
 }
 window.toggleZoneClosed = idx => {
   const closed = !!zoneStatus[idx]?.closed;
   update(ref(db, `groups/${eventGroup}/zoneStatus/${idx}`), {closed: !closed});
+};
+
+window.editVenueZoneForm = idx => { venueEditIdx = idx; renderManageBody(); };
+window.cancelVenueZoneEdit = () => { venueEditIdx = null; renderManageBody(); };
+
+function readVenueZoneForm() {
+  const label = document.getElementById('veLabel').value.trim();
+  const category = document.getElementById('veCategory').value;
+  const icon = document.getElementById('veIcon').value.trim() || '📍';
+  const x = parseFloat(document.getElementById('veX').value);
+  const y = parseFloat(document.getElementById('veY').value);
+  const w = parseFloat(document.getElementById('veW').value);
+  const h = parseFloat(document.getElementById('veH').value);
+  if (!label) { toast('Enter a zone name','w'); return null; }
+  if ([x,y,w,h].some(n => isNaN(n))) { toast('Enter valid position/size numbers','w'); return null; }
+  return {label, category, icon, x, y, w, h, color:'#7c3aed', floors:1};
+}
+window.saveVenueZoneForm = () => {
+  const zone = readVenueZoneForm();
+  if (!zone) return;
+  const newZones = [...ZONES];
+  if (venueEditIdx !== null) newZones[venueEditIdx] = {...newZones[venueEditIdx], ...zone};
+  else newZones.push(zone);
+  venueEditIdx = null;
+  saveVenueZones(newZones);
+};
+window.deleteVenueZone = idx => {
+  const newZones = ZONES.filter((_,i) => i !== idx);
+  saveVenueZones(newZones, true);
+};
+// Writes the full zones/paths/pathLabels each time (arrays don't partially "merge" sensibly
+// after a delete/reorder). Deleting a zone shifts every later index, so any per-zone
+// open/closed status is reset rather than silently pointing at the wrong zone.
+function saveVenueZones(newZones, indicesShifted) {
+  update(ref(db, `groups/${eventGroup}/venueConfig`), {zones: newZones, paths: PATHS, pathLabels: PATH_LABELS}).then(() => {
+    toast(indicesShifted ? '🗑️ Zone deleted — open/closed status reset' : '✅ Venue updated');
+    if (indicesShifted) set(ref(db, `groups/${eventGroup}/zoneStatus`), null).catch(() => {});
+  }).catch(() => toast('⚠️ Failed to save venue','e'));
+}
+
+window.addVenuePath = () => {
+  const select = document.getElementById('vePathZones');
+  const idxs = [...select.selectedOptions].map(o => parseInt(o.value));
+  if (idxs.length < 2) { toast('Select at least 2 zones to connect','w'); return; }
+  const points = idxs.map(i => [ZONES[i].x, ZONES[i].y]);
+  const label = idxs.map(i => ZONES[i].label).join(' → ');
+  update(ref(db, `groups/${eventGroup}/venueConfig`), {zones: ZONES, paths: [...PATHS, points], pathLabels: [...PATH_LABELS, label]}).then(() => {
+    toast('✅ Path added');
+  }).catch(() => toast('⚠️ Failed to save path','e'));
+};
+window.deleteVenuePath = idx => {
+  update(ref(db, `groups/${eventGroup}/venueConfig`), {
+    zones: ZONES,
+    paths: PATHS.filter((_,i) => i !== idx),
+    pathLabels: PATH_LABELS.filter((_,i) => i !== idx),
+  }).then(() => toast('✅ Path removed')).catch(() => toast('⚠️ Failed to save','e'));
+};
+window.resetVenueToDemoDefaults = () => {
+  set(ref(db, `groups/${eventGroup}/venueConfig`), {zones: DEFAULT_ZONES, paths: DEFAULT_PATHS, pathLabels: DEFAULT_PATH_LABELS}).then(() => {
+    venueEditIdx = null;
+    toast('↺ Reset to Demo Festival defaults');
+  }).catch(() => toast('⚠️ Failed to reset','e'));
 };
 
 function renderAnalyticsTab() {

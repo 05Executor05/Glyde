@@ -1212,7 +1212,7 @@ canvas:active{cursor:grabbing;}
 <script src="jsqr.vendor.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, update, onValue, onDisconnect, runTransaction, push }
+import { getDatabase, ref, set, update, onValue, onDisconnect, runTransaction, push, get }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
@@ -1320,9 +1320,11 @@ window.addEventListener('online',()=>{
 const EMOJIS=['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🎯','🌙','💎'];
 const COLORS=['#f472b6','#fb923c','#facc15','#a78bfa','#34d399','#f87171','#60a5fa','#4ade80','#c084fc','#38bdf8'];
 
-// Demo venue: "Glyde Demo Festival" — realistic sample data for testing the map/navigation
-// (see DEMO_EVENT_CODE below). zoneIdx 0/1/2 are the 3 stages, referenced by SCHEDULE.
-const ZONES=[
+// Demo venue: "Glyde Demo Festival" — the built-in fallback shown for any event that hasn't
+// configured its own venue via manager.html's Venue Editor (see loadVenueConfig() below).
+// zoneIdx 0/1/2 are the 3 stages, referenced by SCHEDULE — only meaningful while this default
+// venue is active; a custom venue rebuilds its own stage chat channels from its own zones.
+const DEFAULT_ZONES=[
   {label:'MAIN STAGE',        x:.50,y:.14,w:.26,h:.10,color:'#9333ea',icon:'🎵',floors:3,category:'stage'},
   {label:'INDIE STAGE',       x:.78,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎸',floors:2,category:'stage'},
   {label:'EDM ARENA',         x:.22,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎧',floors:2,category:'stage'},
@@ -1345,6 +1347,7 @@ const ZONES=[
   {label:'SOUTH EXIT',        x:.50,y:.94,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
   {label:'QUIET ZONE',        x:.10,y:.15,w:.08,h:.06,color:'#38bdf8',icon:'🧘',floors:1,category:'quiet',accessible:true},
 ];
+let ZONES=DEFAULT_ZONES;
 
 const CATEGORIES=[
   {id:'stage',label:'Stages',icon:'🎵'},
@@ -1657,7 +1660,7 @@ function renderLeaderboardTab(){
     </div>`).join('');
 }
 
-const PATHS=[
+const DEFAULT_PATHS=[
   [[.22,.28],[.50,.14],[.78,.28]],
   [[.50,.14],[.50,.90]],
   [[.22,.28],[.15,.55],[.20,.85]],
@@ -1666,7 +1669,9 @@ const PATHS=[
   [[.50,.04],[.50,.14]],
   [[.50,.90],[.50,.94]],
 ];
-const PATH_LABELS=['Stage Concourse','Center Spine','West Loop','East Loop','Mid Crossbar','North Exit Path','South Exit Path'];
+const DEFAULT_PATH_LABELS=['Stage Concourse','Center Spine','West Loop','East Loop','Mid Crossbar','North Exit Path','South Exit Path'];
+let PATHS=DEFAULT_PATHS;
+let PATH_LABELS=DEFAULT_PATH_LABELS;
 
 const REPORTS=[
   {id:'toilet',icon:'🚻',label:'Dirty Toilet',priority:'medium'},
@@ -1684,9 +1689,16 @@ const CHANNELS={
   'venue-tips':{name:'# Tips & Shortcuts',icon:'💡',badge:'Venue',badgeClass:'badge-v',ph:'Share a tip…',messages:[]},
   'group-main':{name:'Group Chat',icon:'👥',badge:'Group',badgeClass:'badge-g',ph:'Message your group…',messages:[]},
 };
-ZONES.forEach((z,i)=>{
-  if(z.category==='stage') CHANNELS['stage-'+i]={name:'# '+z.label,icon:z.icon,badge:'Venue',badgeClass:'badge-v',ph:`Message ${z.label} chat…`,messages:[]};
-});
+// Rebuilds CHANNELS' 'stage-N' entries from the current ZONES — called once at module init
+// (below) and again after loadVenueConfig() resolves, since a custom venue can have a
+// different number/order of stages than the built-in demo.
+function rebuildStageChannels(){
+  Object.keys(CHANNELS).forEach(k=>{ if(k.startsWith('stage-')) delete CHANNELS[k]; });
+  ZONES.forEach((z,i)=>{
+    if(z.category==='stage') CHANNELS['stage-'+i]={name:'# '+z.label,icon:z.icon,badge:'Venue',badgeClass:'badge-v',ph:`Message ${z.label} chat…`,messages:[]};
+  });
+}
+rebuildStageChannels();
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const myId='u_'+Math.random().toString(36).slice(2,9);
@@ -1768,7 +1780,7 @@ function requestOpenEvent(code,name){
   enterApp(name,code);
 }
 
-function enterApp(name,code){
+async function enterApp(name,code){
   myName=name;myGroup=code;
   saveProfile();
   closeJoinOverlay();
@@ -1776,6 +1788,7 @@ function enterApp(name,code){
   document.getElementById('groupCodeDisplay').textContent=code;
   document.getElementById('profName').textContent=`${myEmoji} ${myName}`;
   document.getElementById('profGroup').textContent=code;
+  await loadVenueConfig(code);
   Object.keys(CHANNELS).forEach(attachChannelListener);
   postMessage('group-main',{type:'sys',text:`${myEmoji} ${myName} joined the group`,ts:Date.now()});
   startGPS();listenGroup();listenMeetingPoint();listenAlerts();listenAnnouncements();listenZoneStatus();listenVendorStatus();listenSponsors();pushLoop();initBattery();
@@ -1883,6 +1896,41 @@ function ensureEventMeta(code){
     if(name) joinedEventsSetName(code,name);
     document.getElementById('dashTitle')&&renderEventDashboard();
   }).catch(()=>{});
+}
+
+// ── PER-EVENT VENUE CONFIG (organizer-configured map, via manager.html's Venue Editor) ────
+// Falls back to the built-in Glyde Demo Festival data when an event hasn't configured its
+// own venue. A one-time fetch resolves before the rest of enterApp() continues (so stage
+// chat channels are built from the right zone set); a live listener keeps the map current
+// if an organizer edits the venue after attendees have already joined — it does not attempt
+// to hot-add/remove stage chat channels for attendees already inside (a rare edge case,
+// intentionally out of scope for now).
+function applyVenueConfig(cfg){
+  // Only fall back to the demo defaults when no venueConfig exists at all — an organizer who
+  // has deliberately deleted every zone (cfg.zones === []) gets a genuinely empty map, not a
+  // silent revert to the demo venue.
+  if(cfg&&Array.isArray(cfg.zones)){
+    ZONES=cfg.zones;
+    PATHS=Array.isArray(cfg.paths)?cfg.paths:[];
+    PATH_LABELS=Array.isArray(cfg.pathLabels)?cfg.pathLabels:[];
+  } else {
+    ZONES=DEFAULT_ZONES;
+    PATHS=DEFAULT_PATHS;
+    PATH_LABELS=DEFAULT_PATH_LABELS;
+  }
+  rebuildStageChannels();
+}
+async function loadVenueConfig(code){
+  try{
+    const snap=await get(ref(db,`groups/${code}/venueConfig`));
+    applyVenueConfig(snap.val());
+  }catch(e){
+    applyVenueConfig(null);
+  }
+  onValue(ref(db,`groups/${code}/venueConfig`),snap=>{
+    applyVenueConfig(snap.val());
+    if(document.getElementById('screen-dashboard')?.classList.contains('active')) renderEventDashboard();
+  });
 }
 
 // ── PENDING-OPEN (carries "which event to open" across the reload requestOpenEvent triggers) ──
