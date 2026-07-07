@@ -1219,6 +1219,8 @@ import { getStorage, ref as storageRef, uploadBytes, getDownloadURL }
 import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, signInWithPhoneNumber,
   RecaptchaVerifier, onAuthStateChanged, updateProfile, signOut }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getMessaging, getToken, onMessage, isSupported as isMessagingSupported }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js";
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
 const fbApp = initializeApp({
@@ -1233,6 +1235,29 @@ const fbApp = initializeApp({
 const db = getDatabase(fbApp);
 const storage = getStorage(fbApp);
 const auth = getAuth(fbApp);
+
+// ── PUSH NOTIFICATIONS (Firebase Cloud Messaging — works even when the app is closed) ──
+// Get this from Firebase Console > Project Settings > Cloud Messaging > Web Push certificates
+// > Generate key pair. Push registration silently no-ops until this is filled in; every other
+// notification path (in-page toasts, the Notification API reminders) keeps working regardless.
+const FCM_VAPID_KEY = 'REPLACE_WITH_YOUR_VAPID_KEY';
+let pushToken=null;
+async function initPushNotifications(){
+  if(FCM_VAPID_KEY==='REPLACE_WITH_YOUR_VAPID_KEY') return;
+  try{
+    if(!(await isMessagingSupported())) return;
+    if(!('serviceWorker' in navigator)) return;
+    const reg=await navigator.serviceWorker.ready;
+    if(Notification.permission==='default') await Notification.requestPermission().catch(()=>{});
+    if(Notification.permission!=='granted') return;
+    const messaging=getMessaging(fbApp);
+    pushToken=await getToken(messaging,{vapidKey:FCM_VAPID_KEY,serviceWorkerRegistration:reg}).catch(()=>null);
+    if(pushToken&&authProfile?.uid) set(ref(db,`groups/${myGroup}/pushTokens/${authProfile.uid}`),pushToken).catch(()=>{});
+    onMessage(messaging,payload=>{
+      toast(`🔔 ${payload.notification?.title||'Glyde'}: ${payload.notification?.body||''}`);
+    });
+  }catch(e){ /* push is a progressive enhancement — silently degrade to in-page notifications */ }
+}
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
 function setTheme(t){
@@ -1800,6 +1825,7 @@ async function enterApp(name,code){
   await loadScheduleConfig(code);
   await loadMerchConfig(code);
   await loadFoodConfig(code);
+  initPushNotifications().catch(()=>{});
   Object.keys(CHANNELS).forEach(attachChannelListener);
   postMessage('group-main',{type:'sys',text:`${myEmoji} ${myName} joined the group`,ts:Date.now()});
   startGPS();listenGroup();listenMeetingPoint();listenAlerts();listenAnnouncements();listenZoneStatus();listenVendorStatus();listenSponsors();pushLoop();initBattery();
@@ -3001,12 +3027,17 @@ window.toggleBookmark=id=>{
 function saveScheduleNotifySubs(){try{localStorage.setItem('glyde_schedule_notify',JSON.stringify([...scheduleNotifySubs]));}catch(e){}}
 window.toggleScheduleNotify=id=>{
   const entry=SCHEDULE.find(s=>s.id===id);if(!entry)return;
+  const uid=authProfile?.uid;
   if(scheduleNotifySubs.has(id)){
     scheduleNotifySubs.delete(id);
+    if(uid) set(ref(db,`groups/${myGroup}/scheduleNotifySubs/${id}/${uid}`),null).catch(()=>{});
     toast(`🔕 Notifications off for ${entry.artist}`);
   } else {
     scheduleNotifySubs.add(id);
     scheduleReminder(entry);
+    // Server-side mirror so a Cloud Function can push this reminder even if the app is closed
+    // when the 5-minute mark arrives (the in-page setTimeout above only fires while open).
+    if(uid) set(ref(db,`groups/${myGroup}/scheduleNotifySubs/${id}/${uid}`),true).catch(()=>{});
     toast(`🔔 We'll notify you 5 min before ${entry.artist} starts`);
   }
   saveScheduleNotifySubs();renderScheduleList();

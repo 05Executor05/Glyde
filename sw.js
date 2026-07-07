@@ -1,3 +1,36 @@
+// ── PUSH NOTIFICATIONS (Firebase Cloud Messaging, background/app-closed delivery) ──
+// Combines FCM background handling into the existing PWA service worker (Firebase's documented
+// pattern for apps that already have a custom sw.js) rather than registering a second worker.
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js');
+importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
+firebase.initializeApp({
+  apiKey:"AIzaSyDocnNn4xfEGcOZWS5mreGx5bvVAEO0TSw",
+  authDomain:"glyde-9cce8.firebaseapp.com",
+  databaseURL:"https://glyde-9cce8-default-rtdb.firebaseio.com",
+  projectId:"glyde-9cce8",
+  storageBucket:"glyde-9cce8.firebasestorage.app",
+  messagingSenderId:"395299315354",
+  appId:"1:395299315354:web:c219f13a88232d2bed4923"
+});
+// onBackgroundMessage fires when a push arrives while the app is closed/backgrounded — the SDK
+// otherwise auto-displays a default notification from payload.notification, but we handle it
+// explicitly so tapping it focuses/opens the app instead of just dismissing.
+firebase.messaging().onBackgroundMessage(payload => {
+  const title = payload.notification?.title || 'Glyde';
+  const body = payload.notification?.body || '';
+  self.registration.showNotification(title, { body, icon: './icons/icon-192.png', badge: './icons/icon-192.png' });
+});
+self.addEventListener('notificationclick', e => {
+  e.notification.close();
+  e.waitUntil(
+    self.clients.matchAll({ type: 'window' }).then(list => {
+      const existing = list.find(c => 'focus' in c);
+      if (existing) return existing.focus();
+      return self.clients.openWindow('./index.html');
+    })
+  );
+});
+
 const CACHE = 'glyde-v2';
 const APP_SHELL = [
   './index.html',

@@ -1,0 +1,55 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "groups": {
+      "$code": {
+        ".read": "auth != null",
+
+        "staff": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.val() === true"
+          }
+        },
+
+        "venueConfig":   { ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "scheduleConfig":{ ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "merchConfig":   { ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "foodConfig":    { ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "zoneStatus":    { ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "vendorStatus":  { ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "alerts":        { ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "announcements": { ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "sponsors":      { ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+
+        "meta":        { ".write": "auth != null" },
+        "users":       { ".write": "auth != null" },
+        "chat":        { ".write": "auth != null" },
+        "reports":     { ".write": "auth != null" },
+        "eventRatings":{ ".write": "auth != null" },
+        "foodRatings": { ".write": "auth != null" },
+        "foodOrders":  { ".write": "auth != null" },
+        "merchOrders": { ".write": "auth != null" },
+        "merchStock":  { ".write": "auth != null" },
+        "xp":          { ".write": "auth != null" },
+        "meetingPoint":{ ".write": "auth != null" },
+
+        "pushTokens": {
+          "$uid": { ".write": "auth != null && auth.uid === $uid" }
+        },
+        "scheduleNotifySubs": {
+          "$entryId": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.val() === true"
+            }
+          }
+        },
+
+        "$other": { ".write": false }
+      }
+    }
+  }
+}
