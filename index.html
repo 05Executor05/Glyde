@@ -704,6 +704,9 @@ canvas:active{cursor:grabbing;}
   </div>
   <div id="authRecaptchaContainer"></div>
   <div class="jcreate" onclick="authSignInGuest()" style="margin-top:8px">Continue as Guest</div>
+  <div style="font-size:11px;color:var(--muted);margin-top:16px;text-align:center">
+    By continuing you agree to Glyde's <a href="terms.html" target="_blank" style="color:var(--neon)">Terms</a> and <a href="privacy.html" target="_blank" style="color:var(--neon)">Privacy Policy</a>
+  </div>
 </div>
 
 <!-- ── NICKNAME PROMPT (shown once after Guest/Phone sign-in, which have no display name) ── -->
@@ -1793,6 +1796,39 @@ let readsByChannel={};
 let replyTarget=null;
 let forwardTarget=null;
 let typingTmr=null;
+
+// ── MODERATION (blocking is per-device/local; reports go to staff for review) ──
+let blockedUsers=new Set();
+try{ blockedUsers=new Set(JSON.parse(localStorage.getItem('glyde_blocked')||'[]')); }catch(e){}
+function saveBlockedUsers(){try{localStorage.setItem('glyde_blocked',JSON.stringify([...blockedUsers]));}catch(e){}}
+// Deliberately blunt (substring match against a short list) — a real profanity filter is a
+// product decision of its own; this catches the obvious cases without over-engineering it.
+const PROFANITY_LIST=['fuck','shit','bitch','asshole','cunt','nigger','faggot'];
+function containsProfanity(text){
+  const lower=text.toLowerCase();
+  return PROFANITY_LIST.some(w=>lower.includes(w));
+}
+window.toggleBlockUser=(uid,name)=>{
+  if(uid===myId)return;
+  if(blockedUsers.has(uid)){
+    blockedUsers.delete(uid);
+    toast(`Unblocked ${name}`);
+  } else {
+    blockedUsers.add(uid);
+    toast(`🚫 Blocked ${name} — their messages are hidden for you`);
+  }
+  saveBlockedUsers();renderChat();
+};
+window.reportMessage=(id,channelKey)=>{
+  const msg=(CHANNELS[channelKey]?.messages||[]).find(m=>m.id===id);
+  if(!msg||!myGroup)return;
+  push(ref(db,`groups/${myGroup}/flaggedMessages`),{
+    channelKey,msgId:id,text:msg.text||'',author:msg.author||'',uid:msg.uid||'',msgTs:msg.ts||0,
+    reportedBy:myId,reportedByName:myName||'Guest',reportedAt:Date.now(),resolved:false,
+  }).catch(()=>{});
+  toast('🚩 Reported to event staff');
+  logEvent('message_report',{channel:channelKey});
+};
 let emojiOpen=false;
 let currentTab='map';
 let currentChannel='venue-main';
@@ -3534,6 +3570,10 @@ function renderChat(){
       return;
     }
     const own=msg.uid===myId;
+    if(!own&&msg.uid&&blockedUsers.has(msg.uid)){
+      html+=`<div class="sys-msg">🚫 Message from a blocked user — <span class="msg-action-btn" style="opacity:1" onclick="toggleBlockUser('${msg.uid}','${esc(msg.author||'this user')}')">unblock</span></div>`;
+      return;
+    }
     if(msg.type==='location'){
       html+=`<div class="msg-group${own?' own':''}">
         <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
@@ -3547,10 +3587,11 @@ function renderChat(){
       return;
     }
     if(msg.type==='image'){
+      const modActions=own?'':`<span class="msg-action-btn" onclick="reportMessage('${msg.id}','${currentChannel}')" title="Report">🚩</span><span class="msg-action-btn" onclick="toggleBlockUser('${msg.uid}','${esc(msg.author||'this user')}')" title="Block user">🚫</span>`;
       html+=`<div class="msg-group${own?' own':''}">
         <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
         <div class="msg-body">
-          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${esc(msg.author)}</span><span class="msg-time">${fmtTime(msg.ts)}</span></div>
+          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${esc(msg.author)}</span><span class="msg-time">${fmtTime(msg.ts)}</span>${modActions}</div>
           <img class="msg-img" src="${msg.url}" loading="lazy"/>
         </div></div>`;
       return;
@@ -3567,6 +3608,7 @@ function renderChat(){
       const otherRead=(readsByChannel[currentChannel]||{})[ch.peerUid];
       if(otherRead&&otherRead>=msg.ts) seenTag='<span class="msg-seen">Seen</span>';
     }
+    const modActions=own?'':`<span class="msg-action-btn" onclick="reportMessage('${msg.id}','${currentChannel}')" title="Report">🚩</span><span class="msg-action-btn" onclick="toggleBlockUser('${msg.uid}','${esc(msg.author||'this user')}')" title="Block user">🚫</span>`;
     html+=`<div class="msg-group${own?' own':''}">
       <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
       <div class="msg-body">
@@ -3575,6 +3617,7 @@ function renderChat(){
           <span class="msg-time">${fmtTime(msg.ts)}</span>${locTag}
           <span class="msg-action-btn" onclick="startReply('${msg.id}')">↩</span>
           <span class="msg-action-btn" onclick="startForward('${msg.id}')">↪</span>
+          ${modActions}
         </div>
         ${fwdRef}${replyRef}
         <div class="msg-text">${esc(msg.text)}</div>${seenTag}
@@ -3593,6 +3636,7 @@ function scrollMessages(){
 window.sendMessage=()=>{
   const input=document.getElementById('msgInput');
   const text=input.value.trim();if(!text)return;
+  if(containsProfanity(text)){ toast('⚠️ Message blocked — please keep chat respectful','w'); return; }
   const data={author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),text,reactions:{}};
   if(replyTarget) data.replyTo={author:replyTarget.author,text:replyTarget.text};
   postMessage(currentChannel,data);
@@ -4367,6 +4411,10 @@ function renderProfileScreen(){
     </div>
     <div class="home-section-title">Settings</div>
     <button class="vs-btn vs-btn-primary" style="width:100%;margin-bottom:8px" onclick="openProfile()">⚙️ Theme, accessibility &amp; battery saver</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <a class="vs-btn" style="flex:1;text-align:center;text-decoration:none" href="terms.html" target="_blank">Terms</a>
+      <a class="vs-btn" style="flex:1;text-align:center;text-decoration:none" href="privacy.html" target="_blank">Privacy</a>
+    </div>
     <button class="vs-btn" style="width:100%;border-color:rgba(239,68,68,.35);color:var(--red)" onclick="openLogoutConfirm()">🚪 Logout</button>
   `;
 }

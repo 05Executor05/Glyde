@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Privacy Policy — Glyde</title>
+<style>
+  :root{ --bg:#07070f; --surface:#11111c; --border:#252538; --neon:#a78bfa; --text:#f0efff; --muted:#a0a0c0; }
+  @media (prefers-color-scheme: light){
+    :root{ --bg:#f5f4fb; --surface:#ffffff; --border:#ddd8f0; --neon:#7c3aed; --text:#1a1730; --muted:#6b6690; }
+  }
+  *{box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,sans-serif;line-height:1.6;margin:0;padding:24px 16px 80px;}
+  .wrap{max-width:720px;margin:0 auto;}
+  a{color:var(--neon);}
+  h1{font-size:26px;margin-bottom:4px;}
+  h2{font-size:18px;margin-top:32px;border-bottom:1px solid var(--border);padding-bottom:6px;}
+  .updated{color:var(--muted);font-size:13px;margin-bottom:24px;}
+  .callout{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;font-size:13px;color:var(--muted);margin-bottom:24px;}
+  ul{padding-left:20px;}
+  li{margin-bottom:6px;}
+  .back{display:inline-block;margin-bottom:16px;font-size:14px;}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px;}
+  th,td{text-align:left;padding:8px;border-bottom:1px solid var(--border);}
+  th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="back" href="index.html">‹ Back to Glyde</a>
+  <h1>Privacy Policy</h1>
+  <div class="updated">Last updated: 2026</div>
+
+  <div class="callout">
+    This is a plain-language description of what Glyde actually collects and does with your data,
+    written to match the app's real behavior. It is a starting template, not a substitute for
+    review by a qualified lawyer in your jurisdiction before commercial launch — data protection
+    requirements (GDPR, CCPA, and similar) vary by where your users and organizers are located.
+  </div>
+
+  <h2>What we collect</h2>
+  <table>
+    <tr><th>Data</th><th>When</th><th>Why</th></tr>
+    <tr><td>Account info (name, email or phone, profile photo)</td><td>When you sign in</td><td>Identify you across devices; show your name to other attendees</td></tr>
+    <tr><td>Real-time location (GPS)</td><td>While you have an event open</td><td>Show you on the venue map, nearby friends, crowd density, navigation</td></tr>
+    <tr><td>Chat messages, images, voice notes</td><td>When you send them</td><td>Deliver them to other attendees in the same event/channel</td></tr>
+    <tr><td>Reports (hazard, medical, etc.) and attached photos/video</td><td>When you file a report</td><td>Route them to event staff for response</td></tr>
+    <tr><td>Merch/food orders</td><td>When you reserve or pre-order</td><td>Track your pickup code and order status; process payment if enabled</td></tr>
+    <tr><td>Push notification token</td><td>If you allow notifications</td><td>Deliver alerts, announcements, and schedule reminders even when the app is closed</td></tr>
+    <tr><td>Usage events (XP, badges, zones visited)</td><td>As you use the app</td><td>Power the gamification/Festival Passport features, stored on your device</td></tr>
+  </table>
+
+  <h2>Who can see it</h2>
+  <ul>
+    <li><b>Other attendees</b> in the same event can see your display name, emoji/color, approximate live location on the map, and any chat messages/photos you post.</li>
+    <li><b>Event organizers/staff</b> can see attendee counts, reports you file, orders, and can broadcast alerts/announcements to everyone in the event.</li>
+    <li><b>We (the app operators)</b> can access data stored in our Firebase project as needed for support, abuse investigation, and security — we do not sell your data to third parties.</li>
+  </ul>
+
+  <h2>Third parties involved</h2>
+  <ul>
+    <li><b>Google Firebase</b> (Authentication, Realtime Database, Storage, Cloud Messaging, Cloud Functions) — our backend infrastructure provider. See <a href="https://policies.google.com/privacy" target="_blank" rel="noopener">Google's Privacy Policy</a>.</li>
+    <li><b>Stripe</b> — if an event has real payments enabled, card details are entered directly on Stripe's own checkout page and never touch our servers. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe's Privacy Policy</a>.</li>
+  </ul>
+
+  <h2>How long we keep it</h2>
+  <p>Event data (chat, reports, orders, location history) is tied to the event group and is not automatically deleted today — this is a known gap we intend to address with a retention/cleanup policy (e.g., deleting live location and chat some period after an event ends) before wide launch. Your local device preferences (theme, accessibility settings, badges) are stored only on your device and are not affected.</p>
+
+  <h2>Your choices</h2>
+  <ul>
+    <li>Location sharing can be paused at any time from within an event (a "pause sharing" control is available in the app).</li>
+    <li>You can leave an event at any time, which stops your live location from being shared to that event.</li>
+    <li>You can revoke notification permission at any time through your browser/device settings.</li>
+    <li>To request deletion of your account data, contact the event organizer or the app operator (contact details to be added once this is a live product).</li>
+  </ul>
+
+  <h2>Children's privacy</h2>
+  <p>Glyde is not directed at children under 13, and we do not knowingly collect data from them. Most festivals/events using this app are expected to have their own age requirements.</p>
+
+  <h2>Changes to this policy</h2>
+  <p>If this policy changes materially, we'll update the date above and, where required, notify you in-app.</p>
+
+  <h2>Contact</h2>
+  <p>Questions about this policy: <i>(add your support email/contact here before launch)</i>.</p>
+</div>
+</body>
+</html>

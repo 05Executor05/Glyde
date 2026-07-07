@@ -230,6 +230,9 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   <input class="login-field" id="staffNameInput" placeholder="Your name" maxlength="30"/>
   <button class="login-btn" onclick="managerLogin()">Open Dashboard →</button>
   <div class="login-hint">Use the same group code your attendees are using</div>
+  <div style="font-size:11px;color:var(--muted);margin-top:12px;text-align:center">
+    By continuing you agree to Glyde's <a href="terms.html" target="_blank" style="color:var(--accent)">Terms</a> and <a href="privacy.html" target="_blank" style="color:var(--accent)">Privacy Policy</a>
+  </div>
 </div>
 
 <!-- HEADER -->
@@ -604,6 +607,7 @@ const MGMT_TABS = [
   {id:'schedule', label:'🎤 Schedule'},
   {id:'merch',    label:'👕 Merch'},
   {id:'food',     label:'🍔 Food'},
+  {id:'moderation',label:'🚩 Moderation'},
   {id:'analytics',label:'📊 Analytics'},
   {id:'sponsors', label:'🏷️ Sponsors'},
 ];
@@ -628,6 +632,7 @@ let merchStock = {};
 let vendorStatus = {};
 let zoneStatus = {};
 let sponsors = {};
+let flaggedMessages = {};
 
 const ALERT_TYPES = [
   {id:'hazard', label:'⚠️ Hazard', icon:'⚠️'},
@@ -653,8 +658,10 @@ window.managerLogin = async () => {
   // Register as staff for this event code so Firebase security rules can tell real organizers
   // apart from attendees (anyone who knows the code can manage it — same trust model the rest
   // of the app already uses for joining as an attendee, just now enforced at the database level).
+  // Awaited (not fire-and-forget) so staff-gated reads below — like flaggedMessages — don't race
+  // against this write and permanently fail with permission-denied before it lands.
   await staffAuthReady;
-  if (staffUid) set(ref(db, `groups/${code}/staff/${staffUid}`), true).catch(() => {});
+  if (staffUid) await set(ref(db, `groups/${code}/staff/${staffUid}`), true).catch(() => {});
 
   // Organizer's venue name is authoritative for attendees' Home/Events cards (which
   // otherwise only have the raw join code to show); doesn't touch createdAt if already set.
@@ -692,6 +699,7 @@ function listenManagement() {
   onValue(ref(db, `groups/${eventGroup}/vendorStatus`), snap => { vendorStatus = snap.val() || {}; if (mgmtTab === 'vendors') renderManageBody(); });
   onValue(ref(db, `groups/${eventGroup}/zoneStatus`), snap => { zoneStatus = snap.val() || {}; if (mgmtTab === 'map') renderManageBody(); });
   onValue(ref(db, `groups/${eventGroup}/sponsors`), snap => { sponsors = snap.val() || {}; if (mgmtTab === 'sponsors') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/flaggedMessages`), snap => { flaggedMessages = snap.val() || {}; if (mgmtTab === 'moderation') renderManageBody(); });
 }
 
 // ── ORGANIZER DASHBOARD (announcements, vendor mgmt, map mgmt, analytics, sponsors) ─
@@ -718,6 +726,7 @@ function renderManageBody() {
   else if (mgmtTab === 'schedule') body.innerHTML = renderScheduleMgmtTab();
   else if (mgmtTab === 'merch') body.innerHTML = renderMerchMgmtTab();
   else if (mgmtTab === 'food') body.innerHTML = renderFoodMgmtTab();
+  else if (mgmtTab === 'moderation') body.innerHTML = renderModerationTab();
   else if (mgmtTab === 'analytics') body.innerHTML = renderAnalyticsTab();
   else if (mgmtTab === 'sponsors') body.innerHTML = renderSponsorsTab();
 }
@@ -1201,6 +1210,34 @@ window.resetFoodToDemoDefaults = () => {
     foodEditId = null;
     toast('↺ Reset to Demo Festival defaults');
   }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── MODERATION (attendee-reported chat messages, staff-only visible per security rules) ──
+function renderModerationTab() {
+  const entries = Object.entries(flaggedMessages).sort((a, b) => (b[1].reportedAt||0) - (a[1].reportedAt||0));
+  const open = entries.filter(([,r]) => !r.resolved);
+  const resolved = entries.filter(([,r]) => r.resolved);
+  const row = ([id, r]) => `
+    <div style="padding:10px 0;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600">${esc(r.author||'Unknown')} <span style="color:var(--muted);font-weight:400">in ${esc(r.channelKey||'?')}</span></div>
+      <div style="font-size:13px;margin:4px 0;padding:8px;background:var(--surface2);border-radius:8px">${esc(r.text||'(image/attachment)')}</div>
+      <div style="font-size:10px;color:var(--muted)">Reported by ${esc(r.reportedByName||'someone')} · ${timeAgo(r.reportedAt)}</div>
+      ${r.resolved ? '' : `<div style="display:flex;gap:8px;margin-top:6px">
+        <button class="rep-btn resolve-btn" style="flex:1" onclick="resolveFlaggedMessage('${id}')">Mark reviewed</button>
+        <button class="rep-btn" style="flex:1;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="dismissFlaggedMessage('${id}')">Dismiss</button>
+      </div>`}
+    </div>`;
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Needs review (${open.length})</div>
+    ${open.length ? open.map(row).join('') : '<div style="font-size:12px;color:var(--muted);padding:10px 0">No open reports</div>'}
+    ${resolved.length ? `<div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Reviewed (${resolved.length})</div>${resolved.map(row).join('')}` : ''}
+  `;
+}
+window.resolveFlaggedMessage = id => {
+  update(ref(db, `groups/${eventGroup}/flaggedMessages/${id}`), {resolved: true, resolvedAt: Date.now(), resolvedBy: staffName}).catch(() => toast('⚠️ Failed to update','e'));
+};
+window.dismissFlaggedMessage = id => {
+  set(ref(db, `groups/${eventGroup}/flaggedMessages/${id}`), null).catch(() => toast('⚠️ Failed to remove','e'));
 };
 
 function renderAnalyticsTab() {
