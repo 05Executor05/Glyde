@@ -300,6 +300,23 @@ canvas:active{cursor:grabbing;}
 .lb-name{flex:1;font-size:13px;font-weight:600;}
 .lb-xp{font-size:12px;color:var(--neon);font-weight:700;font-family:'Space Mono',monospace;}
 
+/* ── MEMORIES ── */
+.timeline-row{display:flex;gap:10px;padding:8px 0;border-left:2px solid var(--border);margin-left:8px;padding-left:16px;position:relative;}
+.timeline-row::before{content:'';position:absolute;left:-7px;top:12px;width:10px;height:10px;border-radius:50%;background:var(--accent);}
+.timeline-time{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;white-space:nowrap;}
+.timeline-label{font-size:12px;font-weight:600;}
+.photo-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.photo-tile{border-radius:10px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);}
+.photo-tile img{width:100%;height:90px;object-fit:cover;display:block;}
+.photo-tile-meta{padding:6px 8px;font-size:9px;color:var(--muted);}
+.recap-card{background:linear-gradient(160deg,rgba(124,58,237,.18),rgba(17,17,28,.9));border:1px solid var(--accent);border-radius:16px;padding:20px;text-align:center;}
+.recap-title{font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;}
+.recap-name{font-size:20px;font-weight:700;color:var(--neon);margin-bottom:16px;}
+.recap-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
+.recap-stat-val{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;}
+.recap-stat-label{font-size:10px;color:var(--muted);margin-top:2px;}
+.recap-artists{font-size:11px;color:var(--text);margin-bottom:16px;line-height:1.6;}
+
 /* ── SAFETY ── */
 .safety-section{margin-bottom:20px;}
 .safety-btn-row{display:flex;gap:8px;margin-bottom:14px;}
@@ -611,6 +628,7 @@ canvas:active{cursor:grabbing;}
     <div class="ldot" id="ldot" style="background:var(--amber)"></div>
     <span id="llbl" style="color:var(--amber)">CONNECTING</span>
   </div>
+  <button class="profile-btn" onclick="openMemories()" aria-label="Memories">📸</button>
   <button class="profile-btn" onclick="openGamify()" aria-label="Festival passport">🎫</button>
   <button class="profile-btn" onclick="openFood()" aria-label="Food and drinks">🍔</button>
   <button class="profile-btn" onclick="openMerch()" aria-label="Merchandise">🛍️</button>
@@ -755,6 +773,22 @@ canvas:active{cursor:grabbing;}
     </div>
     <div class="now-playing" id="nowPlaying" onclick="openSchedule()"></div>
     <div class="map-bar" id="mapBar"></div>
+  </div>
+</div>
+
+<!-- MEMORIES PANEL -->
+<div class="modal-overlay" id="memoriesPanel">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Memories</div>
+    <div class="merch-tab-row">
+      <div class="merch-tab" id="memTabTimeline" onclick="setMemTab('timeline')">Timeline</div>
+      <div class="merch-tab" id="memTabPhotos" onclick="setMemTab('photos')">Photos</div>
+      <div class="merch-tab" id="memTabRecap" onclick="setMemTab('recap')">Recap</div>
+    </div>
+    <div id="memBody" style="max-height:420px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeMemories()">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1144,6 +1178,88 @@ let merchReservedCount=0;
 let gamifyTab='passport';
 let leaderboard={};
 let gamifyListenerAttached=false;
+
+// ── MEMORIES ──────────────────────────────────────────────────────────────────
+let visitedZonesLog=[];
+let totalDistanceMeters=0;
+let lastRealLat=null,lastRealLng=null;
+let myPhotos=[];
+let artistsSeen=new Set();
+try{
+  const m=JSON.parse(localStorage.getItem('glyde_memories')||'{}');
+  visitedZonesLog=m.visitedZonesLog||[];
+  totalDistanceMeters=m.totalDistanceMeters||0;
+  myPhotos=m.myPhotos||[];
+  artistsSeen=new Set(m.artistsSeen||[]);
+}catch(e){}
+function saveMemories(){
+  try{
+    localStorage.setItem('glyde_memories',JSON.stringify({visitedZonesLog,totalDistanceMeters,myPhotos,artistsSeen:[...artistsSeen]}));
+  }catch(e){}
+}
+function haversineMeters(lat1,lng1,lat2,lng2){
+  const R=6371000,toRad=d=>d*Math.PI/180;
+  const dLat=toRad(lat2-lat1),dLng=toRad(lng2-lng1);
+  const a=Math.sin(dLat/2)**2+Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+// ── MEMORIES PANEL ────────────────────────────────────────────────────────────
+let memTab='timeline';
+window.openMemories=()=>{
+  document.getElementById('memoriesPanel').classList.add('open');
+  memTab='timeline';
+  renderMemoriesPanel();
+};
+window.closeMemories=()=>document.getElementById('memoriesPanel').classList.remove('open');
+window.setMemTab=tab=>{memTab=tab;renderMemoriesPanel();};
+function renderMemoriesPanel(){
+  document.getElementById('memTabTimeline').classList.toggle('sel',memTab==='timeline');
+  document.getElementById('memTabPhotos').classList.toggle('sel',memTab==='photos');
+  document.getElementById('memTabRecap').classList.toggle('sel',memTab==='recap');
+  if(memTab==='photos'){renderPhotosTab();return;}
+  if(memTab==='recap'){renderRecapTab();return;}
+  renderTimelineTab();
+}
+function fmtClock(ts){const d=new Date(ts);return `${d.getHours()%12||12}:${String(d.getMinutes()).padStart(2,'0')}${d.getHours()<12?'am':'pm'}`;}
+function renderTimelineTab(){
+  if(!visitedZonesLog.length){document.getElementById('memBody').innerHTML='<div class="search-empty">No visits logged yet — explore the map!</div>';return;}
+  const sorted=[...visitedZonesLog].sort((a,b)=>a.ts-b.ts);
+  document.getElementById('memBody').innerHTML=sorted.map(v=>{
+    const z=ZONES[v.idx];
+    return `<div class="timeline-row"><div class="timeline-time">${fmtClock(v.ts)}</div><div class="timeline-label">${z.icon} Visited ${esc(z.label)}</div></div>`;
+  }).join('');
+}
+function renderPhotosTab(){
+  if(!myPhotos.length){document.getElementById('memBody').innerHTML='<div class="search-empty">No photos shared yet — send one in chat!</div>';return;}
+  document.getElementById('memBody').innerHTML=`<div class="photo-grid">${myPhotos.map(p=>`
+    <div class="photo-tile"><img src="${p.url}" loading="lazy"/><div class="photo-tile-meta">📍 ${esc(p.zoneLabel)} · ${fmtClock(p.ts)}</div></div>
+  `).join('')}</div>`;
+}
+function renderRecapTab(){
+  const distKm=(totalDistanceMeters/1000).toFixed(1);
+  const artists=[...artistsSeen];
+  document.getElementById('memBody').innerHTML=`
+    <div class="recap-card">
+      <div class="recap-title">Festival Recap</div>
+      <div class="recap-name">${esc(myName||'Attendee')}</div>
+      <div class="recap-stats">
+        <div><div class="recap-stat-val">${distKm}km</div><div class="recap-stat-label">Distance walked</div></div>
+        <div><div class="recap-stat-val">${visitedZones.size}</div><div class="recap-stat-label">Zones visited</div></div>
+        <div><div class="recap-stat-val">${artists.length}</div><div class="recap-stat-label">Artists seen</div></div>
+        <div><div class="recap-stat-val">${myXP}</div><div class="recap-stat-label">XP earned</div></div>
+      </div>
+      ${artists.length?`<div class="recap-artists">🎤 ${artists.map(esc).join(' · ')}</div>`:''}
+      <button class="vs-btn vs-btn-primary" style="width:100%" onclick="shareRecap()">📤 Share my recap</button>
+    </div>`;
+}
+window.shareRecap=()=>{
+  const distKm=(totalDistanceMeters/1000).toFixed(1);
+  const text=`🎪 My Glyde festival recap: walked ${distKm}km, visited ${visitedZones.size} zones, saw ${artistsSeen.size} artists, and earned ${myXP} XP! 🎫`;
+  if(navigator.share) navigator.share({title:'My Festival Recap',text}).catch(()=>{});
+  else { navigator.clipboard.writeText(text).catch(()=>{}); toast('📋 Recap copied to clipboard!'); }
+  logEvent('recap_share',{});
+};
 try{
   const saved=JSON.parse(localStorage.getItem('glyde_gamify')||'{}');
   myXP=saved.xp||0;
@@ -1430,6 +1546,14 @@ function startGPS(){
   navigator.geolocation.watchPosition(pos=>{
     setStatus(true);
     myRealLat=pos.coords.latitude;myRealLng=pos.coords.longitude;
+    if(lastRealLat!=null){
+      const d=haversineMeters(lastRealLat,lastRealLng,myRealLat,myRealLng);
+      if(d>0&&d<500){ // ignore GPS-noise teleports
+        totalDistanceMeters+=d;
+        saveMemories();
+      }
+    }
+    lastRealLat=myRealLat;lastRealLng=myRealLng;
     const seed=parseInt(myId.slice(2,4),36)/36;
     myX=.28+seed*.44+Math.sin(Date.now()/9000)*.025;
     myY=.38+seed*.28+Math.cos(Date.now()/8000)*.025;
@@ -1722,7 +1846,18 @@ window.openVenueSheet=idx=>{
     if(visitedZones.size>=5) unlockBadge('explorer');
     checkQuests();
   }
+  logZoneVisit(idx);
 };
+function logZoneVisit(idx){
+  const now=Date.now();
+  visitedZonesLog.push({idx,ts:now});
+  const performer=SCHEDULE.find(s=>s.zoneIdx===idx&&now>=scheduleTime(s.offsetStart)&&now<scheduleTime(s.offsetEnd));
+  if(performer&&!artistsSeen.has(performer.artist)){
+    artistsSeen.add(performer.artist);
+    toast(`🎤 Added ${performer.artist} to Artists Seen!`);
+  }
+  saveMemories();
+}
 window.setZoneFloor=(idx,f)=>{
   zoneFloors[idx]=f;
   openVenueSheet(idx);
@@ -2848,7 +2983,11 @@ window.handleImageChosen=async input=>{
     const sRef=storageRef(storage,path);
     await uploadBytes(sRef,file);
     const url=await getDownloadURL(sRef);
-    postMessage(currentChannel,{type:'image',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),url});
+    const ts=Date.now();
+    postMessage(currentChannel,{type:'image',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts,url});
+    const {z}=nearestZone(myX,myY);
+    myPhotos.push({url,ts,zoneLabel:z.label});
+    saveMemories();
   }catch(e){
     toast('⚠️ Image upload failed','e');
   }
