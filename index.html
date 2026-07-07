@@ -273,6 +273,33 @@ canvas:active{cursor:grabbing;}
 .cuisine-chip{flex-shrink:0;padding:7px 13px;border-radius:20px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;}
 .cuisine-chip.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
 
+/* ── GAMIFICATION ── */
+.xp-header{text-align:center;margin-bottom:16px;}
+.xp-level{font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--neon);}
+.xp-bar-track{width:100%;height:8px;background:var(--surface2);border-radius:4px;margin:8px 0;overflow:hidden;}
+.xp-bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--neon));border-radius:4px;transition:width .3s;}
+.xp-sub{font-size:11px;color:var(--muted);}
+.badge-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;}
+.badge-tile{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 6px;text-align:center;opacity:.35;}
+.badge-tile.unlocked{opacity:1;border-color:var(--accent);background:rgba(124,58,237,.08);}
+.badge-icon{font-size:26px;margin-bottom:4px;}
+.badge-name{font-size:10px;font-weight:700;}
+.badge-desc{font-size:9px;color:var(--muted);margin-top:2px;}
+.passport-stamps{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px;}
+.passport-stamp{width:34px;height:34px;border-radius:50%;background:var(--surface2);border:2px dashed var(--border);display:flex;align-items:center;justify-content:center;font-size:15px;}
+.passport-stamp.on{border-style:solid;border-color:var(--green);background:rgba(16,185,129,.1);}
+.quest-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px;}
+.quest-card.done{border-color:var(--green);background:rgba(16,185,129,.08);}
+.quest-check{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0;}
+.quest-check.done{background:var(--green);border-color:var(--green);color:#fff;}
+.quest-label{flex:1;font-size:12px;font-weight:600;}
+.quest-xp{font-size:11px;color:var(--neon);font-weight:700;}
+.lb-row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--border);}
+.lb-rank{width:22px;font-size:12px;font-weight:700;color:var(--muted);text-align:center;flex-shrink:0;}
+.lb-rank.top{color:#facc15;}
+.lb-name{flex:1;font-size:13px;font-weight:600;}
+.lb-xp{font-size:12px;color:var(--neon);font-weight:700;font-family:'Space Mono',monospace;}
+
 /* ── SAFETY ── */
 .safety-section{margin-bottom:20px;}
 .safety-btn-row{display:flex;gap:8px;margin-bottom:14px;}
@@ -584,6 +611,7 @@ canvas:active{cursor:grabbing;}
     <div class="ldot" id="ldot" style="background:var(--amber)"></div>
     <span id="llbl" style="color:var(--amber)">CONNECTING</span>
   </div>
+  <button class="profile-btn" onclick="openGamify()" aria-label="Festival passport">🎫</button>
   <button class="profile-btn" onclick="openFood()" aria-label="Food and drinks">🍔</button>
   <button class="profile-btn" onclick="openMerch()" aria-label="Merchandise">🛍️</button>
   <button class="profile-btn" onclick="openSchedule()" aria-label="Event schedule">📅</button>
@@ -727,6 +755,22 @@ canvas:active{cursor:grabbing;}
     </div>
     <div class="now-playing" id="nowPlaying" onclick="openSchedule()"></div>
     <div class="map-bar" id="mapBar"></div>
+  </div>
+</div>
+
+<!-- GAMIFICATION PANEL -->
+<div class="modal-overlay" id="gamifyPanel">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Festival Passport</div>
+    <div class="merch-tab-row">
+      <div class="merch-tab" id="gamifyTabPassport" onclick="setGamifyTab('passport')">Passport</div>
+      <div class="merch-tab" id="gamifyTabQuests" onclick="setGamifyTab('quests')">Quests</div>
+      <div class="merch-tab" id="gamifyTabLeaderboard" onclick="setGamifyTab('leaderboard')">Leaderboard</div>
+    </div>
+    <div id="gamifyBody" style="max-height:420px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeGamify()">Close</button>
+    </div>
   </div>
 </div>
 
@@ -1072,6 +1116,154 @@ let foodCuisineFilter=null;
 let foodDietaryFilter=null;
 let openVendorId=null;
 
+// ── GAMIFICATION ──────────────────────────────────────────────────────────────
+const BADGES=[
+  {id:'first_report',name:'First Responder',icon:'📢',desc:'Send your first report'},
+  {id:'explorer',name:'Explorer',icon:'🗺️',desc:'Visit 5 different zones'},
+  {id:'social',name:'Social Butterfly',icon:'💬',desc:'Chat in 3 different channels'},
+  {id:'foodie',name:'Foodie',icon:'🍜',desc:'Rate 3 food vendors'},
+  {id:'safety_first',name:'Safety First',icon:'🛟',desc:'Add an emergency contact'},
+  {id:'collector',name:'Collector',icon:'⭐',desc:'Bookmark 3 schedule acts'},
+  {id:'shopper',name:'Shopper',icon:'🛍️',desc:'Reserve a merch item'},
+];
+const DAILY_QUESTS=[
+  {id:'q_visit3',label:'Visit 3 different zones',xp:15,check:()=>visitedZones.size>=3},
+  {id:'q_chat',label:'Send a chat message',xp:10,check:()=>chattedChannels.size>=1},
+  {id:'q_schedule',label:'Check the event schedule',xp:5,check:()=>openedSchedule},
+];
+let myXP=0;
+let myBadges=new Set();
+let visitedZones=new Set();
+let chattedChannels=new Set();
+let openedSchedule=false;
+let ratedVendorsCount=0;
+let questsClaimed=new Set();
+let ratedVendorIds=new Set();
+let reportsSentCount=0;
+let merchReservedCount=0;
+let gamifyTab='passport';
+let leaderboard={};
+let gamifyListenerAttached=false;
+try{
+  const saved=JSON.parse(localStorage.getItem('glyde_gamify')||'{}');
+  myXP=saved.xp||0;
+  myBadges=new Set(saved.badges||[]);
+  visitedZones=new Set(saved.visitedZones||[]);
+  chattedChannels=new Set(saved.chattedChannels||[]);
+  openedSchedule=!!saved.openedSchedule;
+  ratedVendorIds=new Set(saved.ratedVendorIds||[]);
+  reportsSentCount=saved.reportsSentCount||0;
+  merchReservedCount=saved.merchReservedCount||0;
+  questsClaimed=new Set(saved.questsClaimed||[]);
+}catch(e){}
+function saveGamifyState(){
+  try{
+    localStorage.setItem('glyde_gamify',JSON.stringify({
+      xp:myXP,badges:[...myBadges],visitedZones:[...visitedZones],
+      chattedChannels:[...chattedChannels],openedSchedule,ratedVendorIds:[...ratedVendorIds],
+      reportsSentCount,merchReservedCount,questsClaimed:[...questsClaimed]
+    }));
+  }catch(e){}
+}
+function syncXPToFirebase(){
+  if(!myGroup)return;
+  update(ref(db,`groups/${myGroup}/xp/${myId}`),{name:myName,xp:myXP,emoji:myEmoji,color:myColor}).catch(()=>{});
+}
+function awardXP(amount,reason){
+  myXP+=amount;
+  saveGamifyState();
+  toast(`+${amount} XP — ${reason}`);
+  syncXPToFirebase();
+  checkQuests();
+  if(document.getElementById('gamifyPanel').classList.contains('open')) renderGamifyPanel();
+}
+function unlockBadge(id){
+  if(myBadges.has(id))return;
+  myBadges.add(id);
+  saveGamifyState();
+  const b=BADGES.find(x=>x.id===id);
+  toast(`🏅 Badge unlocked: ${b.name}!`);
+  awardXP(20,`Badge: ${b.name}`);
+}
+function checkQuests(){
+  DAILY_QUESTS.forEach(q=>{
+    if(questsClaimed.has(q.id))return;
+    if(q.check()){
+      questsClaimed.add(q.id);
+      myXP+=q.xp;
+      saveGamifyState();
+      toast(`✅ Quest complete: ${q.label} (+${q.xp} XP)`);
+      syncXPToFirebase();
+      if(document.getElementById('gamifyPanel').classList.contains('open')) renderGamifyPanel();
+    }
+  });
+}
+
+// ── GAMIFICATION PANEL ────────────────────────────────────────────────────────
+function attachGamifyListener(){
+  if(gamifyListenerAttached||!myGroup)return;
+  gamifyListenerAttached=true;
+  onValue(ref(db,`groups/${myGroup}/xp`),snap=>{
+    leaderboard=snap.val()||{};
+    if(document.getElementById('gamifyPanel').classList.contains('open')&&gamifyTab==='leaderboard') renderGamifyPanel();
+  });
+}
+window.openGamify=()=>{
+  attachGamifyListener();
+  document.getElementById('gamifyPanel').classList.add('open');
+  gamifyTab='passport';
+  renderGamifyPanel();
+};
+window.closeGamify=()=>document.getElementById('gamifyPanel').classList.remove('open');
+window.setGamifyTab=tab=>{gamifyTab=tab;renderGamifyPanel();};
+function renderGamifyPanel(){
+  document.getElementById('gamifyTabPassport').classList.toggle('sel',gamifyTab==='passport');
+  document.getElementById('gamifyTabQuests').classList.toggle('sel',gamifyTab==='quests');
+  document.getElementById('gamifyTabLeaderboard').classList.toggle('sel',gamifyTab==='leaderboard');
+  if(gamifyTab==='quests'){renderQuestsTab();return;}
+  if(gamifyTab==='leaderboard'){renderLeaderboardTab();return;}
+  renderPassportTab();
+}
+function renderPassportTab(){
+  const level=Math.floor(myXP/100)+1;
+  const pct=myXP%100;
+  const badgeGrid=BADGES.map(b=>{
+    const on=myBadges.has(b.id);
+    return `<div class="badge-tile${on?' unlocked':''}"><div class="badge-icon">${b.icon}</div><div class="badge-name">${b.name}</div><div class="badge-desc">${on?'Unlocked':b.desc}</div></div>`;
+  }).join('');
+  const stamps=ZONES.map((z,i)=>`<div class="passport-stamp${visitedZones.has(i)?' on':''}" title="${esc(z.label)}">${visitedZones.has(i)?z.icon:'?'}</div>`).join('');
+  document.getElementById('gamifyBody').innerHTML=`
+    <div class="xp-header">
+      <div class="xp-level">Level ${level}</div>
+      <div class="xp-bar-track"><div class="xp-bar-fill" style="width:${pct}%"></div></div>
+      <div class="xp-sub">${myXP} XP total · ${100-pct} XP to next level</div>
+    </div>
+    <div class="variant-label">Badges</div>
+    <div class="badge-grid">${badgeGrid}</div>
+    <div class="variant-label">Passport Stamps (${visitedZones.size}/${ZONES.length} visited)</div>
+    <div class="passport-stamps">${stamps}</div>`;
+}
+function renderQuestsTab(){
+  document.getElementById('gamifyBody').innerHTML=DAILY_QUESTS.map(q=>{
+    const done=questsClaimed.has(q.id);
+    return `<div class="quest-card${done?' done':''}">
+      <div class="quest-check${done?' done':''}">${done?'✓':''}</div>
+      <div class="quest-label">${esc(q.label)}</div>
+      <div class="quest-xp">+${q.xp} XP</div>
+    </div>`;
+  }).join('');
+}
+function renderLeaderboardTab(){
+  const rows=Object.entries(leaderboard).map(([uid,d])=>({uid,...d})).sort((a,b)=>(b.xp||0)-(a.xp||0));
+  if(!rows.length){document.getElementById('gamifyBody').innerHTML='<div class="search-empty">No XP tracked yet — go earn some!</div>';return;}
+  document.getElementById('gamifyBody').innerHTML=rows.map((r,i)=>`
+    <div class="lb-row">
+      <div class="lb-rank${i<3?' top':''}">${i+1}</div>
+      <div class="lb-name">${r.emoji||''} ${esc(r.name||'Attendee')}${r.uid===myId?' (You)':''}</div>
+      <div class="lb-xp">${r.xp||0} XP</div>
+    </div>`).join('');
+}
+
 const PATHS=[
   [[.2,.33],[.5,.33],[.8,.33]],
   [[.5,.33],[.5,.83]],
@@ -1179,6 +1371,7 @@ function enterApp(name,code){
   requestAnimationFrame(draw);
   switchChannel(currentChannel);
   renderSidebar();renderMobBar();renderReports();renderMapBar();attachMyReportsListener();renderNowPlaying();renderContacts();
+  attachGamifyListener();syncXPToFirebase();
   logEvent('join',{group:code});
 }
 
@@ -1523,6 +1716,12 @@ window.openVenueSheet=idx=>{
   }
   updateFavBtn();
   renderZoneDensity(idx);
+  if(!visitedZones.has(idx)){
+    visitedZones.add(idx);saveGamifyState();
+    awardXP(3,`Visited ${z.label}`);
+    if(visitedZones.size>=5) unlockBadge('explorer');
+    checkQuests();
+  }
 };
 window.setZoneFloor=(idx,f)=>{
   zoneFloors[idx]=f;
@@ -1830,6 +2029,11 @@ window.rateVendor=(id,stars)=>{
   if(!myGroup)return;
   set(ref(db,`groups/${myGroup}/foodRatings/${id}/${myId}`),stars).catch(fbFail);
   logEvent('vendor_rate',{vendor:id,stars});
+  if(!ratedVendorIds.has(id)){
+    ratedVendorIds.add(id);saveGamifyState();
+    awardXP(5,'Rated a vendor');
+    if(ratedVendorIds.size>=3) unlockBadge('foodie');
+  }
 };
 window.backToVendorList=()=>{openVendorId=null;renderVendorList();};
 window.navToVendor=id=>{
@@ -1983,6 +2187,9 @@ window.confirmReserve=id=>{
   toast(`🎟️ Reserved! Pickup code: ${pickupCode}`);
   logEvent('merch_reserve',{product:p.name});
   openProductId=null;merchTab='orders';renderMerchPanel();
+  merchReservedCount++;saveGamifyState();
+  awardXP(5,'Merch reserved');
+  unlockBadge('shopper');
 };
 window.toggleDropNotify=id=>{
   const p=PRODUCTS.find(x=>x.id===id);if(!p)return;
@@ -2051,6 +2258,7 @@ window.openSchedule=()=>{
   document.getElementById('schedulePanel').classList.add('open');
   renderScheduleStageTabs();
   renderScheduleList();
+  if(!openedSchedule){openedSchedule=true;saveGamifyState();checkQuests();}
 };
 window.closeSchedule=()=>document.getElementById('schedulePanel').classList.remove('open');
 function renderScheduleStageTabs(){
@@ -2099,6 +2307,7 @@ window.toggleBookmark=id=>{
     scheduleBookmarks.add(id);
     scheduleReminder(entry);
     toast(`★ Bookmarked ${entry.artist}`);
+    if(scheduleBookmarks.size>=3) unlockBadge('collector');
   }
   saveBookmarks();renderScheduleList();
   logEvent('bookmark_toggle',{artist:entry.artist,on:scheduleBookmarks.has(id)});
@@ -2543,6 +2752,12 @@ window.sendMessage=()=>{
   document.getElementById('sendBtn').disabled=true;
   cancelReply();
   clearTimeout(typingTmr);setTyping(false);
+  if(!chattedChannels.has(currentChannel)){
+    chattedChannels.add(currentChannel);saveGamifyState();
+    awardXP(5,'New chat channel');
+    if(chattedChannels.size>=3) unlockBadge('social');
+    checkQuests();
+  }
 };
 
 window.handleKey=e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();}};
@@ -2668,6 +2883,9 @@ window.sendReport=(id,label)=>{
   logEvent('report_sent',{type:id});
   toast(`📨 Sent to venue: ${label}`);
   setTimeout(()=>{delete repSent[id];renderReports();},5000);
+  reportsSentCount++;saveGamifyState();
+  awardXP(10,'Report sent');
+  unlockBadge('first_report');
 };
 
 // ── DETAILED REPORT (photo/video/voice/priority) ─────────────────────────────
@@ -2774,6 +2992,9 @@ window.confirmSendReport=()=>{
   logEvent('report_sent_detailed',{type:reportModalState.type,priority:reportModalState.priority});
   toast(`📨 Detailed report sent: ${reportModalState.label}`);
   closeReportModal();
+  reportsSentCount++;saveGamifyState();
+  awardXP(15,'Detailed report sent');
+  unlockBadge('first_report');
 };
 
 // ── MY REPORTS (status tracking) ─────────────────────────────────────────────
@@ -2870,6 +3091,7 @@ window.addContact=()=>{
   saveContacts();renderContacts();
   document.getElementById('contactNameInput').value='';document.getElementById('contactPhoneInput').value='';
   logEvent('contact_add',{});
+  unlockBadge('safety_first');
 };
 window.removeContact=i=>{emergencyContacts.splice(i,1);saveContacts();renderContacts();};
 window.sendLocationToContact=i=>{
