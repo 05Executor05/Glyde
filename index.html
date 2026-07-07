@@ -190,6 +190,12 @@ body {
   background:rgba(245,158,11,.15);color:var(--amber);border-bottom:1px solid rgba(245,158,11,.4);
   font-size:11px;font-weight:700;padding:6px;flex-shrink:0;
 }
+.ios-install-banner{
+  display:none;align-items:center;gap:10px;
+  background:rgba(124,58,237,.12);color:var(--text);border-bottom:1px solid rgba(124,58,237,.35);
+  padding:8px 12px;flex-shrink:0;
+}
+.ios-install-banner.show{display:flex;}
 
 /* ── SPONSOR STRIP ── */
 .sponsor-strip{
@@ -723,6 +729,13 @@ canvas:active{cursor:grabbing;}
 <!-- ── APP SHELL (outer, account-level: Home / Events / Chats / Shop / Profile) ── -->
 <div id="appShell">
   <div class="offline-banner" id="offlineBanner" style="display:none">📴 Offline — reconnect to sync</div>
+  <div class="ios-install-banner" id="iosInstallBanner">
+    <div style="flex:1">
+      <div style="font-weight:700;font-size:13px">📲 Add Glyde to your Home Screen</div>
+      <div style="font-size:11px;color:var(--muted)">Tap Share → Add to Home Screen for the full experience, including notifications (iOS 16.4+).</div>
+    </div>
+    <span onclick="dismissIOSInstallBanner()" style="cursor:pointer;font-size:18px;padding:4px;flex-shrink:0">✕</span>
+  </div>
 
   <!-- HOME -->
   <div class="app-screen active" id="screen-home">
@@ -1378,6 +1391,27 @@ window.addEventListener('online',()=>{
     toast(`📤 Sent ${queued.length} queued message${queued.length>1?'s':''}`);
   }
 });
+
+// ── iOS PWA INSTALL PROMPT ────────────────────────────────────────────────────
+// iOS Safari never fires beforeinstallprompt and only supports push notifications for a PWA
+// that's been added to the Home Screen (16.4+) — nudge users toward that instead of silently
+// having push/background features not work with no explanation.
+function isIOSSafariNotInstalled(){
+  const isIOS=/iPad|iPhone|iPod/.test(navigator.userAgent)&&!window.MSStream;
+  const isStandalone=window.navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
+  return isIOS&&!isStandalone;
+}
+function maybeShowIOSInstallBanner(){
+  if(!isIOSSafariNotInstalled())return;
+  let dismissed=null;
+  try{ dismissed=localStorage.getItem('glyde_ios_install_dismissed'); }catch(e){}
+  if(dismissed)return;
+  document.getElementById('iosInstallBanner').classList.add('show');
+}
+window.dismissIOSInstallBanner=()=>{
+  document.getElementById('iosInstallBanner').classList.remove('show');
+  try{ localStorage.setItem('glyde_ios_install_dismissed','1'); }catch(e){}
+};
 
 // ── CLIENT ERROR LOGGING (self-hosted — no third-party crash-reporting account needed) ──
 // Capped per session so an error loop can't flood the database; only logged once inside an
@@ -4160,6 +4194,7 @@ function showAppAfterAuth(){
     applyRememberedProfile();
     switchAppScreen('home');
     maybeShowOnboardTour();
+    maybeShowIOSInstallBanner();
   }
   initBackNavGuard();
 }
