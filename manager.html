@@ -417,6 +417,9 @@ const DEFAULT_ZONES = [
   {label:'NORTH EXIT',        x:.50,y:.04,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
   {label:'SOUTH EXIT',        x:.50,y:.94,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
   {label:'QUIET ZONE',        x:.10,y:.15,w:.08,h:.06,color:'#38bdf8',icon:'🧘',floors:1,category:'quiet',accessible:true},
+  {label:'VIP LOUNGE',        x:.90,y:.15,w:.09,h:.06,color:'#38bdf8',icon:'🥂',floors:1,category:'quiet'},
+  {label:'ATM',               x:.90,y:.70,w:.05,h:.05,color:'#eab308',icon:'🏧',floors:1,category:'info',accessible:true},
+  {label:'FIRST AID POST',    x:.20,y:.62,w:.07,h:.05,color:'#dc2626',icon:'⛑️',floors:1,category:'medical',accessible:true},
 ];
 
 const DEFAULT_PATHS=[
@@ -521,6 +524,25 @@ async function loadMerchConfig(code) {
   onValue(ref(db, `groups/${code}/merchConfig`), snap => applyMerchConfig(snap.val()));
 }
 
+// ── PER-EVENT FOOD VENDOR CONFIG (mirrors index.html's loadFoodConfig) ────────────────────
+function applyFoodConfig(cfg) {
+  if (cfg && Array.isArray(cfg.vendors)) {
+    FOOD_VENDORS = cfg.vendors;
+  } else {
+    FOOD_VENDORS = DEFAULT_FOOD_VENDORS;
+  }
+  if (mgmtTab === 'food' || mgmtTab === 'vendors') renderManageBody();
+}
+async function loadFoodConfig(code) {
+  try {
+    const snap = await get(ref(db, `groups/${code}/foodConfig`));
+    applyFoodConfig(snap.val());
+  } catch (e) {
+    applyFoodConfig(null);
+  }
+  onValue(ref(db, `groups/${code}/foodConfig`), snap => applyFoodConfig(snap.val()));
+}
+
 const STAFF = [
   {id:'s1', name:'Carlos R.',  zone:'North Zone',  emoji:'👷'},
   {id:'s2', name:'Priya M.',   zone:'South Zone',  emoji:'👷'},
@@ -544,19 +566,31 @@ const DEFAULT_PRODUCTS=[
   {id:'p6',name:'Limited Drop Tee',category:'apparel',icon:'✨',sizes:['S','M','L'],colors:['Purple'],price:45,stock:25,dropOffset:15},
 ];
 let PRODUCTS=DEFAULT_PRODUCTS;
-const FOOD_ITEMS = [
-  {id:'v1',name:'Thai Basil',icon:'🍜'},
-  {id:'v2',name:'Taco Loco',icon:'🌮'},
-  {id:'v3',name:'Burger Barn',icon:'🍔'},
-  {id:'v4',name:'Green Bowl',icon:'🥗'},
-  {id:'v5',name:'Sweet Tooth',icon:'🍦'},
+
+// Mirrors index.html's DEFAULT_FOOD_VENDORS — the built-in fallback + "reset to defaults" seed
+// for the Food Vendors editor. Must stay a field mirror (cuisine/icon/dietary/x/y/menu) since
+// foodConfig written from here is read directly by index.html's vendor list/detail rendering.
+const CUISINES=['Asian','Mexican','American','Vegan','Dessert'];
+const DEFAULT_FOOD_VENDORS=[
+  {id:'v1',name:'Thai Basil',cuisine:'Asian',icon:'🍜',dietary:['vegetarian','vegan'],x:.58,y:.56,
+    menu:[{item:'Pad Thai',price:14,dietary:['vegetarian']},{item:'Green Curry (Tofu)',price:15,dietary:['vegan']},{item:'Spring Rolls',price:8,dietary:['vegan']}]},
+  {id:'v2',name:'Taco Loco',cuisine:'Mexican',icon:'🌮',dietary:['gluten-free'],x:.62,y:.55,
+    menu:[{item:'Carne Asada Tacos (3)',price:12,dietary:[]},{item:'Veggie Bowl',price:11,dietary:['vegetarian','gluten-free']}]},
+  {id:'v3',name:'Burger Barn',cuisine:'American',icon:'🍔',dietary:[],x:.60,y:.58,
+    menu:[{item:'Classic Cheeseburger',price:13,dietary:[]},{item:'Loaded Fries',price:9,dietary:['vegetarian']}]},
+  {id:'v4',name:'Green Bowl',cuisine:'Vegan',icon:'🥗',dietary:['vegan','vegetarian','gluten-free'],x:.64,y:.57,
+    menu:[{item:'Buddha Bowl',price:13,dietary:['vegan','gluten-free']},{item:'Quinoa Salad',price:11,dietary:['vegan','gluten-free']}]},
+  {id:'v5',name:'Sweet Tooth',cuisine:'Dessert',icon:'🍦',dietary:['vegetarian'],x:.59,y:.53,
+    menu:[{item:'Soft Serve',price:6,dietary:['vegetarian']},{item:'Churros',price:7,dietary:['vegetarian']}]},
 ];
+let FOOD_VENDORS=DEFAULT_FOOD_VENDORS;
 const MGMT_TABS = [
   {id:'announce', label:'📢 Announce'},
   {id:'vendors',  label:'🛍️ Vendors'},
   {id:'map',      label:'🗺️ Map'},
   {id:'schedule', label:'🎤 Schedule'},
   {id:'merch',    label:'👕 Merch'},
+  {id:'food',     label:'🍔 Food'},
   {id:'analytics',label:'📊 Analytics'},
   {id:'sponsors', label:'🏷️ Sponsors'},
 ];
@@ -610,6 +644,7 @@ window.managerLogin = () => {
   loadVenueConfig(code);
   loadScheduleConfig(code);
   loadMerchConfig(code);
+  loadFoodConfig(code);
   listenAttendees();
   listenReports();
   listenAlerts();
@@ -663,6 +698,7 @@ function renderManageBody() {
   else if (mgmtTab === 'map') body.innerHTML = renderMapMgmtTab();
   else if (mgmtTab === 'schedule') body.innerHTML = renderScheduleMgmtTab();
   else if (mgmtTab === 'merch') body.innerHTML = renderMerchMgmtTab();
+  else if (mgmtTab === 'food') body.innerHTML = renderFoodMgmtTab();
   else if (mgmtTab === 'analytics') body.innerHTML = renderAnalyticsTab();
   else if (mgmtTab === 'sponsors') body.innerHTML = renderSponsorsTab();
 }
@@ -701,7 +737,7 @@ function renderVendorsTab() {
       <button class="mcbtn" style="width:26px;height:26px;font-size:13px;position:static" onclick="adjustStock('${p.id}',1)">+</button>
     </div>`;
   }).join('');
-  const foodRows = FOOD_ITEMS.map(v => {
+  const foodRows = FOOD_VENDORS.map(v => {
     const closed = !!vendorStatus[v.id]?.closed;
     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
       <span style="font-size:18px">${v.icon}</span>
@@ -736,6 +772,7 @@ const VENUE_CATEGORY_OPTIONS = [
 let venueEditIdx = null; // null = adding a new zone, else index of the zone being edited
 let scheduleEditId = null; // null = adding a new schedule entry, else id of the entry being edited
 let merchEditId = null; // null = adding a new product, else id of the product being edited
+let foodEditId = null; // null = adding a new vendor, else id of the vendor being edited
 
 function renderMapMgmtTab() {
   const zoneRows = ZONES.map((z,i) => {
@@ -1044,6 +1081,105 @@ function saveMerchProducts(newProducts) {
 window.resetMerchToDemoDefaults = () => {
   set(ref(db, `groups/${eventGroup}/merchConfig`), {products: DEFAULT_PRODUCTS}).then(() => {
     merchEditId = null;
+    toast('↺ Reset to Demo Festival defaults');
+  }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── FOOD VENDOR EDITOR (per-event vendor list: add/edit/delete, menu as one-line-per-item) ──
+function menuToText(menu) {
+  return (menu||[]).map(m => `${m.item},${m.price}${m.dietary&&m.dietary.length?','+m.dietary.join('|'):''}`).join('\n');
+}
+function parseMenuText(text) {
+  return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const parts = line.split(',').map(s => s.trim());
+    const price = parseFloat(parts[1]);
+    const dietary = parts[2] ? parts[2].split('|').map(s => s.trim()).filter(Boolean) : [];
+    return {item: parts[0], price: isNaN(price) ? 0 : price, dietary};
+  }).filter(m => m.item);
+}
+function renderFoodMgmtTab() {
+  const vendorRows = FOOD_VENDORS.map(v => {
+    const closed = !!vendorStatus[v.id]?.closed;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${v.icon}</span>
+      <span style="flex:1">
+        <div style="font-size:12px;font-weight:600">${esc(v.name)}${closed?' <span style="color:var(--red);font-size:10px;font-weight:700">CLOSED</span>':''}</div>
+        <div style="font-size:10px;color:var(--muted)">${esc(v.cuisine)} · ${v.menu.length} menu item${v.menu.length===1?'':'s'}${v.dietary.length?' · '+v.dietary.join('/'):''}</div>
+      </span>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="editFoodVendorForm('${v.id}')">Edit</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="deleteFoodVendor('${v.id}')">Delete</button>
+    </div>`;
+  }).join('');
+
+  const editing = foodEditId !== null;
+  const v = editing ? FOOD_VENDORS.find(x => x.id === foodEditId) : null;
+  const cuisineOptions = CUISINES.map(c =>
+    `<option value="${c}" ${editing && v.cuisine===c ? 'selected' : ''}>${c}</option>`
+  ).join('');
+
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Vendors (${FOOD_VENDORS.length})</div>
+    ${vendorRows || '<div style="font-size:12px;color:var(--muted);padding:10px 0">No vendors configured</div>'}
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${editing?'Edit vendor':'+ Add vendor'}</div>
+      <input class="login-field" id="fvName" placeholder="Vendor name" value="${editing?esc(v.name):''}" style="margin-bottom:8px"/>
+      <select class="alert-select" id="fvCuisine" style="margin-bottom:8px">${cuisineOptions}</select>
+      <input class="login-field" id="fvIcon" placeholder="Icon (emoji)" value="${editing?esc(v.icon):'🍽️'}" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">X position (0-1)</div><input class="login-field" id="fvX" type="number" min="0" max="1" step="0.01" value="${editing?v.x:'0.5'}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Y position (0-1)</div><input class="login-field" id="fvY" type="number" min="0" max="1" step="0.01" value="${editing?v.y:'0.5'}" style="margin-bottom:0"/></div>
+      </div>
+      <input class="login-field" id="fvDietary" placeholder="Dietary tags, comma-separated (optional, e.g. vegan,gluten-free)" value="${editing?esc(v.dietary.join(',')):''}" style="margin-bottom:8px"/>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Menu — one item per line: Name,Price,dietary1|dietary2 (dietary optional)</div>
+      <textarea class="login-field" id="fvMenu" rows="4" style="margin-bottom:10px;resize:vertical;font-family:'Space Mono',monospace;font-size:11px" placeholder="Pad Thai,14,vegetarian">${editing?menuToText(v.menu):''}</textarea>
+      <div style="display:flex;gap:8px">
+        <button class="modal-btn modal-confirm" onclick="saveFoodVendorForm()">${editing?'Save changes':'Add vendor'}</button>
+        ${editing?'<button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="cancelFoodVendorEdit()">Cancel</button>':''}
+      </div>
+    </div>
+
+    <button class="modal-btn" style="width:100%;margin-top:16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--red)" onclick="resetFoodToDemoDefaults()">↺ Reset to Demo Festival defaults</button>
+  `;
+}
+window.editFoodVendorForm = id => { foodEditId = id; renderManageBody(); };
+window.cancelFoodVendorEdit = () => { foodEditId = null; renderManageBody(); };
+
+function readFoodVendorForm() {
+  const name = document.getElementById('fvName').value.trim();
+  const cuisine = document.getElementById('fvCuisine').value;
+  const icon = document.getElementById('fvIcon').value.trim() || '🍽️';
+  const x = parseFloat(document.getElementById('fvX').value);
+  const y = parseFloat(document.getElementById('fvY').value);
+  const dietary = parseCommaList(document.getElementById('fvDietary').value) || [];
+  const menu = parseMenuText(document.getElementById('fvMenu').value);
+  if (!name) { toast('Enter a vendor name','w'); return null; }
+  if ([x,y].some(n => isNaN(n))) { toast('Enter valid position numbers','w'); return null; }
+  return {name, cuisine, icon, x, y, dietary, menu};
+}
+window.saveFoodVendorForm = () => {
+  const vendor = readFoodVendorForm();
+  if (!vendor) return;
+  const newVendors = [...FOOD_VENDORS];
+  if (foodEditId !== null) {
+    const i = newVendors.findIndex(x => x.id === foodEditId);
+    newVendors[i] = {...newVendors[i], ...vendor};
+  } else {
+    newVendors.push({id: 'v' + Date.now() + Math.random().toString(36).slice(2,6), ...vendor});
+  }
+  foodEditId = null;
+  saveFoodVendors(newVendors);
+};
+window.deleteFoodVendor = id => {
+  saveFoodVendors(FOOD_VENDORS.filter(v => v.id !== id));
+};
+function saveFoodVendors(newVendors) {
+  update(ref(db, `groups/${eventGroup}/foodConfig`), {vendors: newVendors}).then(() => {
+    toast('✅ Food vendors updated');
+  }).catch(() => toast('⚠️ Failed to save vendors','e'));
+}
+window.resetFoodToDemoDefaults = () => {
+  set(ref(db, `groups/${eventGroup}/foodConfig`), {vendors: DEFAULT_FOOD_VENDORS}).then(() => {
+    foodEditId = null;
     toast('↺ Reset to Demo Festival defaults');
   }).catch(() => toast('⚠️ Failed to reset','e'));
 };
