@@ -41,7 +41,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--tex
 .login-field{width:100%;max-width:340px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;outline:none;margin-bottom:12px;}
 .login-field:focus{border-color:var(--accent);}
 .login-btn{width:100%;max-width:340px;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+.login-btn-alt{width:100%;max-width:340px;padding:15px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;}
 .login-btn:hover{opacity:.88;}
+.login-btn-alt:hover{opacity:.85;}
 .login-hint{font-size:12px;color:var(--muted);margin-top:14px;text-align:center;}
 
 /* ── HEADER ── */
@@ -225,6 +227,13 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   <div class="login-logo">Glyde<span>.mgr</span></div>
   <div class="login-sub">Venue Manager Dashboard</div>
   <div class="login-badge">🔒 Staff Access Only</div>
+  <button class="login-btn-alt" id="orgGoogleBtn" onclick="orgSignInGoogle()">🔵 Sign in with Google</button>
+  <div class="login-hint" id="orgSignedInAs" style="display:none"></div>
+  <div id="myEventsSection" style="display:none;width:100%;max-width:340px;margin-top:10px">
+    <div class="login-hint" style="text-align:left;margin-bottom:6px">Your events</div>
+    <div id="myEventsList"></div>
+  </div>
+  <div style="height:1px;background:var(--border);width:100%;max-width:340px;margin:16px 0"></div>
   <input class="login-field" id="venueInput" placeholder="Venue name (e.g. Horizon Festival)" maxlength="40"/>
   <input class="login-field" id="eventCodeInput" placeholder="Event group code (e.g. HZ-4829)" maxlength="10" style="font-family:'Space Mono',monospace;letter-spacing:3px;"/>
   <input class="login-field" id="staffNameInput" placeholder="Your name" maxlength="30"/>
@@ -370,7 +379,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, onValue, update, push, set, get }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
-import { getAuth, signInAnonymously, onAuthStateChanged }
+import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const fbApp = initializeApp({
@@ -384,16 +393,57 @@ const fbApp = initializeApp({
 });
 const db = getDatabase(fbApp);
 
-// ── AUTH (anonymous — gives the organizer a stable uid so Firebase security rules can tell
-// real staff apart from attendees; no sign-in UI needed, this is invisible to the organizer) ──
+// ── AUTH (anonymous by default — gives the organizer a stable uid so Firebase security rules
+// can tell real staff apart from attendees, with no sign-in UI required. Google sign-in is
+// offered as an upgrade: it makes that uid persistent across devices/browsers, which is what
+// "My Events" (organizers/{uid}/events) needs to actually follow the organizer around.) ──
 const auth = getAuth(fbApp);
 let staffUid = null;
-const staffAuthReady = new Promise(resolve => {
-  onAuthStateChanged(auth, user => {
-    if (user) { staffUid = user.uid; resolve(user.uid); }
-    else signInAnonymously(auth).catch(() => resolve(null));
-  });
+let resolveStaffAuthReady;
+const staffAuthReady = new Promise(resolve => { resolveStaffAuthReady = resolve; });
+onAuthStateChanged(auth, user => {
+  if (user) {
+    staffUid = user.uid;
+    resolveStaffAuthReady(user.uid);
+    updateOrgAuthUI(user);
+  } else {
+    signInAnonymously(auth).catch(() => resolveStaffAuthReady(null));
+  }
 });
+function updateOrgAuthUI(user) {
+  const googleBtn = document.getElementById('orgGoogleBtn');
+  const signedInEl = document.getElementById('orgSignedInAs');
+  if (!user.isAnonymous) {
+    googleBtn.style.display = 'none';
+    signedInEl.style.display = 'block';
+    signedInEl.textContent = `Signed in as ${user.displayName || user.email || 'Organizer'}`;
+    loadMyEvents(user.uid);
+  } else {
+    document.getElementById('myEventsSection').style.display = 'none';
+  }
+}
+window.orgSignInGoogle = async () => {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { toast('Sign-in failed — try again', 'w'); }
+};
+function loadMyEvents(uid) {
+  onValue(ref(db, `organizers/${uid}/events`), snap => {
+    const events = snap.val() || {};
+    const entries = Object.entries(events).sort((a, b) => (b[1].lastAccessed||0) - (a[1].lastAccessed||0));
+    const section = document.getElementById('myEventsSection');
+    if (!entries.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    document.getElementById('myEventsList').innerHTML = entries.map(([code, e]) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer" onclick="resumeMyEvent('${code}','${esc(e.name||code)}')">
+        <span style="font-size:20px">🎪</span>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(e.name||code)}</div><div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${code}</div></div>
+      </div>`).join('');
+  });
+}
+window.resumeMyEvent = (code, name) => {
+  document.getElementById('venueInput').value = name;
+  document.getElementById('eventCodeInput').value = code;
+};
 
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const REPORT_TYPES = {
@@ -661,7 +711,13 @@ window.managerLogin = async () => {
   // Awaited (not fire-and-forget) so staff-gated reads below — like flaggedMessages — don't race
   // against this write and permanently fail with permission-denied before it lands.
   await staffAuthReady;
-  if (staffUid) await set(ref(db, `groups/${code}/staff/${staffUid}`), true).catch(() => {});
+  if (staffUid) {
+    await set(ref(db, `groups/${code}/staff/${staffUid}`), true).catch(() => {});
+    // Remembers this event under the organizer's own account so it shows up in "Your events"
+    // next time they sign in (only really persists across devices once signed in with Google —
+    // an anonymous uid is tied to this browser, so this is a same-device convenience until then).
+    update(ref(db, `organizers/${staffUid}/events/${code}`), { name: venue, lastAccessed: Date.now() }).catch(() => {});
+  }
 
   // Organizer's venue name is authoritative for attendees' Home/Events cards (which
   // otherwise only have the raw join code to show); doesn't touch createdAt if already set.
