@@ -23,6 +23,9 @@
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--neon);outline-offset:2px;}
+button{transition:transform .1s ease;}
+button:active{transform:scale(.94);}
 body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
 
 /* ── LOGIN ── */
@@ -172,6 +175,10 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 /* Empty state */
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px;text-align:center;}
+
+/* ── SKELETON LOADING ── */
+.skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200% 100%;border-radius:6px;animation:skel-shimmer 1.4s infinite;}
+@keyframes skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .empty-icon{font-size:48px;margin-bottom:12px;opacity:.3;}
 .empty-text{font-size:14px;color:var(--muted);}
 
@@ -181,9 +188,10 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 .toast.w{border-color:var(--amber);color:var(--amber);}
 
 /* Assign modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-.modal-overlay.open{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:340px;box-shadow:0 16px 48px rgba(0,0,0,.6);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .18s ease;}
+.modal-overlay.open{opacity:1;pointer-events:auto;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:340px;box-shadow:0 16px 48px rgba(0,0,0,.6);transform:scale(.96);transition:transform .18s ease;}
+.modal-overlay.open .modal{transform:scale(1);}
 .modal-title{font-size:16px;font-weight:700;margin-bottom:4px;}
 .modal-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
 .staff-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
@@ -276,9 +284,9 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   <div class="map-panel">
     <canvas id="mgCanvas"></canvas>
     <div class="map-ctrl">
-      <button class="mcbtn" onclick="mzoom(1.2)">+</button>
-      <button class="mcbtn" onclick="mzoom(.8)">−</button>
-      <button class="mcbtn" onclick="mreset()">◎</button>
+      <button class="mcbtn" onclick="mzoom(1.2)" aria-label="Zoom in">+</button>
+      <button class="mcbtn" onclick="mzoom(.8)" aria-label="Zoom out">−</button>
+      <button class="mcbtn" onclick="mreset()" aria-label="Reset map view">◎</button>
     </div>
     <div class="map-legend">
       <div class="legend-title">Report Types</div>
@@ -450,6 +458,7 @@ let scale = 1, panX = 0, panY = 0;
 let alerts = {};
 let alertType = 'hazard';
 let alertSeverity = 'warning';
+let reportsLoaded = false;
 let mgmtTab = 'announce';
 let announcements = {};
 let merchStock = {};
@@ -753,6 +762,7 @@ function listenReports() {
   onValue(ref(db, `groups/${eventGroup}/reports`), snap => {
     reports = snap.val() || {};
     Object.entries(reports).forEach(([id, r]) => { r.id = id; });
+    reportsLoaded = true;
     renderReportList();
     updateStats();
   });
@@ -783,6 +793,19 @@ window.setFilter = (f, el) => {
 // ── REPORT LIST ───────────────────────────────────────────────────────────────
 function renderReportList() {
   const list = document.getElementById('reportList');
+  if (!reportsLoaded) {
+    list.innerHTML = Array.from({length:4}).map(() => `
+      <div class="rep-card" style="pointer-events:none">
+        <div class="rep-top">
+          <div class="skel" style="width:40px;height:40px;border-radius:10px;flex-shrink:0"></div>
+          <div class="rep-info">
+            <div class="skel" style="width:60%;height:13px;margin-bottom:8px"></div>
+            <div class="skel" style="width:40%;height:11px"></div>
+          </div>
+        </div>
+      </div>`).join('');
+    return;
+  }
   let reps = Object.values(reports).sort((a,b) => {
     if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
     return b.time - a.time;

@@ -59,6 +59,9 @@ body.large-text{font-size:118%;}
 body.large-text .tab-icon{font-size:24px;}
 
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+button:focus-visible,input:focus-visible,select:focus-visible,[tabindex]:focus-visible{outline:2px solid var(--neon);outline-offset:2px;}
+button{transition:transform .1s ease;}
+button:active{transform:scale(.94);}
 
 body {
   font-family:'Space Grotesk',sans-serif;
@@ -107,9 +110,10 @@ body {
 .live-pill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;}
 
 /* ── PROFILE MODAL ── */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px;}
-.modal-overlay.open{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:340px;box-shadow:0 16px 48px rgba(0,0,0,.5);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px;opacity:0;pointer-events:none;transition:opacity .18s ease;}
+.modal-overlay.open{opacity:1;pointer-events:auto;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:22px;width:100%;max-width:340px;box-shadow:0 16px 48px rgba(0,0,0,.5);transform:scale(.96);transition:transform .18s ease;}
+.modal-overlay.open .modal{transform:scale(1);}
 .modal-title{font-size:15px;font-weight:700;margin-bottom:16px;}
 .modal-row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);}
 .modal-row:last-of-type{border-bottom:none;}
@@ -129,6 +133,18 @@ body {
 /* ── SCREENS ── */
 .screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
 .screen.active{display:flex;}
+
+/* ── MORE MENU ── */
+.more-menu-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:background .15s;}
+.more-menu-row:hover{background:var(--surface2);}
+.more-menu-row span:first-child{font-size:20px;width:26px;text-align:center;flex-shrink:0;}
+
+/* ── OFFLINE BANNER ── */
+.offline-banner{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  background:rgba(245,158,11,.15);color:var(--amber);border-bottom:1px solid rgba(245,158,11,.4);
+  font-size:11px;font-weight:700;padding:6px;flex-shrink:0;
+}
 
 /* ── SPONSOR STRIP ── */
 .sponsor-strip{
@@ -637,13 +653,25 @@ canvas:active{cursor:grabbing;}
     <div class="ldot" id="ldot" style="background:var(--amber)"></div>
     <span id="llbl" style="color:var(--amber)">CONNECTING</span>
   </div>
-  <button class="profile-btn" onclick="openMemories()" aria-label="Memories">📸</button>
-  <button class="profile-btn" onclick="openGamify()" aria-label="Festival passport">🎫</button>
-  <button class="profile-btn" onclick="openFood()" aria-label="Food and drinks">🍔</button>
-  <button class="profile-btn" onclick="openMerch()" aria-label="Merchandise">🛍️</button>
-  <button class="profile-btn" onclick="openSchedule()" aria-label="Event schedule">📅</button>
   <button class="profile-btn" onclick="openFriends()" aria-label="Friends">👥</button>
+  <button class="profile-btn" onclick="openSchedule()" aria-label="Event schedule">📅</button>
   <button class="profile-btn" onclick="openProfile()" aria-label="Your profile">👤</button>
+  <button class="profile-btn" onclick="openMoreMenu()" aria-label="More">⋯</button>
+</div>
+<div class="offline-banner" id="offlineBanner" style="display:none">📴 Offline — reconnect to sync</div>
+
+<!-- MORE MENU (Memories / Passport / Food / Merch, consolidated to avoid header clutter) -->
+<div class="modal-overlay" id="moreMenuPanel">
+  <div class="modal" style="max-width:300px">
+    <div class="modal-title" style="margin-bottom:10px">More</div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openMemories()"><span>📸</span><span>Memories</span></div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openGamify()"><span>🎫</span><span>Festival Passport</span></div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openFood()"><span>🍔</span><span>Food &amp; Drinks</span></div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openMerch()"><span>🛍️</span><span>Merchandise</span></div>
+    <div class="modal-actions" style="margin-top:8px">
+      <button class="modal-btn modal-close-btn" onclick="closeMoreMenu()">Close</button>
+    </div>
+  </div>
 </div>
 
 <!-- PROFILE MODAL -->
@@ -682,6 +710,13 @@ canvas:active{cursor:grabbing;}
         <div class="theme-opt" id="voiceGuideOptOn" onclick="setVoiceGuidance(true)">On</div>
       </div>
     </div>
+    <div class="modal-row">
+      <div class="modal-row-label">Battery saver</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="batterySaverOptOff" onclick="setBatterySaver(false)">Off</div>
+        <div class="theme-opt" id="batterySaverOptOn" onclick="setBatterySaver(true)">On</div>
+      </div>
+    </div>
     <div class="modal-actions">
       <button class="modal-btn modal-close-btn" onclick="closeProfile()">Close</button>
       <button class="modal-btn modal-leave-btn" onclick="leaveGroup()">Leave Group</button>
@@ -718,7 +753,7 @@ canvas:active{cursor:grabbing;}
     <div class="search-input-wrap">
       <span>🔍</span>
       <input class="search-input" id="searchInput" placeholder="Search stages, food, restrooms…" oninput="runSearch(this.value)" onkeydown="if(event.key==='Enter')runSearch(this.value)"/>
-      <button class="search-mic" id="searchMic" onclick="toggleVoiceSearch()" style="display:none">🎤</button>
+      <button class="search-mic" id="searchMic" onclick="toggleVoiceSearch()" style="display:none" aria-label="Voice search">🎤</button>
     </div>
     <div class="search-cancel" onclick="closeSearch()">Cancel</div>
   </div>
@@ -889,10 +924,10 @@ canvas:active{cursor:grabbing;}
         <div class="input-row">
           <textarea class="msg-input" id="msgInput" placeholder="Message…" rows="1" onkeydown="handleKey(event)" oninput="handleInputChange(this)"></textarea>
           <div style="display:flex;align-items:center;gap:3px">
-            <button class="ibtn" onclick="toggleEmoji()">😊</button>
+            <button class="ibtn" onclick="toggleEmoji()" aria-label="Insert emoji">😊</button>
             <button class="ibtn" onclick="pickImage()" aria-label="Send image">🖼️</button>
-            <button class="ibtn" onclick="shareLocation()">📍</button>
-            <button class="sbtn" id="sendBtn" onclick="sendMessage()" disabled>↑</button>
+            <button class="ibtn" onclick="shareLocation()" aria-label="Share location">📍</button>
+            <button class="sbtn" id="sendBtn" onclick="sendMessage()" disabled aria-label="Send message">↑</button>
           </div>
         </div>
         <button class="loc-share-btn" onclick="shareLocation()">📍 Share my location</button>
@@ -1062,9 +1097,28 @@ function logEvent(name,data){
   push(ref(db,`groups/${myGroup}/analytics`),{event:name,ts:Date.now(),uid:myId,...(data||{})}).catch(()=>{});
 }
 
-// ── CONNECTIVITY ──────────────────────────────────────────────────────────────
-window.addEventListener('offline',()=>toast('📴 You\'re offline — some features unavailable','w'));
-window.addEventListener('online',()=>toast('✅ Back online'));
+// ── MORE MENU (consolidates Memories/Passport/Food/Merch out of the header) ──
+window.openMoreMenu=()=>document.getElementById('moreMenuPanel').classList.add('open');
+window.closeMoreMenu=()=>document.getElementById('moreMenuPanel').classList.remove('open');
+
+// ── CONNECTIVITY (persistent offline banner + queued chat messages) ─────────
+let offlineQueue=[];
+function updateOfflineBanner(){
+  const el=document.getElementById('offlineBanner');
+  if(!el)return;
+  el.style.display=navigator.onLine?'none':'flex';
+}
+updateOfflineBanner();
+window.addEventListener('offline',()=>{ toast('📴 You\'re offline — messages will queue','w'); updateOfflineBanner(); });
+window.addEventListener('online',()=>{
+  toast('✅ Back online');
+  updateOfflineBanner();
+  if(offlineQueue.length&&myGroup){
+    const queued=offlineQueue;offlineQueue=[];
+    queued.forEach(({channelKey,data})=>push(ref(db,`groups/${myGroup}/chat/${channelKey}/messages`),data).catch(fbFail));
+    toast(`📤 Sent ${queued.length} queued message${queued.length>1?'s':''}`);
+  }
+});
 
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const EMOJIS=['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🎯','🌙','💎'];
@@ -1310,6 +1364,7 @@ function unlockBadge(id){
   saveGamifyState();
   const b=BADGES.find(x=>x.id===id);
   toast(`🏅 Badge unlocked: ${b.name}!`);
+  haptic([15,40,15]);
   awardXP(20,`Badge: ${b.name}`);
 }
 function checkQuests(){
@@ -1434,6 +1489,8 @@ let meetingPoint=null;
 let arrivedState={};
 let batteryLevel=null;
 let sharingPaused=false;
+let batterySaver=false;
+try{ batterySaver=localStorage.getItem('glyde_battery_saver')==='1'; }catch(e){}
 const ARRIVAL_THRESHOLD=.045;
 let zoneFloors={};
 let favorites=new Set();
@@ -1588,7 +1645,7 @@ function pushLoop(){
   set(r,{name:myName,emoji:myEmoji,color:myColor,x:myX,y:myY,ts:Date.now(),panic:panicOn,battery:batteryLevel,paused:sharingPaused}).catch(fbFail);
   onDisconnect(r).remove();
   clearTimeout(pushTmr);
-  pushTmr=setTimeout(pushLoop,3000);
+  pushTmr=setTimeout(pushLoop,batterySaver?9000:3000);
 }
 
 // ── VENUE REPORTS (synced to manager dashboard) ──────────────────────────────
@@ -1651,7 +1708,11 @@ function resize(){W=canvas.offsetWidth;H=canvas.offsetHeight;canvas.width=W;canv
 window.addEventListener('resize',resize);resize();
 function px(rx,ry){return{x:panX+rx*W*scale,y:panY+ry*H*scale};}
 
+let lastDrawTs=0;
 function draw(ts){
+  if(document.hidden){ requestAnimationFrame(draw); return; }
+  if(batterySaver&&ts-lastDrawTs<100){ requestAnimationFrame(draw); return; }
+  lastDrawTs=ts;
   ctx.clearRect(0,0,W,H);
   // Background
   const bg=ctx.createRadialGradient(W*.5,H*.4,0,W*.5,H*.4,W*.8);
@@ -2216,6 +2277,7 @@ window.preOrderItem=(vendorId,itemIdx)=>{
   });
   toast(`🍽️ Pre-ordered ${item.item} — code ${pickupCode}`);
   logEvent('food_preorder',{vendor:v.name,item:item.item});
+  haptic(20);
   foodTab='orders';openVendorId=null;renderFoodPanel();
 };
 function renderFoodOrders(){
@@ -2343,6 +2405,7 @@ window.confirmReserve=id=>{
     ts:Date.now(),pickupCode,status:'reserved'
   });
   toast(`🎟️ Reserved! Pickup code: ${pickupCode}`);
+  haptic(20);
   logEvent('merch_reserve',{product:p.name});
   openProductId=null;merchTab='orders';renderMerchPanel();
   merchReservedCount++;saveGamifyState();
@@ -2609,7 +2672,21 @@ const _openProfileBase=window.openProfile;
 window.openProfile=()=>{
   _openProfileBase();
   updateSharingUI();
+  updateBatterySaverUI();
   document.getElementById('profBattery').textContent=batteryLevel!=null?batteryLevel+'%':'Not available';
+};
+
+// ── BATTERY SAVER (reduces GPS/sync/render frequency to save power) ─────────
+function updateBatterySaverUI(){
+  document.getElementById('batterySaverOptOff')?.classList.toggle('sel',!batterySaver);
+  document.getElementById('batterySaverOptOn')?.classList.toggle('sel',batterySaver);
+}
+window.setBatterySaver=on=>{
+  batterySaver=on;
+  try{ localStorage.setItem('glyde_battery_saver',on?'1':'0'); }catch(e){}
+  updateBatterySaverUI();
+  toast(on?'🔋 Battery saver on — reduced map refresh & sync frequency':'Battery saver off');
+  logEvent('battery_saver_toggle',{on});
 };
 
 // ── MEETING POINT & ARRIVAL STATUS ───────────────────────────────────────────
@@ -2737,6 +2814,11 @@ function fmtTime(ts){const d=new Date(ts||Date.now());return `${d.getHours()}:${
 
 function postMessage(channelKey,data){
   if(!myGroup)return;
+  if(!navigator.onLine){
+    offlineQueue.push({channelKey,data});
+    toast('📴 Offline — message queued','w');
+    return;
+  }
   push(ref(db,`groups/${myGroup}/chat/${channelKey}/messages`),data).catch(fbFail);
 }
 function attachChannelListener(key){
@@ -3085,6 +3167,7 @@ window.sendReport=(id,label)=>{
   repSent[id]=true;renderReports();
   fileReport(id,label);
   logEvent('report_sent',{type:id});
+  haptic(20);
   toast(`📨 Sent to venue: ${label}`);
   setTimeout(()=>{delete repSent[id];renderReports();},5000);
   reportsSentCount++;saveGamifyState();
@@ -3237,6 +3320,7 @@ window.triggerPanic=()=>{
   btn.textContent=panicOn?'🆘 Location Sent — Group Notified':'🆘 Send my location to group';
   if(myGroup) update(ref(db,`groups/${myGroup}/users/${myId}`),{panic:panicOn}).catch(fbFail);
   logEvent('panic_toggle',{on:panicOn});
+  haptic(panicOn?[30,50,30,50,30]:15);
   if(panicOn) toast('🆘 Your location shared with your group');
 };
 window.copyCode=()=>{
@@ -3318,6 +3402,10 @@ window.toast=(msg,type='')=>{
   t.textContent=msg;t.className='toast show'+(type?' '+type:'');
   setTimeout(()=>t.className='toast',3200);
 };
+
+// ── HAPTIC FEEDBACK (no-op on devices/browsers without the Vibration API) ──────
+function haptic(pattern=15){ try{ navigator.vibrate&&navigator.vibrate(pattern); }catch(e){} }
+window.haptic=haptic;
 
 // Device compass
 if(window.DeviceOrientationEvent)
