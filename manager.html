@@ -683,6 +683,7 @@ let vendorStatus = {};
 let zoneStatus = {};
 let sponsors = {};
 let flaggedMessages = {};
+let clientErrors = {};
 
 const ALERT_TYPES = [
   {id:'hazard', label:'⚠️ Hazard', icon:'⚠️'},
@@ -756,6 +757,7 @@ function listenManagement() {
   onValue(ref(db, `groups/${eventGroup}/zoneStatus`), snap => { zoneStatus = snap.val() || {}; if (mgmtTab === 'map') renderManageBody(); });
   onValue(ref(db, `groups/${eventGroup}/sponsors`), snap => { sponsors = snap.val() || {}; if (mgmtTab === 'sponsors') renderManageBody(); });
   onValue(ref(db, `groups/${eventGroup}/flaggedMessages`), snap => { flaggedMessages = snap.val() || {}; if (mgmtTab === 'moderation') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/clientErrors`), snap => { clientErrors = snap.val() || {}; if (mgmtTab === 'analytics') renderManageBody(); });
 }
 
 // ── ORGANIZER DASHBOARD (announcements, vendor mgmt, map mgmt, analytics, sponsors) ─
@@ -1342,7 +1344,18 @@ function renderAnalyticsTab() {
     ${typeRows || '<div style="font-size:12px;color:var(--muted);padding:6px 0">No reports yet</div>'}
     <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Crowd by zone (${Object.keys(attendees).length} live)</div>
     ${densityRows}
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Recent client errors (${Object.keys(clientErrors).length})</div>
+    ${renderClientErrorRows()}
   `;
+}
+function renderClientErrorRows() {
+  const entries = Object.entries(clientErrors).sort((a, b) => (b[1].ts||0) - (a[1].ts||0)).slice(0, 20);
+  if (!entries.length) return '<div style="font-size:12px;color:var(--muted);padding:6px 0">No errors reported — good sign</div>';
+  return entries.map(([id, e]) => `
+    <div style="padding:6px 0;border-top:1px solid var(--border);font-size:11px">
+      <div style="color:var(--red);font-family:'Space Mono',monospace">${esc(e.message||'Unknown error')}</div>
+      <div style="color:var(--muted)">${timeAgo(e.ts)} · ${esc((e.userAgent||'').slice(0,60))}</div>
+    </div>`).join('');
 }
 
 function renderSponsorsTab() {

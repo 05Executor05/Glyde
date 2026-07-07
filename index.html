@@ -1365,6 +1365,29 @@ window.addEventListener('online',()=>{
   }
 });
 
+// ── CLIENT ERROR LOGGING (self-hosted — no third-party crash-reporting account needed) ──
+// Capped per session so an error loop can't flood the database; only logged once inside an
+// event (pre-join errors are rarer and there's no organizer yet who'd want to see them).
+let clientErrorCount=0;
+function logClientError(message,extra){
+  console.error('[Glyde]',message,extra||'');
+  if(clientErrorCount>=5||!myGroup||!authProfile?.uid)return;
+  clientErrorCount++;
+  push(ref(db,`groups/${myGroup}/clientErrors`),{
+    message:String(message).slice(0,500),
+    extra:extra?JSON.stringify(extra).slice(0,300):null,
+    uid:authProfile.uid,
+    ts:Date.now(),
+    userAgent:navigator.userAgent.slice(0,200),
+  }).catch(()=>{});
+}
+window.addEventListener('error',e=>{
+  logClientError(e.message,{filename:e.filename,lineno:e.lineno});
+});
+window.addEventListener('unhandledrejection',e=>{
+  logClientError('Unhandled promise rejection: '+(e.reason?.message||e.reason));
+});
+
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const EMOJIS=['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🎯','🌙','💎'];
 const COLORS=['#f472b6','#fb923c','#facc15','#a78bfa','#34d399','#f87171','#60a5fa','#4ade80','#c084fc','#38bdf8'];

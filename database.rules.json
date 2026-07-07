@@ -55,6 +55,10 @@
           ".read": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true",
           ".write": "auth != null"
         },
+        "clientErrors": {
+          ".read": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true",
+          ".write": "auth != null"
+        },
 
         "$other": { ".read": false, ".write": false }
       }
