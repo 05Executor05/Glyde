@@ -74,12 +74,23 @@ body {
 .join-overlay {
   position:fixed;inset:0;
   background:var(--bg);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
   z-index:300;padding:28px;
 }
+.join-overlay.open{display:flex;}
+.overlay-close{position:absolute;top:20px;right:20px;width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:16px;color:var(--muted);transition:all .15s;}
+.overlay-close:hover{border-color:var(--red);color:var(--red);}
 .join-logo{font-family:'Space Mono',monospace;font-size:40px;font-weight:700;color:var(--neon);margin-bottom:4px;}
 .join-logo span{color:var(--muted);}
 .join-tag{font-size:13px;color:var(--muted);margin-bottom:36px;}
+
+/* ── SPLASH / AUTH ── */
+#splashScreen,#authScreen{
+  position:fixed;inset:0;background:var(--bg);z-index:500;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;
+}
+#authScreen{display:none;}
+#authScreen.show{display:flex;}
 .fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;align-self:flex-start;font-family:'Space Mono',monospace;}
 .fi{width:100%;max-width:320px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;outline:none;margin-bottom:16px;}
 .fi:focus{border-color:var(--accent);}
@@ -134,6 +145,40 @@ body {
 .screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
 .screen.active{display:flex;}
 
+/* ── APP SHELL (outer, account-level: Home/Events/Chats/Shop/Profile) ── */
+#appShell{display:flex;flex-direction:column;flex:1;overflow:hidden;}
+#eventShell{display:none;flex-direction:column;flex:1;overflow:hidden;}
+.app-screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
+.app-screen.active{display:flex;}
+.app-screen-scroll{flex:1;overflow-y:auto;padding:16px;padding-bottom:90px;}
+.fab{position:absolute;right:20px;bottom:86px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;font-weight:700;box-shadow:0 6px 18px rgba(124,58,237,.5);cursor:pointer;}
+.app-nav{
+  display:flex;background:rgba(11,11,20,0.97);border-top:1px solid var(--border);
+  flex-shrink:0;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px);
+}
+.app-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 8px;cursor:pointer;font-size:10px;font-weight:600;color:var(--muted);transition:color .15s;gap:4px;position:relative;}
+.app-tab.active{color:var(--neon);}
+
+/* ── EVENT DASHBOARD ── */
+.dash-wrap{flex:1;overflow-y:auto;padding:18px;}
+.dash-title{font-size:20px;font-weight:700;margin-bottom:16px;}
+.dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.dash-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:center;}
+.dash-card:hover{border-color:var(--accent);}
+.dash-card-icon{font-size:26px;margin-bottom:8px;}
+.dash-card-label{font-size:13px;font-weight:600;}
+
+/* ── HOME / EVENTS / SHOP / PROFILE CARDS (shared idiom) ── */
+.home-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px;font-family:'Space Mono',monospace;}
+.home-section-title:first-child{margin-top:0;}
+.event-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.event-card-icon{font-size:26px;flex-shrink:0;}
+.event-card-name{font-size:14px;font-weight:700;}
+.event-card-meta{font-size:11px;color:var(--muted);margin-top:2px;}
+.home-empty{font-size:12px;color:var(--muted);padding:14px 0;text-align:center;}
+.greeting{font-size:20px;font-weight:700;margin-bottom:14px;}
+.home-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+
 /* ── MORE MENU ── */
 .more-menu-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:background .15s;}
 .more-menu-row:hover{background:var(--surface2);}
@@ -155,9 +200,9 @@ body {
 .sponsor-strip::-webkit-scrollbar{display:none;}
 .sponsor-chip{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;}
 
-/* ── TAB BAR ── */
+/* ── TAB BAR (retired as a bottom nav — kept in the DOM only so switchTab() has valid targets; see .app-nav) ── */
 .tabbar{
-  display:flex;
+  display:none;
   background:rgba(11,11,20,0.97);
   border-top:1px solid var(--border);
   flex-shrink:0;z-index:100;
@@ -626,26 +671,107 @@ canvas:active{cursor:grabbing;}
 .epicker.open{display:flex;}
 .epick-opt{font-size:20px;cursor:pointer;padding:4px;border-radius:6px;transition:background .1s;}
 .epick-opt:hover{background:var(--surface2);}
+
+/* QR SCANNER */
+.qr-video-wrap{width:100%;aspect-ratio:1/1;background:#000;border-radius:12px;overflow:hidden;position:relative;}
+.qr-video-wrap video{width:100%;height:100%;object-fit:cover;}
 </style>
 </head>
 <body>
 
-<!-- ── JOIN ── -->
-<div class="join-overlay" id="joinOverlay">
+<!-- ── SPLASH ── -->
+<div id="splashScreen">
   <div class="join-logo">Glyde<span>.app</span></div>
   <div class="join-tag">Festival navigation · safety · live</div>
-  <div class="fl">Your avatar</div>
-  <div class="emoji-row" id="emojiRow"></div>
-  <div class="fl">Your name</div>
-  <input class="fi" id="nameInput" placeholder="e.g. Maya" maxlength="16"/>
-  <div class="fl">Group code</div>
-  <input class="fi fi-code" id="codeInput" placeholder="HZ-0000" maxlength="7"/>
-  <button class="jbtn" onclick="joinGroup()">Join Group →</button>
-  <div class="jcreate" onclick="createGroup()">+ Create a new group</div>
 </div>
+
+<!-- ── AUTH ── -->
+<div id="authScreen">
+  <div class="join-logo">Glyde<span>.app</span></div>
+  <div class="join-tag">Sign in to continue</div>
+  <button class="jbtn" onclick="authSignInGoogle()">🔵 Sign in with Google</button>
+  <button class="jbtn" id="authPhoneBtn" onclick="authShowPhoneStep()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)">📱 Sign in with Phone Number</button>
+  <div id="authPhoneStep" style="display:none;width:100%;max-width:320px">
+    <div class="fl">Phone number</div>
+    <input class="fi" id="authPhoneInput" placeholder="+1 555 000 0000"/>
+    <button class="jbtn" onclick="authSendPhoneCode()">Send code</button>
+    <div id="authOtpStep" style="display:none">
+      <div class="fl">Verification code</div>
+      <input class="fi fi-code" id="authOtpInput" placeholder="123456" maxlength="6"/>
+      <button class="jbtn" onclick="authConfirmPhoneCode()">Verify →</button>
+    </div>
+    <div class="jcreate" onclick="authHidePhoneStep()">← Back</div>
+  </div>
+  <div id="authRecaptchaContainer"></div>
+  <div class="jcreate" onclick="authSignInGuest()" style="margin-top:8px">Continue as Guest</div>
+</div>
+
+<!-- ── NICKNAME PROMPT (shown once after Guest/Phone sign-in, which have no display name) ── -->
+<div class="modal-overlay" id="nicknamePanel">
+  <div class="modal">
+    <div class="modal-title">What should we call you?</div>
+    <input class="fi" id="nicknameInput" placeholder="e.g. Maya" maxlength="16"/>
+    <div class="modal-actions">
+      <button class="modal-btn modal-confirm" style="background:var(--accent);color:#fff" onclick="confirmNickname()">Continue →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP SHELL (outer, account-level: Home / Events / Chats / Shop / Profile) ── -->
+<div id="appShell">
+  <div class="offline-banner" id="offlineBanner" style="display:none">📴 Offline — reconnect to sync</div>
+
+  <!-- HOME -->
+  <div class="app-screen active" id="screen-home">
+    <div class="app-screen-scroll" id="homeBody"></div>
+  </div>
+
+  <!-- EVENTS -->
+  <div class="app-screen" id="screen-events">
+    <div class="app-screen-scroll" id="eventsBody"></div>
+    <button class="fab" onclick="openJoinOverlay()" aria-label="Join event">+</button>
+  </div>
+
+  <!-- CHATS -->
+  <div class="app-screen" id="screen-chats">
+    <div class="app-screen-scroll" id="chatsBody"></div>
+  </div>
+
+  <!-- SHOP -->
+  <div class="app-screen" id="screen-shop">
+    <div class="app-screen-scroll" id="shopBody"></div>
+  </div>
+
+  <!-- PROFILE -->
+  <div class="app-screen" id="screen-profile">
+    <div class="app-screen-scroll" id="profileBody"></div>
+  </div>
+
+  <div class="app-nav">
+    <div class="app-tab active" id="apptab-home" onclick="switchAppScreen('home')">
+      <div class="tab-icon">🏠</div><span>Home</span>
+    </div>
+    <div class="app-tab" id="apptab-events" onclick="switchAppScreen('events')">
+      <div class="tab-icon">🎟</div><span>Events</span>
+    </div>
+    <div class="app-tab" id="apptab-chats" onclick="switchAppScreen('chats')">
+      <div class="tab-icon">💬</div><span>Chats</span>
+    </div>
+    <div class="app-tab" id="apptab-shop" onclick="switchAppScreen('shop')">
+      <div class="tab-icon">🛍</div><span>Shop</span>
+    </div>
+    <div class="app-tab" id="apptab-profile" onclick="switchAppScreen('profile')">
+      <div class="tab-icon">👤</div><span>Profile</span>
+    </div>
+  </div>
+</div>
+
+<!-- ── EVENT SHELL (existing per-event UI — map/chat/reports/friends/etc — shown only while an event is open) ── -->
+<div id="eventShell">
 
 <!-- ── HEADER ── -->
 <div class="header">
+  <button class="profile-btn" onclick="headerBackAction()" id="headerBackBtn" aria-label="Back">←</button>
   <div class="logo">Glyde<span>.app</span></div>
   <div class="hdr-mid" id="grpLabel">—</div>
   <button class="install-btn" id="installBtn" onclick="installApp()">⬇ Install</button>
@@ -658,115 +784,18 @@ canvas:active{cursor:grabbing;}
   <button class="profile-btn" onclick="openProfile()" aria-label="Your profile">👤</button>
   <button class="profile-btn" onclick="openMoreMenu()" aria-label="More">⋯</button>
 </div>
-<div class="offline-banner" id="offlineBanner" style="display:none">📴 Offline — reconnect to sync</div>
 
-<!-- MORE MENU (Memories / Passport / Food / Merch, consolidated to avoid header clutter) -->
-<div class="modal-overlay" id="moreMenuPanel">
-  <div class="modal" style="max-width:300px">
-    <div class="modal-title" style="margin-bottom:10px">More</div>
-    <div class="more-menu-row" onclick="closeMoreMenu();openMemories()"><span>📸</span><span>Memories</span></div>
-    <div class="more-menu-row" onclick="closeMoreMenu();openGamify()"><span>🎫</span><span>Festival Passport</span></div>
-    <div class="more-menu-row" onclick="closeMoreMenu();openFood()"><span>🍔</span><span>Food &amp; Drinks</span></div>
-    <div class="more-menu-row" onclick="closeMoreMenu();openMerch()"><span>🛍️</span><span>Merchandise</span></div>
-    <div class="modal-actions" style="margin-top:8px">
-      <button class="modal-btn modal-close-btn" onclick="closeMoreMenu()">Close</button>
-    </div>
+<!-- EVENT DASHBOARD -->
+<div class="screen active" id="screen-dashboard">
+  <div class="dash-wrap">
+    <div class="dash-title" id="dashTitle">—</div>
+    <div class="dash-grid" id="dashGrid"></div>
+    <button class="vs-btn" style="width:100%;margin-top:10px;border-color:rgba(239,68,68,.35);color:var(--red)" onclick="openLeaveEventModal()">Leave Event…</button>
   </div>
 </div>
-
-<!-- PROFILE MODAL -->
-<div class="modal-overlay" id="profileModal">
-  <div class="modal">
-    <div class="modal-title">Your profile</div>
-    <div class="modal-row"><div class="modal-row-label">Name</div><div class="modal-row-val" id="profName">—</div></div>
-    <div class="modal-row"><div class="modal-row-label">Group</div><div class="modal-row-val" id="profGroup">—</div></div>
-    <div class="modal-row"><div class="modal-row-label">Battery</div><div class="modal-row-val" id="profBattery">—</div></div>
-    <div class="modal-row">
-      <div class="modal-row-label">Location sharing</div>
-      <div class="theme-toggle">
-        <div class="theme-opt" id="shareOptOn" onclick="setSharingPaused(false)">On</div>
-        <div class="theme-opt" id="shareOptPaused" onclick="setSharingPaused(true)">Paused</div>
-      </div>
-    </div>
-    <div class="modal-row">
-      <div class="modal-row-label">Theme</div>
-      <div class="theme-toggle">
-        <div class="theme-opt" id="themeOptDark" onclick="setTheme('dark')">Dark</div>
-        <div class="theme-opt" id="themeOptLight" onclick="setTheme('light')">Light</div>
-        <div class="theme-opt" id="themeOptHC" onclick="setTheme('hc')">High Contrast</div>
-      </div>
-    </div>
-    <div class="modal-row">
-      <div class="modal-row-label">Large text</div>
-      <div class="theme-toggle">
-        <div class="theme-opt" id="largeTextOptOff" onclick="setLargeText(false)">Off</div>
-        <div class="theme-opt" id="largeTextOptOn" onclick="setLargeText(true)">On</div>
-      </div>
-    </div>
-    <div class="modal-row">
-      <div class="modal-row-label">Voice guidance</div>
-      <div class="theme-toggle">
-        <div class="theme-opt" id="voiceGuideOptOff" onclick="setVoiceGuidance(false)">Off</div>
-        <div class="theme-opt" id="voiceGuideOptOn" onclick="setVoiceGuidance(true)">On</div>
-      </div>
-    </div>
-    <div class="modal-row">
-      <div class="modal-row-label">Battery saver</div>
-      <div class="theme-toggle">
-        <div class="theme-opt" id="batterySaverOptOff" onclick="setBatterySaver(false)">Off</div>
-        <div class="theme-opt" id="batterySaverOptOn" onclick="setBatterySaver(true)">On</div>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-close-btn" onclick="closeProfile()">Close</button>
-      <button class="modal-btn modal-leave-btn" onclick="leaveGroup()">Leave Group</button>
-    </div>
-  </div>
-</div>
-
-<!-- FRIENDS PANEL -->
-<div class="modal-overlay" id="friendsPanel">
-  <div class="modal" style="max-width:380px">
-    <div class="modal-title">Friends · <span id="friendsCount">0</span></div>
-    <div id="meetingPointBox"></div>
-    <div id="friendsList" style="max-height:320px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-close-btn" onclick="closeFriends()">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- FORWARD MESSAGE MODAL -->
-<div class="modal-overlay" id="forwardModal">
-  <div class="modal" style="max-width:340px">
-    <div class="modal-title">Forward to…</div>
-    <div id="forwardList" style="max-height:300px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-close-btn" onclick="closeForwardModal()">Cancel</button>
-    </div>
-  </div>
-</div>
-
-<!-- SEARCH -->
-<div class="search-overlay" id="searchOverlay">
-  <div class="search-hdr">
-    <div class="search-input-wrap">
-      <span>🔍</span>
-      <input class="search-input" id="searchInput" placeholder="Search stages, food, restrooms…" oninput="runSearch(this.value)" onkeydown="if(event.key==='Enter')runSearch(this.value)"/>
-      <button class="search-mic" id="searchMic" onclick="toggleVoiceSearch()" style="display:none" aria-label="Voice search">🎤</button>
-    </div>
-    <div class="search-cancel" onclick="closeSearch()">Cancel</div>
-  </div>
-  <div class="search-body">
-    <div class="search-cat-row" id="searchCatRow"></div>
-    <div id="searchResults"></div>
-  </div>
-</div>
-
-<!-- ── SCREENS ── -->
 
 <!-- MAP -->
-<div class="screen active" id="screen-map">
+<div class="screen" id="screen-map">
   <div class="map-wrap">
     <canvas id="mapCanvas"></canvas>
     <div class="map-controls">
@@ -817,81 +846,6 @@ canvas:active{cursor:grabbing;}
     </div>
     <div class="now-playing" id="nowPlaying" onclick="openSchedule()"></div>
     <div class="map-bar" id="mapBar"></div>
-  </div>
-</div>
-
-<!-- MEMORIES PANEL -->
-<div class="modal-overlay" id="memoriesPanel">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-title">Memories</div>
-    <div class="merch-tab-row">
-      <div class="merch-tab" id="memTabTimeline" onclick="setMemTab('timeline')">Timeline</div>
-      <div class="merch-tab" id="memTabPhotos" onclick="setMemTab('photos')">Photos</div>
-      <div class="merch-tab" id="memTabRecap" onclick="setMemTab('recap')">Recap</div>
-    </div>
-    <div id="memBody" style="max-height:420px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-close-btn" onclick="closeMemories()">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- GAMIFICATION PANEL -->
-<div class="modal-overlay" id="gamifyPanel">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-title">Festival Passport</div>
-    <div class="merch-tab-row">
-      <div class="merch-tab" id="gamifyTabPassport" onclick="setGamifyTab('passport')">Passport</div>
-      <div class="merch-tab" id="gamifyTabQuests" onclick="setGamifyTab('quests')">Quests</div>
-      <div class="merch-tab" id="gamifyTabLeaderboard" onclick="setGamifyTab('leaderboard')">Leaderboard</div>
-    </div>
-    <div id="gamifyBody" style="max-height:420px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-close-btn" onclick="closeGamify()">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- FOOD PANEL -->
-<div class="modal-overlay" id="foodPanel">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-title">Food &amp; Drinks</div>
-    <div class="merch-tab-row">
-      <div class="merch-tab" id="foodTabVendors" onclick="setFoodTab('vendors')">Vendors</div>
-      <div class="merch-tab" id="foodTabOrders" onclick="setFoodTab('orders')">My Orders</div>
-    </div>
-    <div id="foodBody" style="max-height:400px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-close-btn" onclick="closeFood()">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- MERCHANDISE PANEL -->
-<div class="modal-overlay" id="merchPanel">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-title">Merch</div>
-    <div class="merch-tab-row">
-      <div class="merch-tab" id="merchTabShop" onclick="setMerchTab('shop')">Shop</div>
-      <div class="merch-tab" id="merchTabOrders" onclick="setMerchTab('orders')">My Orders</div>
-    </div>
-    <div id="merchBody" style="max-height:400px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-close-btn" onclick="closeMerch()">Close</button>
-    </div>
-  </div>
-</div>
-
-<!-- SCHEDULE PANEL -->
-<div class="modal-overlay" id="schedulePanel">
-  <div class="modal" style="max-width:400px">
-    <div class="modal-title">Event Schedule</div>
-    <div class="schedule-stage-tabs" id="scheduleStageTabs"></div>
-    <div class="sched-occupancy" id="scheduleOccupancy"></div>
-    <div id="scheduleList" style="max-height:360px;overflow-y:auto;"></div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-close-btn" onclick="closeSchedule()">Close</button>
-    </div>
   </div>
 </div>
 
@@ -976,6 +930,234 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
+<!-- TAB BAR (retired as a bottom nav — kept in the DOM, CSS-hidden, since switchTab() still targets #tab-map/#tab-chat/#tab-report) -->
+<div class="tabbar">
+  <div class="tab active" id="tab-map" onclick="switchTab('map')">
+    <div class="tab-icon">🗺️</div>
+    <span>Map</span>
+  </div>
+  <div class="tab" id="tab-chat" onclick="switchTab('chat')">
+    <div class="tab-icon">💬</div>
+    <span>Chat</span>
+    <div class="tab-badge" id="chatBadge">0</div>
+  </div>
+  <div class="tab" id="tab-report" onclick="switchTab('report')">
+    <div class="tab-icon">📢</div>
+    <span>Report</span>
+  </div>
+</div>
+
+<div class="sponsor-strip" id="sponsorStrip" style="display:none"></div>
+
+</div><!-- /eventShell -->
+
+<!-- ── JOIN / JOIN EVENT (flat sibling — reached contextually from Home/Events, not a mandatory first screen) ── -->
+<div class="join-overlay" id="joinOverlay">
+  <div class="overlay-close" id="joinOverlayClose" onclick="closeJoinOverlay()">✕</div>
+  <div class="join-logo">Glyde<span>.app</span></div>
+  <div class="join-tag">Festival navigation · safety · live</div>
+  <div class="fl">Your avatar</div>
+  <div class="emoji-row" id="emojiRow"></div>
+  <div class="fl">Your name</div>
+  <input class="fi" id="nameInput" placeholder="e.g. Maya" maxlength="16"/>
+  <div class="fl">Event code</div>
+  <input class="fi fi-code" id="codeInput" placeholder="HZ-0000" maxlength="7"/>
+  <button class="jbtn" onclick="scanQrForJoin()" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)">📷 Scan QR Code</button>
+  <button class="jbtn" onclick="joinGroup()">Join Event →</button>
+  <div class="jcreate" onclick="createGroup()">+ Create a new event</div>
+</div>
+
+<!-- QR SCANNER -->
+<div class="modal-overlay" id="qrScanModal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-title">Scan QR Code</div>
+    <div class="qr-video-wrap"><video id="qrVideo" autoplay playsinline muted></video></div>
+    <canvas id="qrCanvas" style="display:none"></canvas>
+    <div id="qrScanStatus" style="font-size:12px;color:var(--muted);text-align:center;margin-top:8px">Point your camera at a QR code…</div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeQrScan()">Cancel — enter code instead</button>
+    </div>
+  </div>
+</div>
+
+<!-- MORE MENU (Memories / Passport / Food / Merch, consolidated to avoid header clutter) -->
+<div class="modal-overlay" id="moreMenuPanel">
+  <div class="modal" style="max-width:300px">
+    <div class="modal-title" style="margin-bottom:10px">More</div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openMemories()"><span>📸</span><span>Memories</span></div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openGamify()"><span>🎫</span><span>Festival Passport</span></div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openFood()"><span>🍔</span><span>Food &amp; Drinks</span></div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openMerch()"><span>🛍️</span><span>Merchandise</span></div>
+    <div class="modal-actions" style="margin-top:8px">
+      <button class="modal-btn modal-close-btn" onclick="closeMoreMenu()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE MODAL (settings — reachable both pre- and post-event; event-specific rows hidden via JS when no event is open) -->
+<div class="modal-overlay" id="profileModal">
+  <div class="modal">
+    <div class="modal-title">Your profile</div>
+    <div class="modal-row"><div class="modal-row-label">Name</div><div class="modal-row-val" id="profName">—</div></div>
+    <div class="modal-row" id="profGroupRow"><div class="modal-row-label">Group</div><div class="modal-row-val" id="profGroup">—</div></div>
+    <div class="modal-row" id="profBatteryRow"><div class="modal-row-label">Battery</div><div class="modal-row-val" id="profBattery">—</div></div>
+    <div class="modal-row" id="profSharingRow">
+      <div class="modal-row-label">Location sharing</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="shareOptOn" onclick="setSharingPaused(false)">On</div>
+        <div class="theme-opt" id="shareOptPaused" onclick="setSharingPaused(true)">Paused</div>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-row-label">Theme</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="themeOptDark" onclick="setTheme('dark')">Dark</div>
+        <div class="theme-opt" id="themeOptLight" onclick="setTheme('light')">Light</div>
+        <div class="theme-opt" id="themeOptHC" onclick="setTheme('hc')">High Contrast</div>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-row-label">Large text</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="largeTextOptOff" onclick="setLargeText(false)">Off</div>
+        <div class="theme-opt" id="largeTextOptOn" onclick="setLargeText(true)">On</div>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-row-label">Voice guidance</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="voiceGuideOptOff" onclick="setVoiceGuidance(false)">Off</div>
+        <div class="theme-opt" id="voiceGuideOptOn" onclick="setVoiceGuidance(true)">On</div>
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-row-label">Battery saver</div>
+      <div class="theme-toggle">
+        <div class="theme-opt" id="batterySaverOptOff" onclick="setBatterySaver(false)">Off</div>
+        <div class="theme-opt" id="batterySaverOptOn" onclick="setBatterySaver(true)">On</div>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeProfile()">Close</button>
+      <button class="modal-btn modal-leave-btn" id="profLeaveBtn" onclick="closeProfile();openLeaveEventModal()">Leave Event</button>
+    </div>
+  </div>
+</div>
+
+<!-- FRIENDS PANEL -->
+<div class="modal-overlay" id="friendsPanel">
+  <div class="modal" style="max-width:380px">
+    <div class="modal-title">Friends · <span id="friendsCount">0</span></div>
+    <div id="meetingPointBox"></div>
+    <div id="friendsList" style="max-height:320px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeFriends()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- FORWARD MESSAGE MODAL -->
+<div class="modal-overlay" id="forwardModal">
+  <div class="modal" style="max-width:340px">
+    <div class="modal-title">Forward to…</div>
+    <div id="forwardList" style="max-height:300px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeForwardModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-hdr">
+    <div class="search-input-wrap">
+      <span>🔍</span>
+      <input class="search-input" id="searchInput" placeholder="Search stages, food, restrooms…" oninput="runSearch(this.value)" onkeydown="if(event.key==='Enter')runSearch(this.value)"/>
+      <button class="search-mic" id="searchMic" onclick="toggleVoiceSearch()" style="display:none" aria-label="Voice search">🎤</button>
+    </div>
+    <div class="search-cancel" onclick="closeSearch()">Cancel</div>
+  </div>
+  <div class="search-body">
+    <div class="search-cat-row" id="searchCatRow"></div>
+    <div id="searchResults"></div>
+  </div>
+</div>
+
+<!-- MEMORIES PANEL -->
+<div class="modal-overlay" id="memoriesPanel">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Memories</div>
+    <div class="merch-tab-row">
+      <div class="merch-tab" id="memTabTimeline" onclick="setMemTab('timeline')">Timeline</div>
+      <div class="merch-tab" id="memTabPhotos" onclick="setMemTab('photos')">Photos</div>
+      <div class="merch-tab" id="memTabRecap" onclick="setMemTab('recap')">Recap</div>
+    </div>
+    <div id="memBody" style="max-height:420px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeMemories()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- GAMIFICATION PANEL -->
+<div class="modal-overlay" id="gamifyPanel">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Festival Passport</div>
+    <div class="merch-tab-row">
+      <div class="merch-tab" id="gamifyTabPassport" onclick="setGamifyTab('passport')">Passport</div>
+      <div class="merch-tab" id="gamifyTabQuests" onclick="setGamifyTab('quests')">Quests</div>
+      <div class="merch-tab" id="gamifyTabLeaderboard" onclick="setGamifyTab('leaderboard')">Leaderboard</div>
+    </div>
+    <div id="gamifyBody" style="max-height:420px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeGamify()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- FOOD PANEL -->
+<div class="modal-overlay" id="foodPanel">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Food &amp; Drinks</div>
+    <div class="merch-tab-row">
+      <div class="merch-tab" id="foodTabVendors" onclick="setFoodTab('vendors')">Vendors</div>
+      <div class="merch-tab" id="foodTabOrders" onclick="setFoodTab('orders')">My Orders</div>
+    </div>
+    <div id="foodBody" style="max-height:400px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeFood()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- MERCHANDISE PANEL -->
+<div class="modal-overlay" id="merchPanel">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Merch</div>
+    <div class="merch-tab-row">
+      <div class="merch-tab" id="merchTabShop" onclick="setMerchTab('shop')">Shop</div>
+      <div class="merch-tab" id="merchTabOrders" onclick="setMerchTab('orders')">My Orders</div>
+    </div>
+    <div id="merchBody" style="max-height:400px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeMerch()">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- SCHEDULE PANEL -->
+<div class="modal-overlay" id="schedulePanel">
+  <div class="modal" style="max-width:400px">
+    <div class="modal-title">Event Schedule</div>
+    <div class="schedule-stage-tabs" id="scheduleStageTabs"></div>
+    <div class="sched-occupancy" id="scheduleOccupancy"></div>
+    <div id="scheduleList" style="max-height:360px;overflow-y:auto;"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-close-btn" onclick="closeSchedule()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- DETAILED REPORT MODAL -->
 <div class="modal-overlay" id="reportModal">
   <div class="modal" style="max-width:380px">
@@ -997,33 +1179,33 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
-<div class="sponsor-strip" id="sponsorStrip" style="display:none"></div>
-
-<!-- TAB BAR -->
-<div class="tabbar">
-  <div class="tab active" id="tab-map" onclick="switchTab('map')">
-    <div class="tab-icon">🗺️</div>
-    <span>Map</span>
-  </div>
-  <div class="tab" id="tab-chat" onclick="switchTab('chat')">
-    <div class="tab-icon">💬</div>
-    <span>Chat</span>
-    <div class="tab-badge" id="chatBadge">0</div>
-  </div>
-  <div class="tab" id="tab-report" onclick="switchTab('report')">
-    <div class="tab-icon">📢</div>
-    <span>Report</span>
+<!-- LEAVE EVENT MODAL -->
+<div class="modal-overlay" id="leaveEventModal">
+  <div class="modal">
+    <div class="modal-title">Leaving <span id="leaveEventName">this event</span></div>
+    <div class="fl">Rate this event</div>
+    <div class="star-picker" id="leaveEventStarPicker"></div>
+    <div class="modal-actions">
+      <button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="closeLeaveEventModal();openMemories()">📸 View Memories</button>
+      <button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="archiveEvent()">🗄️ Archive Event</button>
+      <button class="modal-btn modal-leave-btn" onclick="confirmLeaveEvent()">Leave Event</button>
+      <button class="modal-btn modal-close-btn" onclick="closeLeaveEventModal()">Cancel</button>
+    </div>
   </div>
 </div>
 
 <div class="toast" id="toast"></div>
 
+<script src="jsqr.vendor.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, update, onValue, onDisconnect, runTransaction, push }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getStorage, ref as storageRef, uploadBytes, getDownloadURL }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInAnonymously, signInWithPhoneNumber,
+  RecaptchaVerifier, onAuthStateChanged, updateProfile, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 // ── FIREBASE ──────────────────────────────────────────────────────────────────
 const fbApp = initializeApp({
@@ -1037,6 +1219,7 @@ const fbApp = initializeApp({
 });
 const db = getDatabase(fbApp);
 const storage = getStorage(fbApp);
+const auth = getAuth(fbApp);
 
 // ── THEME ─────────────────────────────────────────────────────────────────────
 function setTheme(t){
@@ -1537,14 +1720,28 @@ window.joinGroup=()=>{
   const name=document.getElementById('nameInput').value.trim();
   const code=document.getElementById('codeInput').value.trim().toUpperCase();
   if(!name){toast('Enter your name','w');return;}
-  if(code.length<4){toast('Enter a group code','w');return;}
-  enterApp(name,code);
+  if(code.length<4){toast('Enter an event code','w');return;}
+  requestOpenEvent(code,name);
 };
+
+// requestOpenEvent: the single entry point for "open this event" from Home/Events/QR/join —
+// re-shows the dashboard for free if it's already the open event, otherwise routes through a
+// reload (via a pending-open flag) so enterApp() is only ever run once per page lifetime,
+// avoiding duplicate Firebase listeners/GPS watchers if the user switches between events.
+function requestOpenEvent(code,name){
+  if(myGroup===code){ closeJoinOverlay(); enterEventContext(); return; }
+  if(myGroup&&myGroup!==code){
+    try{ localStorage.setItem('glyde_pending_open',JSON.stringify({code,name})); }catch(e){}
+    location.reload();
+    return;
+  }
+  enterApp(name,code);
+}
 
 function enterApp(name,code){
   myName=name;myGroup=code;
   saveProfile();
-  document.getElementById('joinOverlay').style.display='none';
+  closeJoinOverlay();
   document.getElementById('grpLabel').textContent=code;
   document.getElementById('groupCodeDisplay').textContent=code;
   document.getElementById('profName').textContent=`${myEmoji} ${myName}`;
@@ -1557,29 +1754,105 @@ function enterApp(name,code){
   renderSidebar();renderMobBar();renderReports();renderMapBar();attachMyReportsListener();renderNowPlaying();renderContacts();
   attachGamifyListener();syncXPToFirebase();
   logEvent('join',{group:code});
+  joinedEventsTouch(code,name);
+  ensureEventMeta(code,name);
+  enterEventContext();
 }
 
-// ── PROFILE PERSISTENCE (localStorage) ───────────────────────────────────────
+// ── PROFILE PERSISTENCE (localStorage — device emoji/color/name prefs, not "which event") ──
 function saveProfile(){
-  try{ localStorage.setItem('glyde_profile',JSON.stringify({name:myName,group:myGroup,emoji:myEmoji,color:myColor})); }catch(e){}
+  try{ localStorage.setItem('glyde_profile',JSON.stringify({name:myName,emoji:myEmoji,color:myColor})); }catch(e){}
 }
 function loadProfile(){
   try{ return JSON.parse(localStorage.getItem('glyde_profile')||'null'); }catch(e){ return null; }
 }
-function tryResume(){
+function applyRememberedProfile(){
   const p=loadProfile();
-  if(!p||!p.name||!p.group)return;
+  if(!p)return;
   myEmoji=p.emoji||EMOJIS[0];myColor=p.color||COLORS[0];
   const idx=EMOJIS.indexOf(myEmoji);
   if(idx>=0&&idx<8) window.pickEmoji(idx);
-  enterApp(p.name,p.group);
-  toast(`👋 Welcome back, ${p.name}!`);
+  if(p.name) document.getElementById('nameInput').value=p.name;
 }
-window.leaveGroup=()=>{
-  try{ localStorage.removeItem('glyde_profile'); }catch(e){}
+function leaveGroup(){
   if(myGroup) set(ref(db,`groups/${myGroup}/users/${myId}`),null).catch(()=>{});
   location.reload();
+}
+
+// ── EVENT CONTEXT (outer app shell vs. event-scoped shell) ───────────────────
+function enterEventContext(){
+  document.getElementById('appShell').style.display='none';
+  document.getElementById('eventShell').style.display='flex';
+  backToDashboard();
+  renderEventDashboard();
+}
+window.exitEventContext=()=>{
+  document.getElementById('eventShell').style.display='none';
+  document.getElementById('appShell').style.display='flex';
+  renderHomeScreen();
 };
+
+// ── JOIN OVERLAY (reached contextually — not the mandatory first screen anymore) ──
+window.openJoinOverlay=()=>{
+  applyRememberedProfile();
+  if(!document.getElementById('nameInput').value&&authProfile?.name) document.getElementById('nameInput').value=authProfile.name;
+  document.getElementById('joinOverlay').classList.add('open');
+};
+window.closeJoinOverlay=()=>document.getElementById('joinOverlay').classList.remove('open');
+
+// ── JOINED EVENTS REGISTRY (localStorage — "which events has this device joined") ────────
+function loadJoinedEvents(){
+  try{ return JSON.parse(localStorage.getItem('glyde_joined_events')||'[]'); }catch(e){ return []; }
+}
+function saveJoinedEvents(list){
+  try{ localStorage.setItem('glyde_joined_events',JSON.stringify(list)); }catch(e){}
+}
+function joinedEventsTouch(code,name){
+  const list=loadJoinedEvents();
+  const now=Date.now();
+  const existing=list.find(e=>e.code===code);
+  if(existing){
+    existing.lastOpenedTs=now;existing.left=false;existing.name=existing.name||name;
+  } else {
+    list.push({code,name,firstJoinedTs:now,lastOpenedTs:now,left:false,archived:false});
+  }
+  saveJoinedEvents(list);
+}
+window.joinedEventsSetName=(code,name)=>{
+  const list=loadJoinedEvents();
+  const e=list.find(x=>x.code===code);
+  if(e&&name){ e.name=name; saveJoinedEvents(list); }
+};
+function joinedEventsMarkLeft(code){
+  const list=loadJoinedEvents();
+  const e=list.find(x=>x.code===code);
+  if(e) e.left=true;
+  saveJoinedEvents(list);
+}
+function joinedEventsMarkArchived(code){
+  const list=loadJoinedEvents();
+  const e=list.find(x=>x.code===code);
+  if(e){ e.left=true;e.archived=true; }
+  saveJoinedEvents(list);
+}
+
+// ── EVENT META (real, shared display name for a code — set-if-absent by whoever joins first) ──
+function ensureEventMeta(code,fallbackName){
+  runTransaction(ref(db,`groups/${code}/meta`),cur=>cur||{name:fallbackName||code,createdAt:Date.now()}).then(res=>{
+    const name=res.snapshot.val()?.name||fallbackName||code;
+    joinedEventsSetName(code,name);
+    document.getElementById('dashTitle')&&renderEventDashboard();
+  }).catch(()=>{});
+}
+
+// ── PENDING-OPEN (carries "which event to open" across the reload requestOpenEvent triggers) ──
+function checkPendingOpen(){
+  try{
+    const p=JSON.parse(localStorage.getItem('glyde_pending_open')||'null');
+    if(p&&p.code){ localStorage.removeItem('glyde_pending_open'); return p; }
+  }catch(e){}
+  return null;
+}
 
 // ── PROFILE MODAL ─────────────────────────────────────────────────────────────
 window.openProfile=()=>{
@@ -1595,8 +1868,8 @@ window.switchTab=tab=>{
   logEvent('tab_switch',{tab});
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('screen-'+tab).classList.add('active');
-  document.getElementById('tab-'+tab).classList.add('active');
+  document.getElementById('screen-'+tab)?.classList.add('active');
+  document.getElementById('tab-'+tab)?.classList.add('active');
   if(tab==='chat'){
     unreadCounts[currentChannel]=0;
     markRead(currentChannel);
@@ -1606,6 +1879,17 @@ window.switchTab=tab=>{
   } else {
     updateChatBadge();
   }
+};
+
+// ── EVENT DASHBOARD NAVIGATION ────────────────────────────────────────────────
+window.backToDashboard=()=>{
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById('screen-dashboard').classList.add('active');
+  currentTab='dashboard';
+};
+window.headerBackAction=()=>{
+  if(currentTab==='dashboard') exitEventContext();
+  else backToDashboard();
 };
 
 // ── GPS ───────────────────────────────────────────────────────────────────────
@@ -2674,6 +2958,11 @@ window.openProfile=()=>{
   updateSharingUI();
   updateBatterySaverUI();
   document.getElementById('profBattery').textContent=batteryLevel!=null?batteryLevel+'%':'Not available';
+  // Event-specific rows only make sense once an event is open — reachable from the
+  // outer Profile tab too, before any event has ever been joined.
+  ['profGroupRow','profBatteryRow','profSharingRow','profLeaveBtn'].forEach(id=>{
+    document.getElementById(id).style.display=myGroup?'':'none';
+  });
 };
 
 // ── BATTERY SAVER (reduces GPS/sync/render frequency to save power) ─────────
@@ -3439,8 +3728,440 @@ if('serviceWorker' in navigator){
   });
 }
 
-// ── RESUME SESSION (if returning attendee) ───────────────────────────────────
-tryResume();
+// ── AUTH (real Firebase Auth — Google / Phone+OTP / Guest — additive account layer;
+//    myId above stays the per-session random id used for all event-runtime data) ──
+let authProfile=null;
+
+function authErrorMessage(e){
+  const code=e&&e.code||'';
+  if(code.includes('popup-closed')||code.includes('cancelled-popup-request')) return 'Sign-in cancelled';
+  if(code.includes('invalid-phone-number')) return '⚠️ Invalid phone number';
+  if(code.includes('invalid-verification-code')) return '⚠️ Incorrect code';
+  if(code.includes('operation-not-allowed')) return "⚠️ This sign-in method isn't enabled yet — ask the organizer";
+  if(code.includes('unauthorized-domain')) return '⚠️ This domain isn\'t authorized for sign-in yet';
+  return '⚠️ Sign-in failed — try again';
+}
+function showAuthScreen(){
+  document.getElementById('splashScreen').style.display='none';
+  document.getElementById('authScreen').classList.add('show');
+}
+function showAppAfterAuth(){
+  document.getElementById('splashScreen').style.display='none';
+  document.getElementById('authScreen').classList.remove('show');
+  const pending=checkPendingOpen();
+  if(pending){
+    enterApp(pending.name||(authProfile&&authProfile.name)||'Guest',pending.code);
+  } else {
+    document.getElementById('appShell').style.display='flex';
+    applyRememberedProfile();
+    renderHomeScreen();
+  }
+}
+onAuthStateChanged(auth,user=>{
+  if(user){
+    authProfile={uid:user.uid,name:user.displayName||null,isAnonymous:user.isAnonymous};
+    if(!authProfile.name){
+      document.getElementById('splashScreen').style.display='none';
+      document.getElementById('authScreen').classList.remove('show');
+      document.getElementById('nicknamePanel').classList.add('open');
+    } else {
+      showAppAfterAuth();
+    }
+  } else {
+    showAuthScreen();
+  }
+});
+
+window.authSignInGoogle=async()=>{
+  try{ await signInWithPopup(auth,new GoogleAuthProvider()); }
+  catch(e){ toast(authErrorMessage(e),'e'); }
+};
+window.authSignInGuest=async()=>{
+  try{ await signInAnonymously(auth); }
+  catch(e){ toast(authErrorMessage(e),'e'); }
+};
+window.confirmNickname=async()=>{
+  const name=document.getElementById('nicknameInput').value.trim();
+  if(!name){ toast('Enter a name','w'); return; }
+  try{ await updateProfile(auth.currentUser,{displayName:name}); }catch(e){}
+  authProfile=authProfile?{...authProfile,name}:{name};
+  document.getElementById('nicknamePanel').classList.remove('open');
+  showAppAfterAuth();
+};
+
+// Phone sign-in (2-step: number → OTP). Requires the Phone provider enabled in the
+// Firebase console; an unconfigured provider surfaces as a clear toast, not a crash.
+let phoneConfirmationResult=null;
+let recaptchaVerifier=null;
+function ensureRecaptcha(){
+  if(!recaptchaVerifier) recaptchaVerifier=new RecaptchaVerifier(auth,'authRecaptchaContainer',{size:'invisible'});
+  return recaptchaVerifier;
+}
+window.authShowPhoneStep=()=>{ document.getElementById('authPhoneStep').style.display='block'; };
+window.authHidePhoneStep=()=>{
+  document.getElementById('authPhoneStep').style.display='none';
+  document.getElementById('authOtpStep').style.display='none';
+};
+window.authSendPhoneCode=async()=>{
+  const phone=document.getElementById('authPhoneInput').value.trim();
+  if(!phone){ toast('Enter a phone number','w'); return; }
+  try{
+    phoneConfirmationResult=await signInWithPhoneNumber(auth,phone,ensureRecaptcha());
+    document.getElementById('authOtpStep').style.display='block';
+    toast('📱 Code sent');
+  }catch(e){ toast(authErrorMessage(e),'e'); }
+};
+window.authConfirmPhoneCode=async()=>{
+  const code=document.getElementById('authOtpInput').value.trim();
+  if(!code||!phoneConfirmationResult){ toast('Enter the code','w'); return; }
+  try{ await phoneConfirmationResult.confirm(code); }
+  catch(e){ toast(authErrorMessage(e),'e'); }
+};
+
+// ── requireEvent: guard for screens/actions that need myGroup set (e.g. Shop) ────────────
+function requireEvent(promptText){
+  if(myGroup) return true;
+  toast(promptText||'Join an event first','w');
+  return false;
+}
+window.requireEvent=requireEvent;
+
+// ── APP SHELL NAVIGATION (outer: Home/Events/Chats/Shop/Profile) ─────────────────────────
+window.switchAppScreen=screen=>{
+  document.querySelectorAll('.app-screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.app-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('screen-'+screen)?.classList.add('active');
+  document.getElementById('apptab-'+screen)?.classList.add('active');
+  if(screen==='home') renderHomeScreen();
+  else if(screen==='events') renderEventsScreen();
+  else if(screen==='chats') renderChatsScreen();
+  else if(screen==='shop') renderShopScreen();
+  else if(screen==='profile') renderProfileScreen();
+};
+
+function greetingWord(){
+  const h=new Date().getHours();
+  if(h<12) return 'Good Morning';
+  if(h<18) return 'Good Afternoon';
+  return 'Good Evening';
+}
+function currentDisplayName(){
+  return (authProfile&&authProfile.name)||myName||'there';
+}
+function fmtJoinDate(ts){
+  return new Date(ts).toLocaleDateString(undefined,{month:'short',day:'numeric'});
+}
+
+// ── HOME SCREEN ───────────────────────────────────────────────────────────────
+function renderHomeScreen(){
+  const events=loadJoinedEvents();
+  const active=events.filter(e=>!e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
+  const past=events.filter(e=>e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
+
+  const activeHtml=active.length?active.map(e=>`
+    <div class="event-card">
+      <div class="event-card-icon">🎪</div>
+      <div style="flex:1">
+        <div class="event-card-name">${esc(e.name||e.code)}</div>
+        <div class="event-card-meta">Joined ${fmtJoinDate(e.firstJoinedTs)} · Active</div>
+      </div>
+      <button class="vs-btn vs-btn-primary" onclick="requestOpenEvent('${e.code}','${esc(currentDisplayName())}')">Open</button>
+    </div>`).join('') : '<div class="home-empty">No active events — join one below</div>';
+
+  const recentHtml=past.length?past.slice(0,3).map(e=>`
+    <div class="event-card">
+      <div class="event-card-icon">🎟</div>
+      <div style="flex:1">
+        <div class="event-card-name">${esc(e.name||e.code)}</div>
+        <div class="event-card-meta">Last opened ${fmtJoinDate(e.lastOpenedTs)}</div>
+      </div>
+      <button class="vs-btn" onclick="requestOpenEvent('${e.code}','${esc(currentDisplayName())}')">Reopen</button>
+    </div>`).join('') : '<div class="home-empty">No recent events yet</div>';
+
+  const chatHtml=myGroup?Object.entries(CHANNELS).slice(0,3).map(([key,c])=>`
+    <div class="event-card" onclick="switchAppScreen('chats')">
+      <div class="event-card-icon">${c.icon}</div>
+      <div style="flex:1">
+        <div class="event-card-name">${esc(c.name)}</div>
+        <div class="event-card-meta">${(unreadCounts[key]||0)>0?(unreadCounts[key]+' unread'):'Tap to open'}</div>
+      </div>
+    </div>`).join('') : '<div class="home-empty">Open an event to see its chats</div>';
+
+  const level=Math.floor(myXP/100)+1;
+
+  document.getElementById('homeBody').innerHTML=`
+    <div class="greeting">${greetingWord()}, ${esc(currentDisplayName())}</div>
+
+    <div class="home-card">
+      <div class="fl">Join an event</div>
+      <input class="fi" id="homeCodeInput" placeholder="Event code, e.g. HZ-0000" style="margin-bottom:8px" onkeydown="if(event.key==='Enter')homeJoinEvent()"/>
+      <div style="display:flex;gap:8px">
+        <button class="vs-btn" style="flex:1" onclick="scanQrForJoin()">📷 Scan QR</button>
+        <button class="vs-btn vs-btn-primary" style="flex:1" onclick="homeJoinEvent()">Join Event →</button>
+      </div>
+    </div>
+
+    <div class="home-section-title">My Active Events</div>
+    ${activeHtml}
+
+    <div class="home-section-title">Upcoming Events</div>
+    <div class="home-empty">No upcoming events yet — join one with a code or QR</div>
+
+    <div class="home-section-title">Recent Events</div>
+    ${recentHtml}
+
+    <div class="home-section-title">Continue Recent Chats</div>
+    ${chatHtml}
+
+    <div class="home-section-title">Festival Passport</div>
+    <div class="home-card" style="display:flex;align-items:center;gap:14px">
+      <div style="font-size:30px">🎫</div>
+      <div style="flex:1">
+        <div style="font-weight:700">${myXP} Lifetime XP</div>
+        <div style="font-size:11px;color:var(--muted)">Level ${level} · ${myBadges.size} badge${myBadges.size===1?'':'s'}</div>
+      </div>
+    </div>
+
+    <div class="home-section-title">Featured Merchandise</div>
+    <div style="display:flex;gap:10px;overflow-x:auto" onclick="switchAppScreen('shop')">
+      ${PRODUCTS.slice(0,3).map(p=>`
+        <div class="home-card" style="min-width:110px;text-align:center;cursor:pointer">
+          <div style="font-size:26px">${p.icon}</div>
+          <div style="font-size:12px;font-weight:600;margin-top:4px">${esc(p.name)}</div>
+          <div style="font-size:11px;color:var(--muted)">$${p.price}</div>
+        </div>`).join('')}
+    </div>
+
+    <div class="home-card" style="text-align:center;cursor:pointer" onclick="toast('🎟 Ticketing integration coming soon')">
+      <div style="font-weight:700">🎫 Buy Tickets</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">Ticket integration coming soon</div>
+    </div>
+  `;
+}
+window.homeJoinEvent=()=>{
+  const code=document.getElementById('homeCodeInput').value.trim().toUpperCase();
+  if(code.length<4){ toast('Enter an event code','w'); return; }
+  const name=currentDisplayName();
+  requestOpenEvent(code,name);
+};
+
+// ── EVENTS TAB ────────────────────────────────────────────────────────────────
+function renderEventsScreen(){
+  const events=loadJoinedEvents();
+  const active=events.filter(e=>!e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
+  const past=events.filter(e=>e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
+
+  const cardHtml=(e,btnLabel)=>`
+    <div class="event-card">
+      <div class="event-card-icon">🎪</div>
+      <div style="flex:1">
+        <div class="event-card-name">${esc(e.name||e.code)}</div>
+        <div class="event-card-meta">Joined ${fmtJoinDate(e.firstJoinedTs)}${e.archived?' · Archived':''}</div>
+      </div>
+      <button class="vs-btn vs-btn-primary" onclick="requestOpenEvent('${e.code}','${esc(currentDisplayName())}')">${btnLabel}</button>
+    </div>`;
+
+  document.getElementById('eventsBody').innerHTML=`
+    <div class="home-section-title">Active Events</div>
+    ${active.length?active.map(e=>cardHtml(e,'Open')).join(''):'<div class="home-empty">No active events</div>'}
+
+    <div class="home-section-title">Upcoming Events</div>
+    <div class="home-empty">No upcoming events yet — join one with a code or QR</div>
+
+    <div class="home-section-title">Past Events</div>
+    ${past.length?past.map(e=>cardHtml(e,'Reopen')).join(''):'<div class="home-empty">No past events</div>'}
+  `;
+}
+
+// ── CHATS TAB (top-level — thin reuse of the currently-open event's channels) ────────────
+function renderChatsScreen(){
+  if(!myGroup){
+    document.getElementById('chatsBody').innerHTML='<div class="home-empty">Open an event to see its chats</div>';
+    return;
+  }
+  document.getElementById('chatsBody').innerHTML=`
+    <div class="home-section-title">${esc(document.getElementById('grpLabel').textContent)}</div>
+    ${Object.entries(CHANNELS).map(([key,c])=>`
+      <div class="event-card" onclick="openEventChat('${key}')">
+        <div class="event-card-icon">${c.icon}</div>
+        <div style="flex:1">
+          <div class="event-card-name">${esc(c.name)}</div>
+          <div class="event-card-meta">${(unreadCounts[key]||0)>0?(unreadCounts[key]+' unread'):'Tap to open'}</div>
+        </div>
+      </div>`).join('')}
+  `;
+}
+window.openEventChat=key=>{
+  enterEventContext();
+  switchChannel(key);
+  switchTab('chat');
+};
+
+// ── SHOP TAB (top-level — placeholders per spec, but real sections route to the real Merch modal) ──
+function renderShopScreen(){
+  const sections=[
+    {label:'Featured',real:true},
+    {label:'Festival Merch',real:true},
+    {label:'Artist Merch',real:false},
+    {label:'Accessories',real:false},
+    {label:'Limited Edition',real:false},
+    {label:'Orders',real:true},
+    {label:'Wishlist',real:false},
+  ];
+  document.getElementById('shopBody').innerHTML=`
+    <div class="home-section-title">Shop</div>
+    ${sections.map(s=>`
+      <div class="event-card" onclick="shopSectionTap(${s.real})">
+        <div class="event-card-icon">🛍️</div>
+        <div style="flex:1">
+          <div class="event-card-name">${s.label}</div>
+          <div class="event-card-meta">${s.real?'Open':'Coming soon'}</div>
+        </div>
+      </div>`).join('')}
+  `;
+}
+window.shopSectionTap=real=>{
+  if(!real){ toast('🛍️ Coming soon'); return; }
+  if(!requireEvent('Join an event to browse merch')) return;
+  enterEventContext();
+  openMerch();
+};
+
+// ── PROFILE TAB (top-level — folds the existing profileModal's settings in, plus real stats) ──
+function renderProfileScreen(){
+  const level=Math.floor(myXP/100)+1;
+  let memStats={distance:0,zones:0,artists:0};
+  try{
+    const m=JSON.parse(localStorage.getItem('glyde_memories')||'{}');
+    memStats.distance=Math.round((m.totalDistanceMeters||0)/1000*10)/10;
+    memStats.zones=(m.visitedZonesLog||[]).length;
+    memStats.artists=(m.artistsSeen||[]).length;
+  }catch(e){}
+  document.getElementById('profileBody').innerHTML=`
+    <div class="home-card" style="text-align:center">
+      <div style="font-size:40px">${myEmoji||'👤'}</div>
+      <div style="font-weight:700;font-size:16px;margin-top:4px">${esc(currentDisplayName())}</div>
+      <div style="font-size:11px;color:var(--muted)">Level ${level} · ${myXP} Lifetime XP</div>
+    </div>
+    <div class="home-section-title">Badges</div>
+    <div class="home-card">${myBadges.size?`${myBadges.size} badge${myBadges.size===1?'':'s'} earned — see Festival Passport for details`:'No badges yet'}</div>
+    <div class="home-section-title">Friends</div>
+    <div class="event-card" onclick="requireEvent('Join an event to see friends')&&openFriends()">
+      <div class="event-card-icon">👥</div>
+      <div style="flex:1"><div class="event-card-name">Friends</div><div class="event-card-meta">Open</div></div>
+    </div>
+    <div class="home-section-title">Statistics</div>
+    <div class="home-card">
+      <div class="modal-row"><div class="modal-row-label">Distance walked</div><div class="modal-row-val">${memStats.distance}km</div></div>
+      <div class="modal-row"><div class="modal-row-label">Zones visited</div><div class="modal-row-val">${memStats.zones}</div></div>
+      <div class="modal-row"><div class="modal-row-label">Artists seen</div><div class="modal-row-val">${memStats.artists}</div></div>
+    </div>
+    <div class="home-section-title">Settings</div>
+    <button class="vs-btn vs-btn-primary" style="width:100%" onclick="openProfile()">⚙️ Theme, accessibility &amp; battery saver</button>
+  `;
+}
+
+// ── EVENT DASHBOARD (9-card hub inside an open event) ─────────────────────────
+function renderEventDashboard(){
+  const events=loadJoinedEvents();
+  const e=events.find(x=>x.code===myGroup);
+  const titleEl=document.getElementById('dashTitle');
+  if(titleEl) titleEl.textContent=(e&&e.name)||myGroup||'—';
+  const cards=[
+    {icon:'🗺️',label:'Open Map',action:"switchTab('map')"},
+    {icon:'🎤',label:'Artists',action:"openSchedule()"},
+    {icon:'📅',label:'Schedule',action:"openSchedule()"},
+    {icon:'👥',label:'Friends',action:"openFriends()"},
+    {icon:'🍔',label:'Food',action:"openFood()"},
+    {icon:'🛍️',label:'Merchandise',action:"openMerch()"},
+    {icon:'📢',label:'Reports',action:"switchTab('report')"},
+    {icon:'🛟',label:'Safety',action:"switchTab('report')"},
+    {icon:'💬',label:'Chat',action:"switchTab('chat')"},
+  ];
+  const gridEl=document.getElementById('dashGrid');
+  if(gridEl) gridEl.innerHTML=cards.map(c=>`
+    <div class="dash-card" onclick="${c.action}">
+      <div class="dash-card-icon">${c.icon}</div>
+      <div class="dash-card-label">${c.label}</div>
+    </div>`).join('');
+}
+
+// ── LEAVE EVENT (Leave / View Memories / Rate Event / Archive) ──────────────────────────
+let leaveEventRatingStars=0;
+window.openLeaveEventModal=()=>{
+  document.getElementById('leaveEventName').textContent=document.getElementById('dashTitle')?.textContent||myGroup||'this event';
+  leaveEventRatingStars=0;
+  renderLeaveEventStars();
+  document.getElementById('leaveEventModal').classList.add('open');
+};
+window.closeLeaveEventModal=()=>document.getElementById('leaveEventModal').classList.remove('open');
+function renderLeaveEventStars(){
+  document.getElementById('leaveEventStarPicker').innerHTML=[1,2,3,4,5].map(n=>`<span class="${n<=leaveEventRatingStars?'on':''}" onclick="rateEvent(${n})">★</span>`).join('');
+}
+window.rateEvent=stars=>{
+  leaveEventRatingStars=stars;
+  renderLeaveEventStars();
+  if(myGroup) set(ref(db,`groups/${myGroup}/eventRatings/${myId}`),stars).catch(()=>{});
+  toast(`⭐ Rated ${stars} star${stars>1?'s':''}`);
+};
+window.confirmLeaveEvent=()=>{
+  if(myGroup) joinedEventsMarkLeft(myGroup);
+  closeLeaveEventModal();
+  leaveGroup();
+};
+window.archiveEvent=()=>{
+  if(myGroup) joinedEventsMarkArchived(myGroup);
+  closeLeaveEventModal();
+  leaveGroup();
+};
+
+// ── QR SCANNING (real camera decode via vendored jsQR — jsqr.vendor.js, window.jsQR) ─────
+let qrStream=null;
+let qrScanRAF=null;
+let qrTargetInputId=null;
+
+window.scanQrForJoin=()=>{
+  qrTargetInputId=document.getElementById('joinOverlay').classList.contains('open')?'codeInput':'homeCodeInput';
+  openQrScan();
+};
+async function openQrScan(){
+  document.getElementById('qrScanModal').classList.add('open');
+  document.getElementById('qrScanStatus').textContent='Point your camera at a QR code…';
+  try{
+    qrStream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+    const video=document.getElementById('qrVideo');
+    video.srcObject=qrStream;
+    await video.play();
+    qrScanLoop();
+  }catch(e){
+    document.getElementById('qrScanStatus').textContent='📷 Camera unavailable — enter the code manually';
+  }
+}
+function qrScanLoop(){
+  const video=document.getElementById('qrVideo');
+  const canvas=document.getElementById('qrCanvas');
+  if(video.readyState===video.HAVE_ENOUGH_DATA&&window.jsQR){
+    canvas.width=video.videoWidth;canvas.height=video.videoHeight;
+    const ctx=canvas.getContext('2d');
+    ctx.drawImage(video,0,0,canvas.width,canvas.height);
+    const imageData=ctx.getImageData(0,0,canvas.width,canvas.height);
+    const decoded=window.jsQR(imageData.data,imageData.width,imageData.height);
+    if(decoded&&decoded.data){ onQrDecoded(decoded.data); return; }
+  }
+  qrScanRAF=requestAnimationFrame(qrScanLoop);
+}
+function onQrDecoded(text){
+  const value=text.trim().toUpperCase();
+  if(qrTargetInputId) document.getElementById(qrTargetInputId).value=value;
+  closeQrScan();
+  toast(`✅ QR scanned: ${value}`);
+}
+window.closeQrScan=()=>{
+  document.getElementById('qrScanModal').classList.remove('open');
+  if(qrScanRAF) cancelAnimationFrame(qrScanRAF);
+  qrScanRAF=null;
+  if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream=null; }
+};
 </script>
 </body>
 </html>

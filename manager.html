@@ -487,6 +487,10 @@ window.managerLogin = () => {
   document.getElementById('venueName').textContent = venue;
   document.getElementById('eventCodeDisplay').textContent = code;
 
+  // Organizer's venue name is authoritative for attendees' Home/Events cards (which
+  // otherwise only have the raw join code to show); doesn't touch createdAt if already set.
+  update(ref(db, `groups/${code}/meta`), { name: venue }).catch(() => {});
+
   listenAttendees();
   listenReports();
   listenAlerts();

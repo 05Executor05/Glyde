@@ -1,7 +1,8 @@
-const CACHE = 'glyde-v1';
+const CACHE = 'glyde-v2';
 const APP_SHELL = [
   './index.html',
   './manifest.json',
+  './jsqr.vendor.js',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
