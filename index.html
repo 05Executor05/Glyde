@@ -1369,7 +1369,7 @@ const CATEGORIES=[
 // Offsets are minutes relative to page load, so "Now Playing" always has a
 // sensible answer regardless of real-world time of day.
 const EVENT_EPOCH=Date.now();
-const SCHEDULE=[
+const DEFAULT_SCHEDULE=[
   {id:'s0',artist:'Solstice',zoneIdx:0,genre:'Indie Pop',bio:'Sun-soaked indie pop duo opening the main stage.',offsetStart:-60,offsetEnd:-20},
   {id:'s1',artist:'Nova Wolf',zoneIdx:0,genre:'Electro',bio:'High-energy electro act blending live drums with synths.',offsetStart:-20,offsetEnd:25},
   {id:'s2',artist:'Kairo',zoneIdx:0,genre:'House',bio:'Rising house producer known for sunset sets.',offsetStart:25,offsetEnd:80},
@@ -1382,6 +1382,9 @@ const SCHEDULE=[
   {id:'w2',artist:'Prism',zoneIdx:2,genre:'Pop',bio:'Breakout pop act closing the EDM Arena.',offsetStart:70,offsetEnd:130},
 ];
 function scheduleTime(offsetMin){return EVENT_EPOCH+offsetMin*60000;}
+// Demo entries carry real startTs/endTs derived from their page-load-relative offsets;
+// a real organizer's scheduleConfig entries carry startTs/endTs directly (no offsets).
+let SCHEDULE=DEFAULT_SCHEDULE.map(s=>({...s, startTs:scheduleTime(s.offsetStart), endTs:scheduleTime(s.offsetEnd)}));
 
 // ── MERCHANDISE (web-only simulation — no real payments backend) ────────────
 const MERCH_CATEGORIES=[
@@ -1789,6 +1792,7 @@ async function enterApp(name,code){
   document.getElementById('profName').textContent=`${myEmoji} ${myName}`;
   document.getElementById('profGroup').textContent=code;
   await loadVenueConfig(code);
+  await loadScheduleConfig(code);
   Object.keys(CHANNELS).forEach(attachChannelListener);
   postMessage('group-main',{type:'sys',text:`${myEmoji} ${myName} joined the group`,ts:Date.now()});
   startGPS();listenGroup();listenMeetingPoint();listenAlerts();listenAnnouncements();listenZoneStatus();listenVendorStatus();listenSponsors();pushLoop();initBattery();
@@ -1931,6 +1935,32 @@ async function loadVenueConfig(code){
     applyVenueConfig(snap.val());
     if(document.getElementById('screen-dashboard')?.classList.contains('active')) renderEventDashboard();
   });
+}
+
+// ── PER-EVENT SCHEDULE CONFIG (organizer-configured lineup, via manager.html's Schedule Editor) ──
+// Falls back to the built-in demo lineup (fictional, relative to page load) when an event hasn't
+// configured its own schedule. Real organizer entries carry absolute startTs/endTs timestamps
+// directly, so they read the same real-world time on every attendee's device.
+function applyScheduleConfig(cfg){
+  if(cfg&&Array.isArray(cfg.entries)){
+    SCHEDULE=cfg.entries;
+  } else {
+    SCHEDULE=DEFAULT_SCHEDULE.map(s=>({...s, startTs:scheduleTime(s.offsetStart), endTs:scheduleTime(s.offsetEnd)}));
+  }
+  if(document.getElementById('schedulePanel')?.classList.contains('open')){
+    renderScheduleStageTabs();
+    renderScheduleList();
+  }
+  renderNowPlaying();
+}
+async function loadScheduleConfig(code){
+  try{
+    const snap=await get(ref(db,`groups/${code}/scheduleConfig`));
+    applyScheduleConfig(snap.val());
+  }catch(e){
+    applyScheduleConfig(null);
+  }
+  onValue(ref(db,`groups/${code}/scheduleConfig`),snap=>applyScheduleConfig(snap.val()));
 }
 
 // ── PENDING-OPEN (carries "which event to open" across the reload requestOpenEvent triggers) ──
@@ -2304,7 +2334,7 @@ window.openVenueSheet=idx=>{
 function logZoneVisit(idx){
   const now=Date.now();
   visitedZonesLog.push({idx,ts:now});
-  const performer=SCHEDULE.find(s=>s.zoneIdx===idx&&now>=scheduleTime(s.offsetStart)&&now<scheduleTime(s.offsetEnd));
+  const performer=SCHEDULE.find(s=>s.zoneIdx===idx&&now>=s.startTs&&now<s.endTs);
   if(performer&&!artistsSeen.has(performer.artist)){
     artistsSeen.add(performer.artist);
     toast(`🎤 Added ${performer.artist} to Artists Seen!`);
@@ -2835,11 +2865,11 @@ let remindersScheduled=new Set();
 
 function currentPerformer(zoneIdx){
   const now=Date.now();
-  return SCHEDULE.find(s=>s.zoneIdx===zoneIdx&&now>=scheduleTime(s.offsetStart)&&now<scheduleTime(s.offsetEnd));
+  return SCHEDULE.find(s=>s.zoneIdx===zoneIdx&&now>=s.startTs&&now<s.endTs);
 }
 function nextPerformer(zoneIdx){
   const now=Date.now();
-  return SCHEDULE.filter(s=>s.zoneIdx===zoneIdx&&scheduleTime(s.offsetStart)>now).sort((a,b)=>a.offsetStart-b.offsetStart)[0];
+  return SCHEDULE.filter(s=>s.zoneIdx===zoneIdx&&s.startTs>now).sort((a,b)=>a.startTs-b.startTs)[0];
 }
 function saveBookmarks(){try{localStorage.setItem('glyde_bookmarks',JSON.stringify([...scheduleBookmarks]));}catch(e){}}
 
@@ -2854,6 +2884,10 @@ function renderNowPlaying(){
 setInterval(renderNowPlaying,30000);
 
 window.openSchedule=()=>{
+  if(!ZONES[scheduleStageFilter]||ZONES[scheduleStageFilter].category!=='stage'){
+    const firstStage=ZONES.findIndex(z=>z.category==='stage');
+    scheduleStageFilter=firstStage>=0?firstStage:0;
+  }
   document.getElementById('schedulePanel').classList.add('open');
   renderScheduleStageTabs();
   renderScheduleList();
@@ -2876,11 +2910,11 @@ function renderScheduleList(){
   document.getElementById('scheduleOccupancy').textContent=`Current occupancy: ${levelLabel}`;
 
   const now=Date.now();
-  const entries=SCHEDULE.filter(s=>s.zoneIdx===scheduleStageFilter).sort((a,b)=>a.offsetStart-b.offsetStart);
+  const entries=SCHEDULE.filter(s=>s.zoneIdx===scheduleStageFilter).sort((a,b)=>a.startTs-b.startTs);
   document.getElementById('scheduleList').innerHTML=entries.map(s=>{
-    const isNow=now>=scheduleTime(s.offsetStart)&&now<scheduleTime(s.offsetEnd);
-    const start=new Date(scheduleTime(s.offsetStart));
-    const end=new Date(scheduleTime(s.offsetEnd));
+    const isNow=now>=s.startTs&&now<s.endTs;
+    const start=new Date(s.startTs);
+    const end=new Date(s.endTs);
     const fmt=d=>`${d.getHours()%12||12}:${String(d.getMinutes()).padStart(2,'0')}${d.getHours()<12?'am':'pm'}`;
     const on=scheduleBookmarks.has(s.id);
     return `<div class="sched-card${isNow?' now':''}">
@@ -2913,7 +2947,7 @@ window.toggleBookmark=id=>{
 };
 function scheduleReminder(entry){
   if(remindersScheduled.has(entry.id))return;
-  const fireAt=scheduleTime(entry.offsetStart)-10*60000;
+  const fireAt=entry.startTs-10*60000;
   const delay=fireAt-Date.now();
   if(delay<=0||delay>2*60*60000)return; // don't schedule far-future/past reminders in this session
   remindersScheduled.add(entry.id);

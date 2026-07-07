@@ -433,6 +433,28 @@ let ZONES=DEFAULT_ZONES;
 let PATHS=DEFAULT_PATHS;
 let PATH_LABELS=DEFAULT_PATH_LABELS;
 
+// Mirrors index.html's DEFAULT_SCHEDULE (fictional demo lineup, offsets relative to whenever
+// this page loaded — used only as a preview here, never written back to Firebase, since
+// "Reset to Demo Defaults" nulls scheduleConfig rather than re-seeding a static snapshot).
+// Must stay a field mirror of index.html's DEFAULT_SCHEDULE (id/artist/zoneIdx/genre/bio)
+// since a custom scheduleConfig written from here is read directly by index.html's
+// now-playing/schedule-list/reminder logic.
+const EVENT_EPOCH=Date.now();
+function scheduleTime(offsetMin){return EVENT_EPOCH+offsetMin*60000;}
+const DEFAULT_SCHEDULE=[
+  {id:'s0',artist:'Solstice',zoneIdx:0,genre:'Indie Pop',bio:'Sun-soaked indie pop duo opening the main stage.',offsetStart:-60,offsetEnd:-20},
+  {id:'s1',artist:'Nova Wolf',zoneIdx:0,genre:'Electro',bio:'High-energy electro act blending live drums with synths.',offsetStart:-20,offsetEnd:25},
+  {id:'s2',artist:'Kairo',zoneIdx:0,genre:'House',bio:'Rising house producer known for sunset sets.',offsetStart:25,offsetEnd:80},
+  {id:'s3',artist:'The Horizon Collective',zoneIdx:0,genre:'Headliner',bio:"Tonight's headliner — full band, full production.",offsetStart:80,offsetEnd:160},
+  {id:'e0',artist:'Deep Static',zoneIdx:1,genre:'Techno',bio:'Warehouse techno to start the Indie Stage.',offsetStart:-50,offsetEnd:-5},
+  {id:'e1',artist:'Lunar Drift',zoneIdx:1,genre:'Ambient',bio:'Downtempo ambient live set.',offsetStart:-5,offsetEnd:40},
+  {id:'e2',artist:'Echo Chamber',zoneIdx:1,genre:'Drum & Bass',bio:'Fast, heavy, and bass-forward.',offsetStart:40,offsetEnd:100},
+  {id:'w0',artist:'Velvet Static',zoneIdx:2,genre:'Funk',bio:'Live funk band with horns opening the EDM Arena.',offsetStart:-40,offsetEnd:10},
+  {id:'w1',artist:'Night Runner',zoneIdx:2,genre:'Synthwave',bio:'Retro synthwave with a live light show.',offsetStart:10,offsetEnd:70},
+  {id:'w2',artist:'Prism',zoneIdx:2,genre:'Pop',bio:'Breakout pop act closing the EDM Arena.',offsetStart:70,offsetEnd:130},
+];
+let SCHEDULE=DEFAULT_SCHEDULE.map(s=>({...s, startTs:scheduleTime(s.offsetStart), endTs:scheduleTime(s.offsetEnd)}));
+
 // ── PER-EVENT VENUE CONFIG (mirrors index.html's loadVenueConfig) ────────────────────────
 // Keeps the organizer's own map preview and the alert-broadcast location dropdown in sync
 // with whichever venue is actually configured (default demo, or this organizer's own).
@@ -459,6 +481,25 @@ async function loadVenueConfig(code) {
     applyVenueConfig(null);
   }
   onValue(ref(db, `groups/${code}/venueConfig`), snap => applyVenueConfig(snap.val()));
+}
+
+// ── PER-EVENT SCHEDULE CONFIG (mirrors index.html's loadScheduleConfig) ──────────────────
+function applyScheduleConfig(cfg) {
+  if (cfg && Array.isArray(cfg.entries)) {
+    SCHEDULE = cfg.entries;
+  } else {
+    SCHEDULE = DEFAULT_SCHEDULE.map(s => ({...s, startTs: scheduleTime(s.offsetStart), endTs: scheduleTime(s.offsetEnd)}));
+  }
+  if (mgmtTab === 'schedule') renderManageBody();
+}
+async function loadScheduleConfig(code) {
+  try {
+    const snap = await get(ref(db, `groups/${code}/scheduleConfig`));
+    applyScheduleConfig(snap.val());
+  } catch (e) {
+    applyScheduleConfig(null);
+  }
+  onValue(ref(db, `groups/${code}/scheduleConfig`), snap => applyScheduleConfig(snap.val()));
 }
 
 const STAFF = [
@@ -489,6 +530,7 @@ const MGMT_TABS = [
   {id:'announce', label:'📢 Announce'},
   {id:'vendors',  label:'🛍️ Vendors'},
   {id:'map',      label:'🗺️ Map'},
+  {id:'schedule', label:'🎤 Schedule'},
   {id:'analytics',label:'📊 Analytics'},
   {id:'sponsors', label:'🏷️ Sponsors'},
 ];
@@ -540,6 +582,7 @@ window.managerLogin = () => {
   update(ref(db, `groups/${code}/meta`), { name: venue }).catch(() => {});
 
   loadVenueConfig(code);
+  loadScheduleConfig(code);
   listenAttendees();
   listenReports();
   listenAlerts();
@@ -591,6 +634,7 @@ function renderManageBody() {
   if (mgmtTab === 'announce') body.innerHTML = renderAnnounceTab();
   else if (mgmtTab === 'vendors') body.innerHTML = renderVendorsTab();
   else if (mgmtTab === 'map') body.innerHTML = renderMapMgmtTab();
+  else if (mgmtTab === 'schedule') body.innerHTML = renderScheduleMgmtTab();
   else if (mgmtTab === 'analytics') body.innerHTML = renderAnalyticsTab();
   else if (mgmtTab === 'sponsors') body.innerHTML = renderSponsorsTab();
 }
@@ -662,6 +706,7 @@ const VENUE_CATEGORY_OPTIONS = [
   {id:'merch',label:'Merch Store'},{id:'security',label:'Security'},{id:'exit',label:'Exit'},{id:'quiet',label:'Quiet Zone'},
 ];
 let venueEditIdx = null; // null = adding a new zone, else index of the zone being edited
+let scheduleEditId = null; // null = adding a new schedule entry, else id of the entry being edited
 
 function renderMapMgmtTab() {
   const zoneRows = ZONES.map((z,i) => {
@@ -787,6 +832,100 @@ window.deleteVenuePath = idx => {
 window.resetVenueToDemoDefaults = () => {
   set(ref(db, `groups/${eventGroup}/venueConfig`), {zones: DEFAULT_ZONES, paths: DEFAULT_PATHS, pathLabels: DEFAULT_PATH_LABELS}).then(() => {
     venueEditIdx = null;
+    toast('↺ Reset to Demo Festival defaults');
+  }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── SCHEDULE EDITOR (per-event lineup: add/edit/delete artists with real start/end times) ──
+function tsToLocalInput(ts) {
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function renderScheduleMgmtTab() {
+  const stages = ZONES.map((z,i) => ({z,i})).filter(({z}) => z.category === 'stage');
+  const entries = [...SCHEDULE].sort((a,b) => a.startTs - b.startTs);
+  const scheduleRows = entries.map(s => {
+    const stage = ZONES[s.zoneIdx];
+    return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="flex:1">
+        <div style="font-size:12px;font-weight:600">${esc(s.artist)} <span style="color:var(--muted);font-weight:400">— ${esc(s.genre)}</span></div>
+        <div style="font-size:10px;color:var(--muted)">${stage?stage.icon+' '+esc(stage.label):'(stage removed)'} · ${new Date(s.startTs).toLocaleString()} – ${new Date(s.endTs).toLocaleTimeString()}</div>
+      </span>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="editScheduleEntryForm('${s.id}')">Edit</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="deleteScheduleEntry('${s.id}')">Delete</button>
+    </div>`;
+  }).join('');
+
+  const editing = scheduleEditId !== null;
+  const s = editing ? SCHEDULE.find(e => e.id === scheduleEditId) : null;
+  const stageOptions = stages.map(({z,i}) =>
+    `<option value="${i}" ${editing && s.zoneIdx===i ? 'selected' : ''}>${z.icon} ${esc(z.label)}</option>`
+  ).join('');
+
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Lineup (${SCHEDULE.length})</div>
+    ${scheduleRows || '<div style="font-size:12px;color:var(--muted);padding:10px 0">No performers scheduled</div>'}
+    ${!stages.length ? '<div style="font-size:11px;color:var(--amber);padding:8px 0">Add a stage zone in the Map tab before scheduling performers.</div>' : `
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${editing?'Edit performer':'+ Add performer'}</div>
+      <input class="login-field" id="seArtist" placeholder="Artist name" value="${editing?esc(s.artist):''}" style="margin-bottom:8px"/>
+      <select class="alert-select" id="seStage" style="margin-bottom:8px">${stageOptions}</select>
+      <input class="login-field" id="seGenre" placeholder="Genre" value="${editing?esc(s.genre):''}" style="margin-bottom:8px"/>
+      <input class="login-field" id="seBio" placeholder="Short bio" value="${editing?esc(s.bio):''}" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Start</div><input class="login-field" id="seStart" type="datetime-local" value="${editing?tsToLocalInput(s.startTs):''}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">End</div><input class="login-field" id="seEnd" type="datetime-local" value="${editing?tsToLocalInput(s.endTs):''}" style="margin-bottom:0"/></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="modal-btn modal-confirm" onclick="saveScheduleEntryForm()">${editing?'Save changes':'Add performer'}</button>
+        ${editing?'<button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="cancelScheduleEntryEdit()">Cancel</button>':''}
+      </div>
+    </div>`}
+
+    <button class="modal-btn" style="width:100%;margin-top:16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--red)" onclick="resetScheduleToDemoDefaults()">↺ Reset to Demo Festival defaults</button>
+  `;
+}
+window.editScheduleEntryForm = id => { scheduleEditId = id; renderManageBody(); };
+window.cancelScheduleEntryEdit = () => { scheduleEditId = null; renderManageBody(); };
+
+function readScheduleEntryForm() {
+  const artist = document.getElementById('seArtist').value.trim();
+  const zoneIdx = parseInt(document.getElementById('seStage').value);
+  const genre = document.getElementById('seGenre').value.trim();
+  const bio = document.getElementById('seBio').value.trim();
+  const startTs = new Date(document.getElementById('seStart').value).getTime();
+  const endTs = new Date(document.getElementById('seEnd').value).getTime();
+  if (!artist) { toast('Enter an artist name','w'); return null; }
+  if (isNaN(zoneIdx)) { toast('Select a stage','w'); return null; }
+  if (isNaN(startTs) || isNaN(endTs)) { toast('Enter valid start/end times','w'); return null; }
+  if (endTs <= startTs) { toast('End time must be after start time','w'); return null; }
+  return {artist, zoneIdx, genre, bio, startTs, endTs};
+}
+window.saveScheduleEntryForm = () => {
+  const entry = readScheduleEntryForm();
+  if (!entry) return;
+  const newEntries = [...SCHEDULE];
+  if (scheduleEditId !== null) {
+    const i = newEntries.findIndex(e => e.id === scheduleEditId);
+    newEntries[i] = {...newEntries[i], ...entry};
+  } else {
+    newEntries.push({id: 'e' + Date.now() + Math.random().toString(36).slice(2,6), ...entry});
+  }
+  scheduleEditId = null;
+  saveScheduleEntries(newEntries);
+};
+window.deleteScheduleEntry = id => {
+  saveScheduleEntries(SCHEDULE.filter(e => e.id !== id));
+};
+function saveScheduleEntries(newEntries) {
+  update(ref(db, `groups/${eventGroup}/scheduleConfig`), {entries: newEntries}).then(() => {
+    toast('✅ Schedule updated');
+  }).catch(() => toast('⚠️ Failed to save schedule','e'));
+}
+window.resetScheduleToDemoDefaults = () => {
+  set(ref(db, `groups/${eventGroup}/scheduleConfig`), null).then(() => {
+    scheduleEditId = null;
     toast('↺ Reset to Demo Festival defaults');
   }).catch(() => toast('⚠️ Failed to reset','e'));
 };
