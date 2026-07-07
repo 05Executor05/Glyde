@@ -230,6 +230,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   <div class="mgr-badge">🔒 Manager</div>
   <div class="venue-name" id="venueName">—</div>
   <div class="hdr-right">
+    <button class="alert-broadcast-btn" onclick="openManageModal()" style="background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.4);color:var(--blue)">⚙️ Manage</button>
     <button class="alert-broadcast-btn" onclick="openAlertModal()">📢 Broadcast Alert</button>
     <div class="event-code" id="eventCodeDisplay">—</div>
     <div class="live-pill"><div class="ldot"></div>LIVE</div>
@@ -327,6 +328,18 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   </div>
 </div>
 
+<!-- MANAGE MODAL (organizer dashboard: announcements, vendors, map, analytics, sponsors) -->
+<div class="modal-overlay" id="manageModal">
+  <div class="modal" style="width:420px;max-height:82vh;display:flex;flex-direction:column">
+    <div class="modal-title" style="margin-bottom:10px">Organizer Dashboard</div>
+    <div class="filter-bar" id="mgmtTabRow" style="padding:0 0 10px;flex-shrink:0"></div>
+    <div id="manageBody" style="overflow-y:auto;flex:1;min-height:0"></div>
+    <div class="modal-actions" style="margin-top:14px;flex-shrink:0">
+      <button class="modal-btn modal-cancel" style="flex:none;padding:11px 20px" onclick="closeManageModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ASSIGN MODAL -->
 <div class="modal-overlay" id="assignModal">
   <div class="modal">
@@ -400,6 +413,30 @@ const STAFF = [
   {id:'s5', name:'Medical Team', zone:'All Areas', emoji:'🏥'},
 ];
 
+// Mirrors index.html's PRODUCTS/FOOD_VENDORS (id/name/icon only — needed for stock & status management)
+const MERCH_ITEMS = [
+  {id:'p1',name:'Horizon Tee',icon:'👕'},
+  {id:'p2',name:'Festival Hoodie',icon:'🧥'},
+  {id:'p3',name:'Sunset Cap',icon:'🧢'},
+  {id:'p4',name:'Glow Wristband',icon:'💫'},
+  {id:'p5',name:'Horizon Vinyl LP',icon:'💿'},
+  {id:'p6',name:'Limited Drop Tee',icon:'✨'},
+];
+const FOOD_ITEMS = [
+  {id:'v1',name:'Thai Basil',icon:'🍜'},
+  {id:'v2',name:'Taco Loco',icon:'🌮'},
+  {id:'v3',name:'Burger Barn',icon:'🍔'},
+  {id:'v4',name:'Green Bowl',icon:'🥗'},
+  {id:'v5',name:'Sweet Tooth',icon:'🍦'},
+];
+const MGMT_TABS = [
+  {id:'announce', label:'📢 Announce'},
+  {id:'vendors',  label:'🛍️ Vendors'},
+  {id:'map',      label:'🗺️ Map'},
+  {id:'analytics',label:'📊 Analytics'},
+  {id:'sponsors', label:'🏷️ Sponsors'},
+];
+
 // ── STATE ─────────────────────────────────────────────────────────────────────
 let eventGroup = '';
 let venueName = '';
@@ -413,6 +450,12 @@ let scale = 1, panX = 0, panY = 0;
 let alerts = {};
 let alertType = 'hazard';
 let alertSeverity = 'warning';
+let mgmtTab = 'announce';
+let announcements = {};
+let merchStock = {};
+let vendorStatus = {};
+let zoneStatus = {};
+let sponsors = {};
 
 const ALERT_TYPES = [
   {id:'hazard', label:'⚠️ Hazard', icon:'⚠️'},
@@ -438,6 +481,7 @@ window.managerLogin = () => {
   listenAttendees();
   listenReports();
   listenAlerts();
+  listenManagement();
   renderReportList();
   updateStats();
   requestAnimationFrame(draw);
@@ -456,6 +500,193 @@ function listenAlerts() {
     renderActiveAlertsList();
   });
 }
+function listenManagement() {
+  onValue(ref(db, `groups/${eventGroup}/announcements`), snap => { announcements = snap.val() || {}; if (mgmtTab === 'announce') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/merchStock`), snap => { merchStock = snap.val() || {}; if (mgmtTab === 'vendors') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/vendorStatus`), snap => { vendorStatus = snap.val() || {}; if (mgmtTab === 'vendors') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/zoneStatus`), snap => { zoneStatus = snap.val() || {}; if (mgmtTab === 'map') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/sponsors`), snap => { sponsors = snap.val() || {}; if (mgmtTab === 'sponsors') renderManageBody(); });
+}
+
+// ── ORGANIZER DASHBOARD (announcements, vendor mgmt, map mgmt, analytics, sponsors) ─
+window.openManageModal = () => {
+  mgmtTab = 'announce';
+  document.getElementById('mgmtTabRow').innerHTML = MGMT_TABS.map(t =>
+    `<div class="ftab${mgmtTab===t.id?' active':''}" onclick="setMgmtTab('${t.id}',this)">${t.label}</div>`
+  ).join('');
+  document.getElementById('manageModal').classList.add('open');
+  renderManageBody();
+};
+window.closeManageModal = () => document.getElementById('manageModal').classList.remove('open');
+window.setMgmtTab = (t, el) => {
+  mgmtTab = t;
+  document.querySelectorAll('#mgmtTabRow .ftab').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  renderManageBody();
+};
+function renderManageBody() {
+  const body = document.getElementById('manageBody');
+  if (mgmtTab === 'announce') body.innerHTML = renderAnnounceTab();
+  else if (mgmtTab === 'vendors') body.innerHTML = renderVendorsTab();
+  else if (mgmtTab === 'map') body.innerHTML = renderMapMgmtTab();
+  else if (mgmtTab === 'analytics') body.innerHTML = renderAnalyticsTab();
+  else if (mgmtTab === 'sponsors') body.innerHTML = renderSponsorsTab();
+}
+
+function renderAnnounceTab() {
+  const list = Object.entries(announcements).sort((a,b) => b[1].ts - a[1].ts);
+  return `
+    <input class="login-field" id="announceInput" placeholder="Announcement message…" maxlength="120" style="margin-bottom:10px"/>
+    <button class="modal-btn modal-confirm" style="width:100%;margin-bottom:16px" onclick="sendAnnouncement()">📢 Send to all attendees</button>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Recent (${list.length})</div>
+    ${list.length ? list.map(([id,a]) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px">
+        <span style="flex:1">${esc(a.text)}</span>
+        <span style="color:var(--muted);font-size:10px;font-family:'Space Mono',monospace">${timeAgo(a.ts)}</span>
+        <span style="color:var(--red);cursor:pointer;font-weight:600" onclick="deleteAnnouncement('${id}')">✕</span>
+      </div>`).join('') : '<div style="font-size:12px;color:var(--muted);padding:10px 0">No announcements sent yet</div>'}
+  `;
+}
+window.sendAnnouncement = () => {
+  const text = document.getElementById('announceInput').value.trim();
+  if (!text) { toast('Enter a message','w'); return; }
+  push(ref(db, `groups/${eventGroup}/announcements`), {text, ts:Date.now(), by:staffName});
+  toast('📢 Announcement sent');
+  document.getElementById('announceInput').value = '';
+};
+window.deleteAnnouncement = id => update(ref(db, `groups/${eventGroup}/announcements`), {[id]:null});
+
+function renderVendorsTab() {
+  const merchRows = MERCH_ITEMS.map(p => {
+    const stock = merchStock[p.id] ?? '—';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${p.icon}</span>
+      <span style="flex:1;font-size:12px;font-weight:600">${esc(p.name)}</span>
+      <button class="mcbtn" style="width:26px;height:26px;font-size:13px;position:static" onclick="adjustStock('${p.id}',-1)">−</button>
+      <span style="font-family:'Space Mono',monospace;font-size:12px;width:28px;text-align:center">${stock}</span>
+      <button class="mcbtn" style="width:26px;height:26px;font-size:13px;position:static" onclick="adjustStock('${p.id}',1)">+</button>
+    </div>`;
+  }).join('');
+  const foodRows = FOOD_ITEMS.map(v => {
+    const closed = !!vendorStatus[v.id]?.closed;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${v.icon}</span>
+      <span style="flex:1;font-size:12px;font-weight:600">${esc(v.name)}</span>
+      <span style="font-size:10px;font-weight:700;color:${closed?'var(--red)':'var(--green)'}">${closed?'CLOSED':'OPEN'}</span>
+      <button class="rep-btn ${closed?'resolve-btn':'assign-btn'}" style="flex:none;padding:6px 10px" onclick="toggleVendorClosed('${v.id}')">${closed?'Reopen':'Close'}</button>
+    </div>`;
+  }).join('');
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Merch stock</div>
+    ${merchRows}
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Food vendors</div>
+    ${foodRows}
+  `;
+}
+window.adjustStock = (id, delta) => {
+  const next = Math.max(0, (merchStock[id] ?? 0) + delta);
+  update(ref(db, `groups/${eventGroup}/merchStock`), {[id]:next});
+};
+window.toggleVendorClosed = id => {
+  const closed = !!vendorStatus[id]?.closed;
+  update(ref(db, `groups/${eventGroup}/vendorStatus/${id}`), {closed: !closed});
+};
+
+function renderMapMgmtTab() {
+  return ZONES.map((z,i) => {
+    const closed = !!zoneStatus[i]?.closed;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${z.icon}</span>
+      <span style="flex:1;font-size:12px;font-weight:600">${z.label}</span>
+      <span style="font-size:10px;font-weight:700;color:${closed?'var(--red)':'var(--green)'}">${closed?'CLOSED':'OPEN'}</span>
+      <button class="rep-btn ${closed?'resolve-btn':'assign-btn'}" style="flex:none;padding:6px 10px" onclick="toggleZoneClosed(${i})">${closed?'Reopen':'Close'}</button>
+    </div>`;
+  }).join('');
+}
+window.toggleZoneClosed = idx => {
+  const closed = !!zoneStatus[idx]?.closed;
+  update(ref(db, `groups/${eventGroup}/zoneStatus/${idx}`), {closed: !closed});
+};
+
+function renderAnalyticsTab() {
+  const allReports = Object.values(reports);
+  const resolved = allReports.filter(r => r.resolved);
+  const byType = {};
+  allReports.forEach(r => { byType[r.type] = (byType[r.type]||0) + 1; });
+  const avgResolveMin = resolved.length
+    ? (resolved.reduce((s,r) => s + (r.resolvedAt - r.time), 0) / resolved.length / 60000).toFixed(1)
+    : null;
+  const typeRows = Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([t,c]) => {
+    const info = REPORT_TYPES[t] || {label:t, icon:'📢'};
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
+      <span>${info.icon}</span><span style="flex:1">${info.label}</span><span style="font-family:'Space Mono',monospace;font-weight:700">${c}</span>
+    </div>`;
+  }).join('');
+  const total = Object.keys(attendees).length || 1;
+  const zoneCounts = ZONES.map(z => {
+    let count = 0;
+    Object.values(attendees).forEach(u => {
+      if (Math.abs((u.x ?? .5) - z.x) < z.w/2 + .03 && Math.abs((u.y ?? .5) - z.y) < z.h/2 + .03) count++;
+    });
+    return {label:z.label, icon:z.icon, count};
+  }).sort((a,b) => b.count - a.count);
+  const densityRows = zoneCounts.map(z => {
+    const frac = z.count / total;
+    const level = frac > .35 ? 'Busy' : frac > .12 ? 'Moderate' : 'Quiet';
+    const color = level==='Busy' ? 'var(--red)' : level==='Moderate' ? 'var(--amber)' : 'var(--green)';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
+      <span>${z.icon}</span><span style="flex:1">${z.label}</span><span style="color:${color};font-weight:700;font-size:10px">${level}</span><span style="font-family:'Space Mono',monospace;width:20px;text-align:right">${z.count}</span>
+    </div>`;
+  }).join('');
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Reports</div>
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700">${allReports.length}</div><div style="font-size:10px;color:var(--muted)">Total</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--green)">${resolved.length}</div><div style="font-size:10px;color:var(--muted)">Resolved</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700">${avgResolveMin!==null?avgResolveMin+'m':'—'}</div><div style="font-size:10px;color:var(--muted)">Avg resolve</div>
+      </div>
+    </div>
+    ${typeRows || '<div style="font-size:12px;color:var(--muted);padding:6px 0">No reports yet</div>'}
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Crowd by zone (${Object.keys(attendees).length} live)</div>
+    ${densityRows}
+  `;
+}
+
+function renderSponsorsTab() {
+  const list = Object.entries(sponsors);
+  return `
+    <input class="login-field" id="sponsorNameInput" placeholder="Sponsor name" maxlength="30" style="margin-bottom:8px"/>
+    <input class="login-field" id="sponsorTaglineInput" placeholder="Tagline (optional)" maxlength="50" style="margin-bottom:8px"/>
+    <select class="alert-select" id="sponsorTierSelect" style="margin-bottom:8px">
+      <option value="title">Title Sponsor</option>
+      <option value="gold">Gold</option>
+      <option value="partner">Partner</option>
+    </select>
+    <button class="modal-btn modal-confirm" style="width:100%;margin-bottom:16px" onclick="addSponsor()">+ Add sponsor</button>
+    ${list.length ? list.map(([id,s]) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px">
+        <span style="flex:1">🏷️ ${esc(s.name)}${s.tagline?' — '+esc(s.tagline):''}</span>
+        <span style="font-size:10px;color:var(--muted);text-transform:uppercase">${s.tier}</span>
+        <span style="color:var(--red);cursor:pointer;font-weight:600" onclick="removeSponsor('${id}')">✕</span>
+      </div>`).join('') : '<div style="font-size:12px;color:var(--muted);padding:10px 0">No sponsors configured</div>'}
+  `;
+}
+window.addSponsor = () => {
+  const name = document.getElementById('sponsorNameInput').value.trim();
+  const tagline = document.getElementById('sponsorTaglineInput').value.trim();
+  const tier = document.getElementById('sponsorTierSelect').value;
+  if (!name) { toast('Enter sponsor name','w'); return; }
+  push(ref(db, `groups/${eventGroup}/sponsors`), {name, tagline, tier});
+  toast('🏷️ Sponsor added');
+  document.getElementById('sponsorNameInput').value = '';
+  document.getElementById('sponsorTaglineInput').value = '';
+};
+window.removeSponsor = id => update(ref(db, `groups/${eventGroup}/sponsors`), {[id]:null});
 
 // ── ALERT BROADCAST ───────────────────────────────────────────────────────────
 window.openAlertModal = () => {

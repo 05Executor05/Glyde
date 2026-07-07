@@ -130,6 +130,15 @@ body {
 .screen{display:none;flex:1;flex-direction:column;overflow:hidden;}
 .screen.active{display:flex;}
 
+/* ── SPONSOR STRIP ── */
+.sponsor-strip{
+  display:flex;gap:14px;overflow-x:auto;white-space:nowrap;
+  padding:6px 14px;background:rgba(11,11,20,.97);
+  border-top:1px solid var(--border);flex-shrink:0;
+}
+.sponsor-strip::-webkit-scrollbar{display:none;}
+.sponsor-chip{font-size:10px;color:var(--muted);font-family:'Space Mono',monospace;}
+
 /* ── TAB BAR ── */
 .tabbar{
   display:flex;
@@ -953,6 +962,8 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
+<div class="sponsor-strip" id="sponsorStrip" style="display:none"></div>
+
 <!-- TAB BAR -->
 <div class="tabbar">
   <div class="tab active" id="tab-map" onclick="switchTab('map')">
@@ -1483,7 +1494,7 @@ function enterApp(name,code){
   document.getElementById('profGroup').textContent=code;
   Object.keys(CHANNELS).forEach(attachChannelListener);
   postMessage('group-main',{type:'sys',text:`${myEmoji} ${myName} joined the group`,ts:Date.now()});
-  startGPS();listenGroup();listenMeetingPoint();listenAlerts();pushLoop();initBattery();
+  startGPS();listenGroup();listenMeetingPoint();listenAlerts();listenAnnouncements();listenZoneStatus();listenVendorStatus();listenSponsors();pushLoop();initBattery();
   requestAnimationFrame(draw);
   switchChannel(currentChannel);
   renderSidebar();renderMobBar();renderReports();renderMapBar();attachMyReportsListener();renderNowPlaying();renderContacts();
@@ -1708,21 +1719,24 @@ function draw(ts){
     }
   });
   // Zones
-  ZONES.forEach(z=>{
+  ZONES.forEach((z,zi)=>{
     if(hiddenCategories.has(z.category))return;
+    const closed=!!zoneStatus[zi]?.closed;
     const tl=px(z.x-z.w/2,z.y-z.h/2),br=px(z.x+z.w/2,z.y+z.h/2);
     const bw=br.x-tl.x,bh=br.y-tl.y;
-    ctx.shadowColor=z.color+'60';ctx.shadowBlur=16*scale;
-    ctx.fillStyle=z.color+'18';ctx.strokeStyle=z.color+'90';ctx.lineWidth=1.5;
+    ctx.shadowColor=(closed?'#ef4444':z.color)+'60';ctx.shadowBlur=16*scale;
+    ctx.fillStyle=(closed?'#ef4444':z.color)+(closed?'10':'18');ctx.strokeStyle=(closed?'#ef4444':z.color)+'90';ctx.lineWidth=1.5;
+    if(closed)ctx.setLineDash([5,4]);
     ctx.beginPath();ctx.roundRect(tl.x,tl.y,bw,bh,6);ctx.fill();ctx.stroke();
+    ctx.setLineDash([]);
     ctx.shadowBlur=0;
-    ctx.fillStyle=z.color+'30';ctx.fillRect(tl.x+2,tl.y+2,bw-4,3);
+    ctx.fillStyle=(closed?'#ef4444':z.color)+'30';ctx.fillRect(tl.x+2,tl.y+2,bw-4,3);
     const cx=(tl.x+br.x)/2,cy=(tl.y+br.y)/2;
     ctx.font=`${Math.max(13,17*scale)}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.fillStyle=z.color;ctx.shadowColor=z.color;ctx.shadowBlur=8;
+    ctx.fillStyle=closed?'#ef4444':z.color;ctx.shadowColor=ctx.fillStyle;ctx.shadowBlur=8;
     ctx.fillText(z.icon,cx,cy-7);ctx.shadowBlur=0;
-    ctx.font=`700 ${Math.max(8,10*scale)}px Space Grotesk,sans-serif`;ctx.fillStyle=z.color+'dd';
-    ctx.fillText(z.label,cx,cy+9);
+    ctx.font=`700 ${Math.max(8,10*scale)}px Space Grotesk,sans-serif`;ctx.fillStyle=(closed?'#ef4444':z.color)+'dd';
+    ctx.fillText(closed?z.label+' — CLOSED':z.label,cx,cy+9);
   });
   // Peers
   Object.values(peers).forEach(f=>{
@@ -1874,6 +1888,7 @@ window.navToZoneBtn=()=>{
 };
 function navToZone(idx){
   const z=ZONES[idx];
+  if(zoneStatus[idx]?.closed){ toast(`🚫 ${z.label} is currently closed by organizers`,'w'); return; }
   navUid=null;navZoneIdx=idx;navCustom=null;
   document.getElementById('navCard').classList.add('on');
   document.getElementById('navAv').textContent=z.icon;
@@ -2025,6 +2040,10 @@ function stopVoiceSearch(){
 let hiddenCategories=new Set();
 let alerts={};
 let dismissedAlerts=new Set();
+let announcements={};
+let zoneStatus={};
+let vendorStatus={};
+let sponsors={};
 let showHeatmap=false;
 try{ showHeatmap=localStorage.getItem('glyde_heatmap')==='1'; }catch(e){}
 try{ hiddenCategories=new Set(JSON.parse(localStorage.getItem('glyde_hidden_layers')||'[]')); }catch(e){}
@@ -2119,16 +2138,17 @@ function renderVendorList(){
   let vendors=FOOD_VENDORS.filter(v=>!foodCuisineFilter||v.cuisine===foodCuisineFilter).filter(v=>!foodDietaryFilter||v.dietary.includes(foodDietaryFilter));
   const total=Object.keys(peers).length+1;
   const cards=vendors.map(v=>{
+    const closed=!!vendorStatus[v.id]?.closed;
     const count=nearbyCount(v.x,v.y);
     const level=densityLevel(count,total);
     const waitMin=Math.min(count*3,25);
-    const queueTxt=level==='quiet'?'No wait':`~${waitMin} min wait`;
-    return `<div class="vendor-card" onclick="openVendor('${v.id}')">
+    const queueTxt=closed?'Closed by organizer':(level==='quiet'?'No wait':`~${waitMin} min wait`);
+    return `<div class="vendor-card" onclick="openVendor('${v.id}')" style="${closed?'opacity:.55':''}">
       <div class="vendor-top">
         <div class="vendor-icon">${v.icon}</div>
         <div style="flex:1">
-          <div class="vendor-name">${esc(v.name)}</div>
-          <div class="vendor-meta">${v.cuisine} · ${queueTxt}</div>
+          <div class="vendor-name">${esc(v.name)}${closed?' <span style="color:var(--muted);font-size:10px;font-weight:700">CLOSED</span>':''}</div>
+          <div class="vendor-meta" style="${closed?'color:var(--muted)':''}">${v.cuisine} · ${queueTxt}</div>
           ${starsHtml(avgRating(v.id))}
         </div>
       </div>
@@ -2143,20 +2163,22 @@ window.setDietaryFilter=d=>{foodDietaryFilter=foodDietaryFilter===d?null:d;rende
 window.openVendor=id=>{openVendorId=id;renderVendorDetail(id);};
 function renderVendorDetail(id){
   const v=FOOD_VENDORS.find(x=>x.id===id);if(!v)return;
+  const closed=!!vendorStatus[id]?.closed;
   const myRating=(foodRatings[id]||{})[myId]||0;
   const menuHtml=v.menu.map((m,i)=>`
     <div class="menu-item-row">
       <div class="menu-item-name">${esc(m.item)}${m.dietary.length?` <span style="color:var(--muted);font-size:9px">(${m.dietary.join(', ')})</span>`:''}</div>
       <div class="menu-item-price">$${m.price}</div>
-      <div class="menu-item-add" onclick="preOrderItem('${id}',${i})">+</div>
+      ${closed?'':`<div class="menu-item-add" onclick="preOrderItem('${id}',${i})">+</div>`}
     </div>`).join('');
   document.getElementById('foodBody').innerHTML=`
     <div style="text-align:center;font-size:48px;margin-bottom:4px">${v.icon}</div>
     <div style="text-align:center;font-size:16px;font-weight:700">${esc(v.name)}</div>
+    ${closed?'<div style="text-align:center;color:var(--red);font-size:12px;font-weight:700;margin-bottom:6px">Closed by organizer — pre-orders unavailable</div>':''}
     <div style="text-align:center;margin-bottom:10px">${starsHtml(avgRating(id))}</div>
     <div class="star-picker" id="ratePicker">${[1,2,3,4,5].map(n=>`<span class="${n<=myRating?'on':''}" onclick="rateVendor('${id}',${n})">★</span>`).join('')}</div>
     <button class="vs-btn vs-btn-primary" style="width:100%;margin-bottom:10px" onclick="navToVendor('${id}')">🧭 Navigate here</button>
-    <div class="variant-label">Menu — tap + to pre-order</div>
+    <div class="variant-label">Menu${closed?'':' — tap + to pre-order'}</div>
     ${menuHtml}
     <div style="margin-top:10px"><span class="msg-action-btn" onclick="backToVendorList()">‹ Back to vendors</span></div>`;
 }
@@ -2186,6 +2208,7 @@ window.navToVendor=id=>{
 };
 window.preOrderItem=(vendorId,itemIdx)=>{
   if(!myGroup)return;
+  if(vendorStatus[vendorId]?.closed){ toast('🚫 This vendor is closed','w'); return; }
   const v=FOOD_VENDORS.find(x=>x.id===vendorId);const item=v.menu[itemIdx];
   const pickupCode=Math.random().toString(36).slice(2,8).toUpperCase();
   push(ref(db,`groups/${myGroup}/foodOrders/${myId}`),{
@@ -2476,7 +2499,8 @@ function listenAlerts(){
 }
 function renderAlertBanner(){
   const active=Object.entries(alerts).filter(([id,a])=>a.active&&!dismissedAlerts.has(id));
-  document.getElementById('alertBanner').innerHTML=active.map(([id,a])=>{
+  const announceActive=Object.entries(announcements).filter(([id])=>!dismissedAlerts.has('an_'+id));
+  const alertHtml=active.map(([id,a])=>{
     const icon=ALERT_ICONS[a.type]||'⚠️';
     return `<div class="alert-banner-row ${a.severity||'warning'}">
       <span>${icon}</span>
@@ -2484,8 +2508,49 @@ function renderAlertBanner(){
       <span class="alert-banner-close" onclick="dismissAlert('${id}')">✕</span>
     </div>`;
   }).join('');
+  const announceHtml=announceActive.map(([id,a])=>`<div class="alert-banner-row info">
+      <span>📢</span>
+      <span class="alert-banner-txt">${esc(a.text)}</span>
+      <span class="alert-banner-close" onclick="dismissAlert('an_${id}')">✕</span>
+    </div>`).join('');
+  document.getElementById('alertBanner').innerHTML=alertHtml+announceHtml;
 }
 window.dismissAlert=id=>{dismissedAlerts.add(id);renderAlertBanner();};
+
+// ── ANNOUNCEMENTS / VENDOR & ZONE STATUS / SPONSORS (organizer dashboard sync) ──
+function listenAnnouncements(){
+  onValue(ref(db,`groups/${myGroup}/announcements`),snap=>{
+    const prev=announcements;
+    announcements=snap.val()||{};
+    Object.entries(announcements).forEach(([id,a])=>{
+      if(!prev[id]){
+        if(window.Notification&&Notification.permission==='default')Notification.requestPermission().catch(()=>{});
+        if(document.hidden&&window.Notification&&Notification.permission==='granted')new Notification('Glyde Announcement',{body:a.text});
+      }
+    });
+    renderAlertBanner();
+  });
+}
+function listenZoneStatus(){
+  onValue(ref(db,`groups/${myGroup}/zoneStatus`),snap=>{ zoneStatus=snap.val()||{}; });
+}
+function listenVendorStatus(){
+  onValue(ref(db,`groups/${myGroup}/vendorStatus`),snap=>{
+    vendorStatus=snap.val()||{};
+    if(document.getElementById('foodPanel')?.classList.contains('open')&&foodTab==='vendors') renderVendorList();
+  });
+}
+function listenSponsors(){
+  onValue(ref(db,`groups/${myGroup}/sponsors`),snap=>{ sponsors=snap.val()||{}; renderSponsorStrip(); });
+}
+function renderSponsorStrip(){
+  const el=document.getElementById('sponsorStrip');
+  if(!el)return;
+  const list=Object.values(sponsors);
+  if(!list.length){ el.style.display='none'; return; }
+  el.style.display='flex';
+  el.innerHTML=list.map(s=>`<span class="sponsor-chip">🏷️ ${esc(s.name)}${s.tagline?' · '+esc(s.tagline):''}</span>`).join('');
+}
 
 // ── CROWD INTELLIGENCE (density, queues, heatmap — derived from live positions) ─
 const DENSITY_RADIUS=.09;
