@@ -772,6 +772,7 @@ canvas:active{cursor:grabbing;}
 <!-- ── HEADER ── -->
 <div class="header">
   <button class="profile-btn" onclick="headerBackAction()" id="headerBackBtn" aria-label="Back">←</button>
+  <button class="profile-btn" onclick="goHomeFromEvent()" aria-label="Home">🏠</button>
   <div class="logo">Glyde<span>.app</span></div>
   <div class="hdr-mid" id="grpLabel">—</div>
   <button class="install-btn" id="installBtn" onclick="installApp()">⬇ Install</button>
@@ -1194,6 +1195,18 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
+<!-- LOGOUT CONFIRM MODAL -->
+<div class="modal-overlay" id="logoutConfirmModal">
+  <div class="modal">
+    <div class="modal-title">Log out?</div>
+    <div class="fl" style="text-transform:none;letter-spacing:normal;font-weight:400;color:var(--muted)">You'll need to sign in again to rejoin your events. Your theme and accessibility preferences will be kept.</div>
+    <div class="modal-actions" style="margin-top:16px">
+      <button class="modal-btn modal-leave-btn" onclick="confirmLogout()">Logout</button>
+      <button class="modal-btn modal-close-btn" onclick="closeLogoutConfirm()">Cancel</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="jsqr.vendor.js"></script>
@@ -1307,31 +1320,46 @@ window.addEventListener('online',()=>{
 const EMOJIS=['🦋','🔥','⚡','🎵','🌈','🦁','🐺','🎯','🌙','💎'];
 const COLORS=['#f472b6','#fb923c','#facc15','#a78bfa','#34d399','#f87171','#60a5fa','#4ade80','#c084fc','#38bdf8'];
 
+// Demo venue: "Glyde Demo Festival" — realistic sample data for testing the map/navigation
+// (see DEMO_EVENT_CODE below). zoneIdx 0/1/2 are the 3 stages, referenced by SCHEDULE.
 const ZONES=[
-  {label:'MAIN STAGE',  x:.50,y:.20,w:.26,h:.11,color:'#9333ea',icon:'🎵',floors:3,category:'stage'},
-  {label:'EAST STAGE',  x:.76,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2,category:'stage'},
-  {label:'WEST STAGE',  x:.14,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵',floors:2,category:'stage'},
-  {label:'FOOD VILLAGE',x:.61,y:.55,w:.13,h:.08,color:'#d97706',icon:'🍔',floors:1,category:'food'},
-  {label:'MEDICAL',     x:.50,y:.61,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1,category:'medical',accessible:true},
-  {label:'TOILETS',     x:.28,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1,category:'restroom',accessible:true},
-  {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
-  {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
-  {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
-  {label:'SECURITY',    x:.42,y:.61,w:.07,h:.05,color:'#f472b6',icon:'🛡️',floors:1,category:'security'},
-  {label:'NORTH EXIT',  x:.50,y:.05,w:.10,h:.04,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
-  {label:'SOUTH EXIT',  x:.50,y:.92,w:.10,h:.04,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
-  {label:'QUIET ZONE',  x:.20,y:.20,w:.09,h:.06,color:'#38bdf8',icon:'🧘',floors:1,category:'quiet',accessible:true},
+  {label:'MAIN STAGE',        x:.50,y:.14,w:.26,h:.10,color:'#9333ea',icon:'🎵',floors:3,category:'stage'},
+  {label:'INDIE STAGE',       x:.78,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎸',floors:2,category:'stage'},
+  {label:'EDM ARENA',         x:.22,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎧',floors:2,category:'stage'},
+  {label:'BURGER HUB',        x:.35,y:.47,w:.08,h:.06,color:'#d97706',icon:'🍔',floors:1,category:'food'},
+  {label:'PIZZA CORNER',      x:.50,y:.47,w:.08,h:.06,color:'#d97706',icon:'🍕',floors:1,category:'food'},
+  {label:'COFFEE STOP',       x:.65,y:.47,w:.08,h:.06,color:'#d97706',icon:'☕',floors:1,category:'food'},
+  {label:'BEER GARDEN',       x:.40,y:.58,w:.09,h:.06,color:'#b45309',icon:'🍺',floors:1,category:'drinks'},
+  {label:'COCKTAIL BAR',      x:.60,y:.58,w:.09,h:.06,color:'#b45309',icon:'🍹',floors:1,category:'drinks'},
+  {label:'TOILETS',           x:.15,y:.55,w:.07,h:.05,color:'#0891b2',icon:'🚻',floors:1,category:'restroom',accessible:true},
+  {label:'TOILETS',           x:.85,y:.55,w:.07,h:.05,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
+  {label:'WATER STATION',     x:.25,y:.70,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+  {label:'WATER STATION',     x:.75,y:.70,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+  {label:'MEDICAL TENT',      x:.50,y:.72,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1,category:'medical',accessible:true},
+  {label:'CHARGING STATION',  x:.35,y:.80,w:.07,h:.05,color:'#3b82f6',icon:'🔌',floors:1,category:'charging'},
+  {label:'LOCKERS',           x:.65,y:.80,w:.07,h:.05,color:'#64748b',icon:'🔒',floors:1,category:'lockers'},
+  {label:'INFORMATION DESK',  x:.50,y:.85,w:.08,h:.05,color:'#eab308',icon:'ℹ️',floors:1,category:'info',accessible:true},
+  {label:'MERCHANDISE STORE', x:.20,y:.85,w:.09,h:.06,color:'#ec4899',icon:'🛍️',floors:1,category:'merch'},
+  {label:'SECURITY',          x:.80,y:.85,w:.07,h:.05,color:'#f472b6',icon:'🛡️',floors:1,category:'security'},
+  {label:'NORTH EXIT',        x:.50,y:.04,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
+  {label:'SOUTH EXIT',        x:.50,y:.94,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
+  {label:'QUIET ZONE',        x:.10,y:.15,w:.08,h:.06,color:'#38bdf8',icon:'🧘',floors:1,category:'quiet',accessible:true},
 ];
 
 const CATEGORIES=[
   {id:'stage',label:'Stages',icon:'🎵'},
   {id:'food',label:'Food',icon:'🍔'},
+  {id:'drinks',label:'Drinks',icon:'🍹'},
   {id:'restroom',label:'Restrooms',icon:'🚻'},
   {id:'water',label:'Water',icon:'💧'},
+  {id:'medical',label:'Medical',icon:'🏥'},
+  {id:'charging',label:'Charging',icon:'🔌'},
+  {id:'lockers',label:'Lockers',icon:'🔒'},
+  {id:'info',label:'Info Desk',icon:'ℹ️'},
+  {id:'merch',label:'Merch Store',icon:'🛍️'},
   {id:'security',label:'Security',icon:'🛡️'},
   {id:'exit',label:'Exits',icon:'🚪'},
   {id:'quiet',label:'Quiet Zones',icon:'🧘'},
-  {id:'medical',label:'Medical',icon:'🏥'},
 ];
 
 // ── EVENT SCHEDULE (fictional demo lineup) ────────────────────────────────────
@@ -1343,12 +1371,12 @@ const SCHEDULE=[
   {id:'s1',artist:'Nova Wolf',zoneIdx:0,genre:'Electro',bio:'High-energy electro act blending live drums with synths.',offsetStart:-20,offsetEnd:25},
   {id:'s2',artist:'Kairo',zoneIdx:0,genre:'House',bio:'Rising house producer known for sunset sets.',offsetStart:25,offsetEnd:80},
   {id:'s3',artist:'The Horizon Collective',zoneIdx:0,genre:'Headliner',bio:"Tonight's headliner — full band, full production.",offsetStart:80,offsetEnd:160},
-  {id:'e0',artist:'Deep Static',zoneIdx:1,genre:'Techno',bio:'Warehouse techno to start the east stage.',offsetStart:-50,offsetEnd:-5},
+  {id:'e0',artist:'Deep Static',zoneIdx:1,genre:'Techno',bio:'Warehouse techno to start the Indie Stage.',offsetStart:-50,offsetEnd:-5},
   {id:'e1',artist:'Lunar Drift',zoneIdx:1,genre:'Ambient',bio:'Downtempo ambient live set.',offsetStart:-5,offsetEnd:40},
   {id:'e2',artist:'Echo Chamber',zoneIdx:1,genre:'Drum & Bass',bio:'Fast, heavy, and bass-forward.',offsetStart:40,offsetEnd:100},
-  {id:'w0',artist:'Velvet Static',zoneIdx:2,genre:'Funk',bio:'Live funk band with horns.',offsetStart:-40,offsetEnd:10},
+  {id:'w0',artist:'Velvet Static',zoneIdx:2,genre:'Funk',bio:'Live funk band with horns opening the EDM Arena.',offsetStart:-40,offsetEnd:10},
   {id:'w1',artist:'Night Runner',zoneIdx:2,genre:'Synthwave',bio:'Retro synthwave with a live light show.',offsetStart:10,offsetEnd:70},
-  {id:'w2',artist:'Prism',zoneIdx:2,genre:'Pop',bio:'Breakout pop act closing the west stage.',offsetStart:70,offsetEnd:130},
+  {id:'w2',artist:'Prism',zoneIdx:2,genre:'Pop',bio:'Breakout pop act closing the EDM Arena.',offsetStart:70,offsetEnd:130},
 ];
 function scheduleTime(offsetMin){return EVENT_EPOCH+offsetMin*60000;}
 
@@ -1630,13 +1658,15 @@ function renderLeaderboardTab(){
 }
 
 const PATHS=[
-  [[.2,.33],[.5,.33],[.8,.33]],
-  [[.5,.33],[.5,.83]],
-  [[.2,.33],[.2,.76],[.5,.83]],
-  [[.8,.33],[.8,.76],[.5,.83]],
-  [[.2,.55],[.8,.55]],
+  [[.22,.28],[.50,.14],[.78,.28]],
+  [[.50,.14],[.50,.90]],
+  [[.22,.28],[.15,.55],[.20,.85]],
+  [[.78,.28],[.85,.55],[.80,.85]],
+  [[.15,.55],[.85,.55]],
+  [[.50,.04],[.50,.14]],
+  [[.50,.90],[.50,.94]],
 ];
-const PATH_LABELS=['North Concourse','Center Path','West Loop','East Loop','Mid Crossbar'];
+const PATH_LABELS=['Stage Concourse','Center Spine','West Loop','East Loop','Mid Crossbar','North Exit Path','South Exit Path'];
 
 const REPORTS=[
   {id:'toilet',icon:'🚻',label:'Dirty Toilet',priority:'medium'},
@@ -1754,8 +1784,8 @@ function enterApp(name,code){
   renderSidebar();renderMobBar();renderReports();renderMapBar();attachMyReportsListener();renderNowPlaying();renderContacts();
   attachGamifyListener();syncXPToFirebase();
   logEvent('join',{group:code});
-  joinedEventsTouch(code,name);
-  ensureEventMeta(code,name);
+  joinedEventsTouch(code);
+  ensureEventMeta(code);
   enterEventContext();
 }
 
@@ -1789,7 +1819,7 @@ function enterEventContext(){
 window.exitEventContext=()=>{
   document.getElementById('eventShell').style.display='none';
   document.getElementById('appShell').style.display='flex';
-  renderHomeScreen();
+  switchAppScreen('home');
 };
 
 // ── JOIN OVERLAY (reached contextually — not the mandatory first screen anymore) ──
@@ -1807,14 +1837,14 @@ function loadJoinedEvents(){
 function saveJoinedEvents(list){
   try{ localStorage.setItem('glyde_joined_events',JSON.stringify(list)); }catch(e){}
 }
-function joinedEventsTouch(code,name){
+function joinedEventsTouch(code){
   const list=loadJoinedEvents();
   const now=Date.now();
   const existing=list.find(e=>e.code===code);
   if(existing){
-    existing.lastOpenedTs=now;existing.left=false;existing.name=existing.name||name;
+    existing.lastOpenedTs=now;existing.left=false;
   } else {
-    list.push({code,name,firstJoinedTs:now,lastOpenedTs:now,left:false,archived:false});
+    list.push({code,name:null,firstJoinedTs:now,lastOpenedTs:now,left:false,archived:false});
   }
   saveJoinedEvents(list);
 }
@@ -1836,11 +1866,21 @@ function joinedEventsMarkArchived(code){
   saveJoinedEvents(list);
 }
 
-// ── EVENT META (real, shared display name for a code — set-if-absent by whoever joins first) ──
-function ensureEventMeta(code,fallbackName){
-  runTransaction(ref(db,`groups/${code}/meta`),cur=>cur||{name:fallbackName||code,createdAt:Date.now()}).then(res=>{
-    const name=res.snapshot.val()?.name||fallbackName||code;
-    joinedEventsSetName(code,name);
+// ── EVENT META (real, shared display name for a code — never seeded from a joining
+//    attendee's own name; only an organizer via manager.html, or the well-known demo
+//    code below, sets a real name — otherwise the UI falls back to showing the raw code) ──
+const DEMO_EVENT_CODE='DEMO-FEST';
+const DEMO_EVENT_NAME='Glyde Demo Festival';
+function ensureEventMeta(code){
+  if(code===DEMO_EVENT_CODE){
+    joinedEventsSetName(code,DEMO_EVENT_NAME);
+    document.getElementById('dashTitle')&&renderEventDashboard();
+    runTransaction(ref(db,`groups/${code}/meta`),cur=>cur||{name:DEMO_EVENT_NAME,createdAt:Date.now()}).catch(()=>{});
+    return;
+  }
+  runTransaction(ref(db,`groups/${code}/meta`),cur=>cur||{createdAt:Date.now()}).then(res=>{
+    const name=res.snapshot.val()?.name;
+    if(name) joinedEventsSetName(code,name);
     document.getElementById('dashTitle')&&renderEventDashboard();
   }).catch(()=>{});
 }
@@ -1890,6 +1930,12 @@ window.backToDashboard=()=>{
 window.headerBackAction=()=>{
   if(currentTab==='dashboard') exitEventContext();
   else backToDashboard();
+};
+// One-tap shortcut back to Home from anywhere inside an event, regardless of how deep
+// (map/chat/report or the dashboard itself) — distinct from the back arrow, which only
+// steps up one level at a time.
+window.goHomeFromEvent=()=>{
+  exitEventContext();
 };
 
 // ── GPS ───────────────────────────────────────────────────────────────────────
@@ -3098,6 +3144,7 @@ function renderMapBar(){
 
 // ── CHAT (Firebase-backed) ────────────────────────────────────────────────────
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function escAttr(s){return esc(s).replace(/"/g,'&quot;');}
 function dmKey(uid){return 'dm-'+[myId,uid].sort().join('_');}
 function fmtTime(ts){const d=new Date(ts||Date.now());return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;}
 
@@ -3754,8 +3801,9 @@ function showAppAfterAuth(){
   } else {
     document.getElementById('appShell').style.display='flex';
     applyRememberedProfile();
-    renderHomeScreen();
+    switchAppScreen('home');
   }
+  initBackNavGuard();
 }
 onAuthStateChanged(auth,user=>{
   if(user){
@@ -3779,6 +3827,19 @@ window.authSignInGoogle=async()=>{
 window.authSignInGuest=async()=>{
   try{ await signInAnonymously(auth); }
   catch(e){ toast(authErrorMessage(e),'e'); }
+};
+
+// ── LOGOUT (Profile > Settings > Logout) ─────────────────────────────────────
+window.openLogoutConfirm=()=>document.getElementById('logoutConfirmModal').classList.add('open');
+window.closeLogoutConfirm=()=>document.getElementById('logoutConfirmModal').classList.remove('open');
+window.confirmLogout=async()=>{
+  closeLogoutConfirm();
+  if(myGroup) set(ref(db,`groups/${myGroup}/users/${myId}`),null).catch(()=>{});
+  try{ await signOut(auth); }catch(e){}
+  // Device-level preferences (theme, large text, voice guidance, battery saver, map layers,
+  // recent searches, emoji/color) deliberately survive logout — only the auth session itself
+  // and this device's live event presence are cleared.
+  location.reload();
 };
 window.confirmNickname=async()=>{
   const name=document.getElementById('nicknameInput').value.trim();
@@ -3859,23 +3920,23 @@ function renderHomeScreen(){
   const past=events.filter(e=>e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
 
   const activeHtml=active.length?active.map(e=>`
-    <div class="event-card">
+    <div class="event-card" data-code="${escAttr(e.code)}" onclick="openActiveEventCard(this)">
       <div class="event-card-icon">🎪</div>
       <div style="flex:1">
         <div class="event-card-name">${esc(e.name||e.code)}</div>
         <div class="event-card-meta">Joined ${fmtJoinDate(e.firstJoinedTs)} · Active</div>
       </div>
-      <button class="vs-btn vs-btn-primary" onclick="requestOpenEvent('${e.code}','${esc(currentDisplayName())}')">Open</button>
+      <button class="vs-btn vs-btn-primary" onclick="event.stopPropagation();openActiveEventCard(this.closest('.event-card'))">Open</button>
     </div>`).join('') : '<div class="home-empty">No active events — join one below</div>';
 
   const recentHtml=past.length?past.slice(0,3).map(e=>`
-    <div class="event-card">
+    <div class="event-card" data-code="${escAttr(e.code)}" onclick="openActiveEventCard(this)">
       <div class="event-card-icon">🎟</div>
       <div style="flex:1">
         <div class="event-card-name">${esc(e.name||e.code)}</div>
         <div class="event-card-meta">Last opened ${fmtJoinDate(e.lastOpenedTs)}</div>
       </div>
-      <button class="vs-btn" onclick="requestOpenEvent('${e.code}','${esc(currentDisplayName())}')">Reopen</button>
+      <button class="vs-btn" onclick="event.stopPropagation();openActiveEventCard(this.closest('.event-card'))">Reopen</button>
     </div>`).join('') : '<div class="home-empty">No recent events yet</div>';
 
   const chatHtml=myGroup?Object.entries(CHANNELS).slice(0,3).map(([key,c])=>`
@@ -3899,6 +3960,7 @@ function renderHomeScreen(){
         <button class="vs-btn" style="flex:1" onclick="scanQrForJoin()">📷 Scan QR</button>
         <button class="vs-btn vs-btn-primary" style="flex:1" onclick="homeJoinEvent()">Join Event →</button>
       </div>
+      <div class="jcreate" style="text-align:center;margin-top:10px" onclick="tryDemoEvent()">🎪 Try Glyde Demo Festival</div>
     </div>
 
     <div class="home-section-title">My Active Events</div>
@@ -3944,6 +4006,17 @@ window.homeJoinEvent=()=>{
   const name=currentDisplayName();
   requestOpenEvent(code,name);
 };
+window.tryDemoEvent=()=>{
+  requestOpenEvent(DEMO_EVENT_CODE,currentDisplayName());
+};
+// Whole-card tap target for event cards (not just the small button) — reads the code from a
+// data attribute rather than interpolating it into an onclick string, so names/codes containing
+// quotes or other special characters can never break the handler.
+window.openActiveEventCard=(el)=>{
+  const code=el.dataset.code;
+  if(!code)return;
+  requestOpenEvent(code,currentDisplayName());
+};
 
 // ── EVENTS TAB ────────────────────────────────────────────────────────────────
 function renderEventsScreen(){
@@ -3952,13 +4025,13 @@ function renderEventsScreen(){
   const past=events.filter(e=>e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
 
   const cardHtml=(e,btnLabel)=>`
-    <div class="event-card">
+    <div class="event-card" data-code="${escAttr(e.code)}" onclick="openActiveEventCard(this)">
       <div class="event-card-icon">🎪</div>
       <div style="flex:1">
         <div class="event-card-name">${esc(e.name||e.code)}</div>
         <div class="event-card-meta">Joined ${fmtJoinDate(e.firstJoinedTs)}${e.archived?' · Archived':''}</div>
       </div>
-      <button class="vs-btn vs-btn-primary" onclick="requestOpenEvent('${e.code}','${esc(currentDisplayName())}')">${btnLabel}</button>
+      <button class="vs-btn vs-btn-primary" onclick="event.stopPropagation();openActiveEventCard(this.closest('.event-card'))">${btnLabel}</button>
     </div>`;
 
   document.getElementById('eventsBody').innerHTML=`
@@ -4057,7 +4130,8 @@ function renderProfileScreen(){
       <div class="modal-row"><div class="modal-row-label">Artists seen</div><div class="modal-row-val">${memStats.artists}</div></div>
     </div>
     <div class="home-section-title">Settings</div>
-    <button class="vs-btn vs-btn-primary" style="width:100%" onclick="openProfile()">⚙️ Theme, accessibility &amp; battery saver</button>
+    <button class="vs-btn vs-btn-primary" style="width:100%;margin-bottom:8px" onclick="openProfile()">⚙️ Theme, accessibility &amp; battery saver</button>
+    <button class="vs-btn" style="width:100%;border-color:rgba(239,68,68,.35);color:var(--red)" onclick="openLogoutConfirm()">🚪 Logout</button>
   `;
 }
 
@@ -4162,6 +4236,59 @@ window.closeQrScan=()=>{
   qrScanRAF=null;
   if(qrStream){ qrStream.getTracks().forEach(t=>t.stop()); qrStream=null; }
 };
+
+// ── ANDROID BACK BUTTON / NAVIGATION STACK ────────────────────────────────────
+// Uses the History API so the hardware/gesture back button steps through the app's own
+// screen hierarchy instead of immediately exiting (the PWA default once history is
+// exhausted). One spare history entry is kept in reserve at all times; each popstate is
+// treated as a semantic "back" signal — closing the most specific open thing first — and
+// (except when actually exiting) a fresh entry is pushed straight back so the next press
+// is intercepted the same way.
+let backNavGuardInitialized=false;
+let lastBackPressTs=0;
+function pushBackGuard(){
+  try{ history.pushState({glydeNav:true},'',location.href); }catch(e){}
+}
+function initBackNavGuard(){
+  if(backNavGuardInitialized)return;
+  backNavGuardInitialized=true;
+  pushBackGuard();
+  window.addEventListener('popstate',handleBackPress);
+}
+function handleBackPress(){
+  const navCard=document.getElementById('navCard');
+  if(navCard&&navCard.classList.contains('on')){ cancelNav(); pushBackGuard(); return; }
+  const venueSheet=document.getElementById('venueSheet');
+  if(venueSheet&&venueSheet.classList.contains('on')){ closeVenueSheet(); pushBackGuard(); return; }
+  const drawer=document.getElementById('drawer');
+  if(drawer&&drawer.classList.contains('open')){ closeDrawer(); pushBackGuard(); return; }
+  const searchOverlay=document.getElementById('searchOverlay');
+  if(searchOverlay&&searchOverlay.classList.contains('on')){ closeSearch(); pushBackGuard(); return; }
+  const qrScanModal=document.getElementById('qrScanModal');
+  if(qrScanModal&&qrScanModal.classList.contains('open')){ closeQrScan(); pushBackGuard(); return; }
+  const joinOverlay=document.getElementById('joinOverlay');
+  if(joinOverlay&&joinOverlay.classList.contains('open')){ closeJoinOverlay(); pushBackGuard(); return; }
+  const openModal=document.querySelector('.modal-overlay.open');
+  if(openModal){ openModal.classList.remove('open'); pushBackGuard(); return; }
+  if(document.getElementById('eventShell').style.display==='flex'){
+    if(currentTab!=='dashboard'){ backToDashboard(); pushBackGuard(); return; }
+    exitEventContext();
+    pushBackGuard();
+    return;
+  }
+  if(!document.getElementById('screen-home').classList.contains('active')){
+    switchAppScreen('home');
+    pushBackGuard();
+    return;
+  }
+  const now=Date.now();
+  if(now-lastBackPressTs<2000){
+    return; // let the app actually exit — no guard re-armed
+  }
+  lastBackPressTs=now;
+  toast('Press back again to exit');
+  pushBackGuard();
+}
 </script>
 </body>
 </html>
