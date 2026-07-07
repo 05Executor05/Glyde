@@ -1392,7 +1392,7 @@ const MERCH_CATEGORIES=[
   {id:'accessories',label:'Accessories',icon:'🧢'},
   {id:'music',label:'Music',icon:'💿'},
 ];
-const PRODUCTS=[
+const DEFAULT_PRODUCTS=[
   {id:'p1',name:'Horizon Tee',category:'apparel',icon:'👕',price:35,sizes:['S','M','L','XL'],colors:['Black','White'],stock:40},
   {id:'p2',name:'Festival Hoodie',category:'apparel',icon:'🧥',price:65,sizes:['S','M','L','XL'],colors:['Black'],stock:18},
   {id:'p3',name:'Sunset Cap',category:'accessories',icon:'🧢',sizes:null,colors:['Black','Tan'],price:28,stock:6},
@@ -1400,6 +1400,7 @@ const PRODUCTS=[
   {id:'p5',name:'Horizon Vinyl LP',category:'music',icon:'💿',sizes:null,colors:null,price:40,stock:15},
   {id:'p6',name:'Limited Drop Tee',category:'apparel',icon:'✨',sizes:['S','M','L'],colors:['Purple'],price:45,stock:25,dropOffset:15},
 ];
+let PRODUCTS=DEFAULT_PRODUCTS;
 let merchStock={};
 let merchOrders=[];
 let merchListenerAttached=false;
@@ -1793,6 +1794,7 @@ async function enterApp(name,code){
   document.getElementById('profGroup').textContent=code;
   await loadVenueConfig(code);
   await loadScheduleConfig(code);
+  await loadMerchConfig(code);
   Object.keys(CHANNELS).forEach(attachChannelListener);
   postMessage('group-main',{type:'sys',text:`${myEmoji} ${myName} joined the group`,ts:Date.now()});
   startGPS();listenGroup();listenMeetingPoint();listenAlerts();listenAnnouncements();listenZoneStatus();listenVendorStatus();listenSponsors();pushLoop();initBattery();
@@ -1961,6 +1963,26 @@ async function loadScheduleConfig(code){
     applyScheduleConfig(null);
   }
   onValue(ref(db,`groups/${code}/scheduleConfig`),snap=>applyScheduleConfig(snap.val()));
+}
+
+// ── PER-EVENT MERCH CATALOG (organizer-configured products, via manager.html's Merch Catalog) ──
+// Falls back to the built-in demo product catalog when an event hasn't configured its own.
+function applyMerchConfig(cfg){
+  if(cfg&&Array.isArray(cfg.products)){
+    PRODUCTS=cfg.products;
+  } else {
+    PRODUCTS=DEFAULT_PRODUCTS;
+  }
+  if(document.getElementById('merchPanel')?.classList.contains('open')) renderMerchPanel();
+}
+async function loadMerchConfig(code){
+  try{
+    const snap=await get(ref(db,`groups/${code}/merchConfig`));
+    applyMerchConfig(snap.val());
+  }catch(e){
+    applyMerchConfig(null);
+  }
+  onValue(ref(db,`groups/${code}/merchConfig`),snap=>applyMerchConfig(snap.val()));
 }
 
 // ── PENDING-OPEN (carries "which event to open" across the reload requestOpenEvent triggers) ──
@@ -2724,6 +2746,9 @@ function attachMerchListener(){
 }
 window.openMerch=()=>{
   attachMerchListener();
+  if(!PRODUCTS.some(p=>p.category===merchCatFilter)){
+    merchCatFilter=PRODUCTS[0]?.category||merchCatFilter;
+  }
   document.getElementById('merchPanel').classList.add('open');
   merchTab='shop';openProductId=null;
   renderMerchPanel();

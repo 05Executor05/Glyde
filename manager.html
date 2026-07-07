@@ -502,6 +502,25 @@ async function loadScheduleConfig(code) {
   onValue(ref(db, `groups/${code}/scheduleConfig`), snap => applyScheduleConfig(snap.val()));
 }
 
+// ── PER-EVENT MERCH CATALOG (mirrors index.html's loadMerchConfig) ────────────────────────
+function applyMerchConfig(cfg) {
+  if (cfg && Array.isArray(cfg.products)) {
+    PRODUCTS = cfg.products;
+  } else {
+    PRODUCTS = DEFAULT_PRODUCTS;
+  }
+  if (mgmtTab === 'merch' || mgmtTab === 'vendors') renderManageBody();
+}
+async function loadMerchConfig(code) {
+  try {
+    const snap = await get(ref(db, `groups/${code}/merchConfig`));
+    applyMerchConfig(snap.val());
+  } catch (e) {
+    applyMerchConfig(null);
+  }
+  onValue(ref(db, `groups/${code}/merchConfig`), snap => applyMerchConfig(snap.val()));
+}
+
 const STAFF = [
   {id:'s1', name:'Carlos R.',  zone:'North Zone',  emoji:'👷'},
   {id:'s2', name:'Priya M.',   zone:'South Zone',  emoji:'👷'},
@@ -510,15 +529,21 @@ const STAFF = [
   {id:'s5', name:'Medical Team', zone:'All Areas', emoji:'🏥'},
 ];
 
-// Mirrors index.html's PRODUCTS/FOOD_VENDORS (id/name/icon only — needed for stock & status management)
-const MERCH_ITEMS = [
-  {id:'p1',name:'Horizon Tee',icon:'👕'},
-  {id:'p2',name:'Festival Hoodie',icon:'🧥'},
-  {id:'p3',name:'Sunset Cap',icon:'🧢'},
-  {id:'p4',name:'Glow Wristband',icon:'💫'},
-  {id:'p5',name:'Horizon Vinyl LP',icon:'💿'},
-  {id:'p6',name:'Limited Drop Tee',icon:'✨'},
+// Mirrors index.html's DEFAULT_PRODUCTS — the built-in fallback + "reset to defaults" seed for
+// the Merch Catalog editor. Must stay a field mirror (category/icon/price/sizes/colors/stock)
+// since merchConfig written from here is read directly by index.html's shop rendering.
+const MERCH_CATEGORIES = [
+  {id:'apparel',label:'Apparel'},{id:'accessories',label:'Accessories'},{id:'music',label:'Music'},
 ];
+const DEFAULT_PRODUCTS=[
+  {id:'p1',name:'Horizon Tee',category:'apparel',icon:'👕',price:35,sizes:['S','M','L','XL'],colors:['Black','White'],stock:40},
+  {id:'p2',name:'Festival Hoodie',category:'apparel',icon:'🧥',price:65,sizes:['S','M','L','XL'],colors:['Black'],stock:18},
+  {id:'p3',name:'Sunset Cap',category:'accessories',icon:'🧢',sizes:null,colors:['Black','Tan'],price:28,stock:6},
+  {id:'p4',name:'Glow Wristband',category:'accessories',icon:'💫',sizes:null,colors:null,price:12,stock:120},
+  {id:'p5',name:'Horizon Vinyl LP',category:'music',icon:'💿',sizes:null,colors:null,price:40,stock:15},
+  {id:'p6',name:'Limited Drop Tee',category:'apparel',icon:'✨',sizes:['S','M','L'],colors:['Purple'],price:45,stock:25,dropOffset:15},
+];
+let PRODUCTS=DEFAULT_PRODUCTS;
 const FOOD_ITEMS = [
   {id:'v1',name:'Thai Basil',icon:'🍜'},
   {id:'v2',name:'Taco Loco',icon:'🌮'},
@@ -531,6 +556,7 @@ const MGMT_TABS = [
   {id:'vendors',  label:'🛍️ Vendors'},
   {id:'map',      label:'🗺️ Map'},
   {id:'schedule', label:'🎤 Schedule'},
+  {id:'merch',    label:'👕 Merch'},
   {id:'analytics',label:'📊 Analytics'},
   {id:'sponsors', label:'🏷️ Sponsors'},
 ];
@@ -583,6 +609,7 @@ window.managerLogin = () => {
 
   loadVenueConfig(code);
   loadScheduleConfig(code);
+  loadMerchConfig(code);
   listenAttendees();
   listenReports();
   listenAlerts();
@@ -635,6 +662,7 @@ function renderManageBody() {
   else if (mgmtTab === 'vendors') body.innerHTML = renderVendorsTab();
   else if (mgmtTab === 'map') body.innerHTML = renderMapMgmtTab();
   else if (mgmtTab === 'schedule') body.innerHTML = renderScheduleMgmtTab();
+  else if (mgmtTab === 'merch') body.innerHTML = renderMerchMgmtTab();
   else if (mgmtTab === 'analytics') body.innerHTML = renderAnalyticsTab();
   else if (mgmtTab === 'sponsors') body.innerHTML = renderSponsorsTab();
 }
@@ -663,7 +691,7 @@ window.sendAnnouncement = () => {
 window.deleteAnnouncement = id => update(ref(db, `groups/${eventGroup}/announcements`), {[id]:null});
 
 function renderVendorsTab() {
-  const merchRows = MERCH_ITEMS.map(p => {
+  const merchRows = PRODUCTS.map(p => {
     const stock = merchStock[p.id] ?? '—';
     return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
       <span style="font-size:18px">${p.icon}</span>
@@ -707,6 +735,7 @@ const VENUE_CATEGORY_OPTIONS = [
 ];
 let venueEditIdx = null; // null = adding a new zone, else index of the zone being edited
 let scheduleEditId = null; // null = adding a new schedule entry, else id of the entry being edited
+let merchEditId = null; // null = adding a new product, else id of the product being edited
 
 function renderMapMgmtTab() {
   const zoneRows = ZONES.map((z,i) => {
@@ -926,6 +955,95 @@ function saveScheduleEntries(newEntries) {
 window.resetScheduleToDemoDefaults = () => {
   set(ref(db, `groups/${eventGroup}/scheduleConfig`), null).then(() => {
     scheduleEditId = null;
+    toast('↺ Reset to Demo Festival defaults');
+  }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── MERCH CATALOG EDITOR (per-event product list: add/edit/delete) ──────────────────────
+function renderMerchMgmtTab() {
+  const productRows = PRODUCTS.map(p => `
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${p.icon}</span>
+      <span style="flex:1">
+        <div style="font-size:12px;font-weight:600">${esc(p.name)} <span style="color:var(--muted);font-weight:400">— $${p.price}</span></div>
+        <div style="font-size:10px;color:var(--muted)">${esc(p.category)} · stock ${p.stock}${p.sizes?' · sizes '+p.sizes.join('/'):''}${p.colors?' · colors '+p.colors.join('/'):''}</div>
+      </span>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="editMerchProductForm('${p.id}')">Edit</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="deleteMerchProduct('${p.id}')">Delete</button>
+    </div>`).join('');
+
+  const editing = merchEditId !== null;
+  const p = editing ? PRODUCTS.find(x => x.id === merchEditId) : null;
+  const catOptions = MERCH_CATEGORIES.map(c =>
+    `<option value="${c.id}" ${editing && p.category===c.id ? 'selected' : ''}>${c.label}</option>`
+  ).join('');
+
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Products (${PRODUCTS.length})</div>
+    ${productRows || '<div style="font-size:12px;color:var(--muted);padding:10px 0">No products configured</div>'}
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${editing?'Edit product':'+ Add product'}</div>
+      <input class="login-field" id="mpName" placeholder="Name (e.g. Festival Tee)" value="${editing?esc(p.name):''}" style="margin-bottom:8px"/>
+      <select class="alert-select" id="mpCategory" style="margin-bottom:8px">${catOptions}</select>
+      <input class="login-field" id="mpIcon" placeholder="Icon (emoji)" value="${editing?esc(p.icon):'🛍️'}" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Price ($)</div><input class="login-field" id="mpPrice" type="number" min="0" step="0.01" value="${editing?p.price:'25'}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Stock</div><input class="login-field" id="mpStock" type="number" min="0" step="1" value="${editing?p.stock:'20'}" style="margin-bottom:0"/></div>
+      </div>
+      <input class="login-field" id="mpSizes" placeholder="Sizes, comma-separated (optional, e.g. S,M,L)" value="${editing&&p.sizes?esc(p.sizes.join(',')):''}" style="margin-bottom:8px"/>
+      <input class="login-field" id="mpColors" placeholder="Colors, comma-separated (optional)" value="${editing&&p.colors?esc(p.colors.join(',')):''}" style="margin-bottom:10px"/>
+      <div style="display:flex;gap:8px">
+        <button class="modal-btn modal-confirm" onclick="saveMerchProductForm()">${editing?'Save changes':'Add product'}</button>
+        ${editing?'<button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="cancelMerchProductEdit()">Cancel</button>':''}
+      </div>
+    </div>
+
+    <button class="modal-btn" style="width:100%;margin-top:16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--red)" onclick="resetMerchToDemoDefaults()">↺ Reset to Demo Festival defaults</button>
+  `;
+}
+window.editMerchProductForm = id => { merchEditId = id; renderManageBody(); };
+window.cancelMerchProductEdit = () => { merchEditId = null; renderManageBody(); };
+
+function parseCommaList(val) {
+  const parts = val.split(',').map(s => s.trim()).filter(Boolean);
+  return parts.length ? parts : null;
+}
+function readMerchProductForm() {
+  const name = document.getElementById('mpName').value.trim();
+  const category = document.getElementById('mpCategory').value;
+  const icon = document.getElementById('mpIcon').value.trim() || '🛍️';
+  const price = parseFloat(document.getElementById('mpPrice').value);
+  const stock = parseInt(document.getElementById('mpStock').value);
+  const sizes = parseCommaList(document.getElementById('mpSizes').value);
+  const colors = parseCommaList(document.getElementById('mpColors').value);
+  if (!name) { toast('Enter a product name','w'); return null; }
+  if (isNaN(price) || isNaN(stock)) { toast('Enter valid price/stock numbers','w'); return null; }
+  return {name, category, icon, price, stock, sizes, colors};
+}
+window.saveMerchProductForm = () => {
+  const product = readMerchProductForm();
+  if (!product) return;
+  const newProducts = [...PRODUCTS];
+  if (merchEditId !== null) {
+    const i = newProducts.findIndex(x => x.id === merchEditId);
+    newProducts[i] = {...newProducts[i], ...product};
+  } else {
+    newProducts.push({id: 'm' + Date.now() + Math.random().toString(36).slice(2,6), ...product});
+  }
+  merchEditId = null;
+  saveMerchProducts(newProducts);
+};
+window.deleteMerchProduct = id => {
+  saveMerchProducts(PRODUCTS.filter(p => p.id !== id));
+};
+function saveMerchProducts(newProducts) {
+  update(ref(db, `groups/${eventGroup}/merchConfig`), {products: newProducts}).then(() => {
+    toast('✅ Merch catalog updated');
+  }).catch(() => toast('⚠️ Failed to save catalog','e'));
+}
+window.resetMerchToDemoDefaults = () => {
+  set(ref(db, `groups/${eventGroup}/merchConfig`), {products: DEFAULT_PRODUCTS}).then(() => {
+    merchEditId = null;
     toast('↺ Reset to Demo Festival defaults');
   }).catch(() => toast('⚠️ Failed to reset','e'));
 };
