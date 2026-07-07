@@ -1210,6 +1210,20 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
+<!-- FIRST-RUN ONBOARDING TOUR -->
+<div class="modal-overlay" id="onboardTourModal">
+  <div class="modal">
+    <div id="onboardTourBody"></div>
+    <div style="display:flex;justify-content:center;gap:6px;margin:14px 0">
+      <div id="onboardDots" style="display:flex;gap:6px"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-confirm" style="background:var(--accent);color:#fff" id="onboardNextBtn" onclick="onboardNext()">Next →</button>
+      <button class="modal-btn modal-close-btn" onclick="onboardSkip()">Skip</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script src="jsqr.vendor.js"></script>
@@ -4089,6 +4103,46 @@ function showAuthScreen(){
   document.getElementById('splashScreen').style.display='none';
   document.getElementById('authScreen').classList.add('show');
 }
+// ── FIRST-RUN ONBOARDING TOUR (shown once, explains the 5 bottom-nav tabs) ────
+const ONBOARD_STEPS=[
+  {icon:'🏠',title:'Home',desc:"Your starting point — jump back into events you've joined, or scan/enter a code to join a new one."},
+  {icon:'🎟',title:'Events',desc:'See every event you have joined, past and present, in one place.'},
+  {icon:'💬',title:'Chats',desc:"Message other attendees, stage channels, and friends once you're inside an event."},
+  {icon:'🛍',title:'Shop',desc:'Reserve festival merch and pre-order food for pickup — no waiting in line.'},
+  {icon:'👤',title:'Profile',desc:'Your badges, stats, and app settings — theme, accessibility, battery saver.'},
+];
+let onboardStep=0;
+function renderOnboardStep(){
+  const s=ONBOARD_STEPS[onboardStep];
+  document.getElementById('onboardTourBody').innerHTML=`
+    <div style="text-align:center;font-size:48px;margin-bottom:8px">${s.icon}</div>
+    <div class="modal-title" style="text-align:center">${s.title}</div>
+    <div class="fl" style="text-transform:none;letter-spacing:normal;font-weight:400;color:var(--muted);text-align:center">${s.desc}</div>
+  `;
+  document.getElementById('onboardDots').innerHTML=ONBOARD_STEPS.map((_,i)=>
+    `<div style="width:6px;height:6px;border-radius:50%;background:${i===onboardStep?'var(--neon)':'var(--border)'}"></div>`
+  ).join('');
+  document.getElementById('onboardNextBtn').textContent=onboardStep===ONBOARD_STEPS.length-1?'Get started →':'Next →';
+}
+window.onboardNext=()=>{
+  if(onboardStep>=ONBOARD_STEPS.length-1){ closeOnboardTour(); return; }
+  onboardStep++;
+  renderOnboardStep();
+};
+window.onboardSkip=()=>closeOnboardTour();
+function closeOnboardTour(){
+  document.getElementById('onboardTourModal').classList.remove('open');
+  try{ localStorage.setItem('glyde_onboarded','1'); }catch(e){}
+}
+function maybeShowOnboardTour(){
+  let seen=null;
+  try{ seen=localStorage.getItem('glyde_onboarded'); }catch(e){}
+  if(seen)return;
+  onboardStep=0;
+  renderOnboardStep();
+  document.getElementById('onboardTourModal').classList.add('open');
+}
+
 function showAppAfterAuth(){
   document.getElementById('splashScreen').style.display='none';
   document.getElementById('authScreen').classList.remove('show');
@@ -4105,6 +4159,7 @@ function showAppAfterAuth(){
     document.getElementById('appShell').style.display='flex';
     applyRememberedProfile();
     switchAppScreen('home');
+    maybeShowOnboardTour();
   }
   initBackNavGuard();
 }
