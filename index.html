@@ -3032,7 +3032,13 @@ function renderScheduleList(){
     const end=new Date(s.endTs);
     const fmt=d=>`${d.getHours()%12||12}:${String(d.getMinutes()).padStart(2,'0')}${d.getHours()<12?'am':'pm'}`;
     const on=scheduleBookmarks.has(s.id);
-    const notify=scheduleNotifySubs.has(s.id);
+    const isUpcoming=s.startTs>now;
+    // Notify me only makes sense for a show that hasn't started yet — hide it entirely (not
+    // just disable it) once a set is playing or already over, and silently drop any stale
+    // subscription left over from before it passed.
+    if(!isUpcoming&&scheduleNotifySubs.has(s.id)) unsubscribeScheduleNotify(s.id);
+    const notify=isUpcoming&&scheduleNotifySubs.has(s.id);
+    const notifyBtn=isUpcoming?`<div class="sched-star${notify?' on':''}" onclick="toggleScheduleNotify('${s.id}')" title="Notify me 5 min before">${notify?'🔔':'🔕'}</div>`:'';
     return `<div class="sched-card${isNow?' now':''}">
       <div class="sched-top">
         <div>
@@ -3042,7 +3048,7 @@ function renderScheduleList(){
         </div>
         <div style="flex:1"></div>
         <div class="sched-star${on?' on':''}" onclick="toggleBookmark('${s.id}')">${on?'★':'☆'}</div>
-        <div class="sched-star${notify?' on':''}" onclick="toggleScheduleNotify('${s.id}')" title="Notify me 5 min before">${notify?'🔔':'🔕'}</div>
+        ${notifyBtn}
       </div>
       <div class="sched-bio">${esc(s.bio)}</div>
       <div class="sched-predict">🔮 Setlist prediction — coming soon</div>
@@ -3062,12 +3068,19 @@ window.toggleBookmark=id=>{
   logEvent('bookmark_toggle',{artist:entry.artist,on:scheduleBookmarks.has(id)});
 };
 function saveScheduleNotifySubs(){try{localStorage.setItem('glyde_schedule_notify',JSON.stringify([...scheduleNotifySubs]));}catch(e){}}
+// Shared by the explicit "turn off" toggle and the automatic cleanup once a set's start time
+// has passed — a "notify 5 min before" subscription is meaningless once it's underway or over.
+function unsubscribeScheduleNotify(id){
+  scheduleNotifySubs.delete(id);
+  saveScheduleNotifySubs();
+  const uid=authProfile?.uid;
+  if(uid&&myGroup) set(ref(db,`groups/${myGroup}/scheduleNotifySubs/${id}/${uid}`),null).catch(()=>{});
+}
 window.toggleScheduleNotify=id=>{
   const entry=SCHEDULE.find(s=>s.id===id);if(!entry)return;
   const uid=authProfile?.uid;
   if(scheduleNotifySubs.has(id)){
-    scheduleNotifySubs.delete(id);
-    if(uid) set(ref(db,`groups/${myGroup}/scheduleNotifySubs/${id}/${uid}`),null).catch(()=>{});
+    unsubscribeScheduleNotify(id);
     toast(`🔕 Notifications off for ${entry.artist}`);
   } else {
     scheduleNotifySubs.add(id);
