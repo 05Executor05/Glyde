@@ -1284,6 +1284,50 @@ window.resetFoodToDemoDefaults = () => {
   }).catch(() => toast('⚠️ Failed to reset','e'));
 };
 
+// ── CSV EXPORT (client-side only — no server round-trip needed for a plain data dump) ──
+function toCSV(headers, rows) {
+  const escCell = v => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers.join(',')];
+  rows.forEach(r => lines.push(headers.map(h => escCell(r[h])).join(',')));
+  return lines.join('\r\n');
+}
+function downloadCSV(filename, csvText) {
+  const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+window.exportReportsCSV = () => {
+  const headers = ['type', 'location', 'count', 'priority', 'time', 'resolved', 'assigned'];
+  const rows = Object.values(reports).map(r => ({
+    type: (REPORT_TYPES[r.type] || {}).label || r.type,
+    location: r.loc || '',
+    count: r.count || 1,
+    priority: r.priority || '',
+    time: r.time ? new Date(r.time).toISOString() : '',
+    resolved: r.resolved ? 'yes' : 'no',
+    assigned: r.assigned || '',
+  }));
+  downloadCSV(`${eventGroup}-reports.csv`, toCSV(headers, rows));
+};
+window.exportOrdersCSV = () => {
+  const headers = ['kind', 'item', 'size', 'color', 'vendor', 'price', 'pickupCode', 'status', 'time'];
+  const merch = flattenOrders(allMerchOrders, 'merch').map(o => ({
+    kind: 'merch', item: o.name, size: o.size || '', color: o.color || '', vendor: '',
+    price: o.price, pickupCode: o.pickupCode, status: o.status, time: o.ts ? new Date(o.ts).toISOString() : '',
+  }));
+  const food = flattenOrders(allFoodOrders, 'food').map(o => ({
+    kind: 'food', item: o.item, size: '', color: '', vendor: o.vendorName || '',
+    price: o.price, pickupCode: o.pickupCode, status: o.status, time: o.ts ? new Date(o.ts).toISOString() : '',
+  }));
+  downloadCSV(`${eventGroup}-orders.csv`, toCSV(headers, [...merch, ...food]));
+};
+
 // ── ORDER FULFILLMENT (merch + food pickup codes — closes the loop between an attendee's
 // reservation/pre-order and a real person at the tent handing it over) ──
 function flattenOrders(ordersByUid, kind) {
@@ -1425,6 +1469,11 @@ function renderAnalyticsTab() {
     ${densityRows}
     <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Recent client errors (${Object.keys(clientErrors).length})</div>
     ${renderClientErrorRows()}
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 6px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Export</div>
+    <div style="display:flex;gap:8px">
+      <button class="rep-btn" style="flex:1;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="exportReportsCSV()">📄 Reports CSV</button>
+      <button class="rep-btn" style="flex:1;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="exportOrdersCSV()">📄 Orders CSV</button>
+    </div>
   `;
 }
 function renderClientErrorRows() {
