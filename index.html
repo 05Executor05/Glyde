@@ -726,7 +726,29 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
-<!-- ── APP SHELL (outer, account-level: Home / Events / Chats / Shop / Profile) ── -->
+<!-- ── ROLE PICKER (shown once after login until a role is chosen — Phase 1 mock role assignment, no backend role field yet) ── -->
+<div class="modal-overlay" id="rolePanel">
+  <div class="modal">
+    <div class="modal-title">Choose your role</div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-confirm" style="background:var(--accent);color:#fff" onclick="confirmRole('attendee')">🎪 Attendee</button>
+      <button class="modal-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="confirmRole('manager')">🛡️ Venue Manager</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── PLACEHOLDER MODAL (generic "coming soon" surface reused by not-yet-built Manager features) ── -->
+<div class="modal-overlay" id="placeholderModal">
+  <div class="modal">
+    <div class="modal-title" id="placeholderTitle">Coming Soon</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:4px" id="placeholderDesc"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-confirm" style="background:var(--accent);color:#fff" onclick="document.getElementById('placeholderModal').classList.remove('open')">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── APP SHELL (outer, account-level: Home / Events / Chats / Shop / Profile — tabs vary by role) ── -->
 <div id="appShell">
   <div class="offline-banner" id="offlineBanner" style="display:none">📴 Offline — reconnect to sync</div>
   <div class="ios-install-banner" id="iosInstallBanner">
@@ -753,9 +775,19 @@ canvas:active{cursor:grabbing;}
     <div class="app-screen-scroll" id="chatsBody"></div>
   </div>
 
-  <!-- SHOP -->
+  <!-- SHOP (attendee) -->
   <div class="app-screen" id="screen-shop">
     <div class="app-screen-scroll" id="shopBody"></div>
+  </div>
+
+  <!-- REPORTS (manager) -->
+  <div class="app-screen" id="screen-reports">
+    <div class="app-screen-scroll" id="reportsBody"></div>
+  </div>
+
+  <!-- DASHBOARD (manager — Operations Dashboard) -->
+  <div class="app-screen" id="screen-mgmtdash">
+    <div class="app-screen-scroll" id="mgmtdashBody"></div>
   </div>
 
   <!-- PROFILE -->
@@ -763,23 +795,7 @@ canvas:active{cursor:grabbing;}
     <div class="app-screen-scroll" id="profileBody"></div>
   </div>
 
-  <div class="app-nav">
-    <div class="app-tab active" id="apptab-home" onclick="switchAppScreen('home')">
-      <div class="tab-icon">🏠</div><span>Home</span>
-    </div>
-    <div class="app-tab" id="apptab-events" onclick="switchAppScreen('events')">
-      <div class="tab-icon">🎟</div><span>Events</span>
-    </div>
-    <div class="app-tab" id="apptab-chats" onclick="switchAppScreen('chats')">
-      <div class="tab-icon">💬</div><span>Chats</span>
-    </div>
-    <div class="app-tab" id="apptab-shop" onclick="switchAppScreen('shop')">
-      <div class="tab-icon">🛍</div><span>Shop</span>
-    </div>
-    <div class="app-tab" id="apptab-profile" onclick="switchAppScreen('profile')">
-      <div class="tab-icon">👤</div><span>Profile</span>
-    </div>
-  </div>
+  <div class="app-nav" id="appNav"></div>
 </div>
 
 <!-- ── EVENT SHELL (existing per-event UI — map/chat/reports/friends/etc — shown only while an event is open) ── -->
@@ -1831,6 +1847,8 @@ rebuildStageChannels();
 // ── STATE ─────────────────────────────────────────────────────────────────────
 const myId='u_'+Math.random().toString(36).slice(2,9);
 let myEmoji=EMOJIS[0], myColor=COLORS[0], myName='', myGroup='';
+// Role-based access (Phase 1): mocked via localStorage since there's no backend role field yet.
+let myRole='';
 let myX=.50, myY=.65;
 let myRealLat=null,myRealLng=null;
 let peers={};
@@ -1982,6 +2000,10 @@ function applyRememberedProfile(){
   if(idx>=0&&idx<8) window.pickEmoji(idx);
   if(p.name) document.getElementById('nameInput').value=p.name;
 }
+
+// ── ROLE PERSISTENCE (localStorage mock — device-level, survives logout like theme prefs) ──
+function saveRole(){ try{ localStorage.setItem('glyde_role',myRole); }catch(e){} }
+function loadRole(){ try{ return localStorage.getItem('glyde_role')||''; }catch(e){ return ''; } }
 function leaveGroup(){
   if(myGroup) set(ref(db,`groups/${myGroup}/users/${myId}`),null).catch(()=>{});
   location.reload();
@@ -1994,10 +2016,10 @@ function enterEventContext(){
   backToDashboard();
   renderEventDashboard();
 }
-window.exitEventContext=()=>{
+window.exitEventContext=(screen)=>{
   document.getElementById('eventShell').style.display='none';
   document.getElementById('appShell').style.display='flex';
-  switchAppScreen('home');
+  switchAppScreen(screen||'home');
 };
 
 // ── JOIN OVERLAY (reached contextually — not the mandatory first screen anymore) ──
@@ -2715,6 +2737,7 @@ let zoneStatus={};
 let vendorStatus={};
 let sponsors={};
 let showHeatmap=false;
+let mgrLayerToggles=new Set();
 try{ showHeatmap=localStorage.getItem('glyde_heatmap')==='1'; }catch(e){}
 try{ hiddenCategories=new Set(JSON.parse(localStorage.getItem('glyde_hidden_layers')||'[]')); }catch(e){}
 function saveHiddenLayers(){ try{ localStorage.setItem('glyde_hidden_layers',JSON.stringify([...hiddenCategories])); }catch(e){} }
@@ -2735,8 +2758,35 @@ function renderLayersPopover(){
     <div class="layer-check${showHeatmap?' on':''}">${showHeatmap?'✓':''}</div>
     <div>🔥 Crowd Heatmap</div>
   </div>`;
-  document.getElementById('layersList').innerHTML=catRows+`<div style="height:1px;background:var(--border);margin:6px 0"></div>`+heatRow;
+  let mgrRows='';
+  if(myRole==='manager'){
+    const mgrLayers=[
+      {id:'reports',icon:'🚨',label:'Open Reports'},
+      {id:'staff',icon:'👮',label:'Staff Locations'},
+      {id:'emergency',icon:'🆘',label:'Emergency Markers'},
+      {id:'blocked',icon:'🚧',label:'Blocked Areas'},
+      {id:'medical',icon:'🏥',label:'Medical Teams'},
+      {id:'security',icon:'🛡️',label:'Security Teams'},
+    ];
+    mgrRows=`<div style="height:1px;background:var(--border);margin:6px 0"></div>
+      <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:4px 0 2px">Manager Overlays</div>`+
+      mgrLayers.map(l=>{
+        const on=mgrLayerToggles.has(l.id);
+        return `<div class="layer-row" onclick="toggleMgrLayer('${l.id}')">
+          <div class="layer-check${on?' on':''}">${on?'✓':''}</div>
+          <div>${l.icon} ${l.label}</div>
+        </div>`;
+      }).join('');
+  }
+  document.getElementById('layersList').innerHTML=catRows+`<div style="height:1px;background:var(--border);margin:6px 0"></div>`+heatRow+mgrRows;
 }
+// Manager-only overlay toggles are visual placeholders only — no live report/staff/emergency
+// data is wired up yet (Phase 1 scope explicitly excludes live map functionality for these).
+window.toggleMgrLayer=id=>{
+  if(mgrLayerToggles.has(id)) mgrLayerToggles.delete(id); else mgrLayerToggles.add(id);
+  renderLayersPopover();
+  toast('Preview only — live overlay data coming soon','w');
+};
 window.toggleHeatmap=()=>{
   showHeatmap=!showHeatmap;
   try{ localStorage.setItem('glyde_heatmap',showHeatmap?'1':'0'); }catch(e){}
@@ -4180,6 +4230,7 @@ function maybeShowOnboardTour(){
 function showAppAfterAuth(){
   document.getElementById('splashScreen').style.display='none';
   document.getElementById('authScreen').classList.remove('show');
+  renderAppNav();
   const checkoutResult=new URLSearchParams(window.location.search).get('checkout');
   if(checkoutResult){
     if(checkoutResult==='success') toast('✅ Payment received — check My Orders for your pickup code');
@@ -4206,12 +4257,34 @@ onAuthStateChanged(auth,user=>{
       document.getElementById('authScreen').classList.remove('show');
       document.getElementById('nicknamePanel').classList.add('open');
     } else {
-      showAppAfterAuth();
+      proceedPostAuth();
     }
   } else {
     showAuthScreen();
   }
 });
+
+// ── ROLE GATE: after auth (and after any nickname prompt), route to the role picker exactly
+// once — subsequent logins reuse the device's previously-chosen mock role. ──────────────────
+function proceedPostAuth(){
+  myRole=loadRole();
+  if(!myRole){
+    document.getElementById('splashScreen').style.display='none';
+    document.getElementById('authScreen').classList.remove('show');
+    document.getElementById('rolePanel').classList.add('open');
+  } else {
+    showAppAfterAuth();
+  }
+}
+window.confirmRole=(role)=>{
+  myRole=role;
+  saveRole();
+  document.getElementById('rolePanel').classList.remove('open');
+  // Sensible one-time default per spec (white/light background for Manager) — reuses the
+  // existing theme system, doesn't lock out the normal Dark/Light/HC toggle afterwards.
+  if(myRole==='manager') setTheme('light');
+  showAppAfterAuth();
+};
 
 window.authSignInGoogle=async()=>{
   try{ await signInWithPopup(auth,new GoogleAuthProvider()); }
@@ -4240,7 +4313,7 @@ window.confirmNickname=async()=>{
   try{ await updateProfile(auth.currentUser,{displayName:name}); }catch(e){}
   authProfile=authProfile?{...authProfile,name}:{name};
   document.getElementById('nicknamePanel').classList.remove('open');
-  showAppAfterAuth();
+  proceedPostAuth();
 };
 
 // Phone sign-in (2-step: number → OTP). Requires the Phone provider enabled in the
@@ -4280,7 +4353,14 @@ function requireEvent(promptText){
 }
 window.requireEvent=requireEvent;
 
-// ── APP SHELL NAVIGATION (outer: Home/Events/Chats/Shop/Profile) ─────────────────────────
+// ── PLACEHOLDER MODAL (generic "coming soon" surface for not-yet-built Manager features) ──
+window.openPlaceholder=(title,desc)=>{
+  document.getElementById('placeholderTitle').textContent=title;
+  document.getElementById('placeholderDesc').textContent=desc||'This feature is coming in a future release.';
+  document.getElementById('placeholderModal').classList.add('open');
+};
+
+// ── APP SHELL NAVIGATION (outer — tabs vary by role, see renderAppNav) ───────────────────
 window.switchAppScreen=screen=>{
   document.querySelectorAll('.app-screen').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.app-tab').forEach(t=>t.classList.remove('active'));
@@ -4290,8 +4370,33 @@ window.switchAppScreen=screen=>{
   else if(screen==='events') renderEventsScreen();
   else if(screen==='chats') renderChatsScreen();
   else if(screen==='shop') renderShopScreen();
+  else if(screen==='reports') renderManagerReportsScreen();
+  else if(screen==='mgmtdash') renderManagerDashboardScreen();
   else if(screen==='profile') renderProfileScreen();
 };
+
+// ── BOTTOM NAV (dynamic per role: Attendee = Home/Events/Chats/Shop/Profile,
+//    Manager = Home/Events/Reports/Dashboard/Profile) ────────────────────────────────────
+function renderAppNav(){
+  const tabs=myRole==='manager' ? [
+    {id:'home',icon:'🏠',label:'Home'},
+    {id:'events',icon:'📍',label:'Events'},
+    {id:'reports',icon:'🚨',label:'Reports'},
+    {id:'mgmtdash',icon:'📊',label:'Dashboard'},
+    {id:'profile',icon:'👤',label:'Profile'},
+  ] : [
+    {id:'home',icon:'🏠',label:'Home'},
+    {id:'events',icon:'🎟',label:'Events'},
+    {id:'chats',icon:'💬',label:'Chats'},
+    {id:'shop',icon:'🛍',label:'Shop'},
+    {id:'profile',icon:'👤',label:'Profile'},
+  ];
+  document.getElementById('appNav').innerHTML=tabs.map(t=>`
+    <div class="app-tab" id="apptab-${t.id}" onclick="switchAppScreen('${t.id}')">
+      <div class="tab-icon">${t.icon}</div><span>${t.label}</span>
+    </div>`).join('');
+}
+window.renderAppNav=renderAppNav;
 
 function greetingWord(){
   const h=new Date().getHours();
@@ -4308,6 +4413,7 @@ function fmtJoinDate(ts){
 
 // ── HOME SCREEN ───────────────────────────────────────────────────────────────
 function renderHomeScreen(){
+  if(myRole==='manager'){ renderManagerHomeScreen(); return; }
   const events=loadJoinedEvents();
   const active=events.filter(e=>!e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
   const past=events.filter(e=>e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
@@ -4391,6 +4497,78 @@ function renderHomeScreen(){
       <div style="font-weight:700">🎫 Buy Tickets</div>
       <div style="font-size:11px;color:var(--muted);margin-top:2px">Ticket integration coming soon</div>
     </div>
+  `;
+}
+
+// ── MANAGER HOME SCREEN (mock stats — no backend Reports/Incidents/Staff data yet) ──────
+function renderManagerHomeScreen(){
+  const events=loadJoinedEvents();
+  const active=events.filter(e=>!e.left).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs);
+  const currentEvent=active.find(e=>e.code===myGroup);
+  const recent=events.filter(e=>e.code!==myGroup).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs).slice(0,5);
+
+  const activeCardHtml=currentEvent?`
+    <div class="home-card">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="font-size:30px">🎪</div>
+        <div style="flex:1">
+          <div style="font-weight:700">${esc(currentEvent.name||currentEvent.code)}</div>
+          <div style="font-size:11px;color:var(--muted)">Code: ${esc(currentEvent.code)} · Active Venue</div>
+        </div>
+      </div>
+      <button class="vs-btn vs-btn-primary" style="width:100%;margin-top:12px" onclick="enterEventContext()">Open Operations Dashboard →</button>
+    </div>`:`
+    <div class="home-card" style="text-align:center">
+      <div style="font-size:30px">🎪</div>
+      <div style="font-weight:700;margin-top:6px">No Active Venue</div>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:12px">Join a venue with its session code to start managing it</div>
+      <div style="display:flex;gap:8px">
+        <button class="vs-btn vs-btn-primary" style="flex:1" onclick="openJoinOverlay()">Join Venue</button>
+        <button class="vs-btn" style="flex:1" onclick="openPlaceholder('Create Venue','Organizer-initiated venue creation is coming in a future release.')">Create Venue</button>
+      </div>
+    </div>`;
+
+  const statCard=(icon,label,val)=>`
+    <div class="dash-card" style="text-align:center;cursor:default">
+      <div class="dash-card-icon">${icon}</div>
+      <div style="font-size:20px;font-weight:700">${val}</div>
+      <div class="dash-card-label">${label}</div>
+    </div>`;
+
+  const recentHtml=recent.length?recent.map(e=>`
+    <div class="event-card" data-code="${escAttr(e.code)}" onclick="openActiveEventCard(this)">
+      <div class="event-card-icon">🎪</div>
+      <div style="flex:1">
+        <div class="event-card-name">${esc(e.name||e.code)}</div>
+        <div class="event-card-meta">Last opened ${fmtJoinDate(e.lastOpenedTs)}</div>
+      </div>
+      <button class="vs-btn" onclick="event.stopPropagation();openActiveEventCard(this.closest('.event-card'))">Reopen</button>
+    </div>`).join(''):'<div class="home-empty">No previously joined venues</div>';
+
+  document.getElementById('homeBody').innerHTML=`
+    <div class="greeting">${greetingWord()}, ${esc(currentDisplayName())}</div>
+    <div style="font-size:12px;color:var(--muted);margin-top:-10px;margin-bottom:14px">Venue Operations Manager</div>
+
+    ${activeCardHtml}
+
+    <div class="home-section-title">Quick Stats</div>
+    <div class="dash-grid">
+      ${statCard('🚨','Pending Reports',3)}
+      ${statCard('⚠️','Open Incidents',1)}
+      ${statCard('👮','Staff Online',6)}
+      ${statCard('🟢','Venue Status','Normal')}
+    </div>
+
+    <div class="home-section-title">Quick Actions</div>
+    <div class="dash-grid">
+      <div class="dash-card" onclick="openJoinOverlay()"><div class="dash-card-icon">📍</div><div class="dash-card-label">Join Venue</div></div>
+      <div class="dash-card" onclick="openPlaceholder('Create Announcement','Broadcasting announcements from Home is coming soon — for now, use the Announcements card inside a venue.')"><div class="dash-card-icon">📢</div><div class="dash-card-label">Create Announcement</div></div>
+      <div class="dash-card" onclick="switchAppScreen('reports')"><div class="dash-card-icon">🚨</div><div class="dash-card-label">View Reports</div></div>
+      <div class="dash-card" onclick="switchAppScreen('mgmtdash')"><div class="dash-card-icon">📊</div><div class="dash-card-label">Dashboard</div></div>
+    </div>
+
+    <div class="home-section-title">Recent Events</div>
+    ${recentHtml}
   `;
 }
 window.homeJoinEvent=()=>{
@@ -4493,8 +4671,111 @@ window.shopSectionTap=real=>{
   openMerch();
 };
 
+// ── MANAGER REPORTS TAB (mock data — no backend report-management endpoint yet) ─────────
+const MOCK_MANAGER_REPORTS=[
+  {id:1,category:'Medical',priority:'High',time:'3 min ago',reporter:'Attendee #482',location:'Main Stage – Zone A',status:'pending'},
+  {id:2,category:'Crowd',priority:'High',time:'8 min ago',reporter:'Attendee #29',location:'West Exit',status:'pending'},
+  {id:3,category:'Security',priority:'Medium',time:'22 min ago',reporter:'Attendee #117',location:'North Entrance',status:'in_progress'},
+  {id:4,category:'Medical',priority:'Medium',time:'40 min ago',reporter:'Attendee #201',location:'VIP Area',status:'in_progress'},
+  {id:5,category:'Facilities',priority:'Low',time:'1 hr ago',reporter:'Attendee #305',location:'Food Court',status:'resolved'},
+];
+let managerReportsTab='pending';
+function renderManagerReportsScreen(){
+  const tabs=[{id:'pending',label:'Pending'},{id:'in_progress',label:'In Progress'},{id:'resolved',label:'Resolved'}];
+  const filtered=MOCK_MANAGER_REPORTS.filter(r=>r.status===managerReportsTab);
+  const priorityColor=p=>p==='High'?'var(--red)':p==='Medium'?'var(--amber)':'var(--muted)';
+  const cardsHtml=filtered.length?filtered.map(r=>`
+    <div class="home-card">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+        <div>
+          <div style="font-weight:700">${esc(r.category)}</div>
+          <div style="font-size:11px;color:var(--muted)">${esc(r.location)}</div>
+        </div>
+        <div style="font-size:11px;font-weight:700;color:${priorityColor(r.priority)};white-space:nowrap">${esc(r.priority)}</div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">${esc(r.time)} · Reported by ${esc(r.reporter)}</div>
+      <div style="display:flex;gap:8px;margin-top:12px">
+        ${r.status==='pending'?`<button class="vs-btn vs-btn-primary" style="flex:1" onclick="mockAssignReport(${r.id})">Assign</button>`:''}
+        ${r.status!=='resolved'?`<button class="vs-btn" style="flex:1" onclick="mockResolveReport(${r.id})">Resolve</button>`:''}
+        <button class="vs-btn" style="flex:1" onclick="mockNavigateToReport(${r.id})">📍 Navigate</button>
+      </div>
+    </div>`).join(''):'<div class="home-empty">No reports in this category</div>';
+  document.getElementById('reportsBody').innerHTML=`
+    <div class="home-section-title">Reports</div>
+    <div style="display:flex;gap:8px;margin-bottom:14px">
+      ${tabs.map(t=>`<button class="vs-btn${managerReportsTab===t.id?' vs-btn-primary':''}" style="flex:1" onclick="setManagerReportsTab('${t.id}')">${t.label}</button>`).join('')}
+    </div>
+    ${cardsHtml}
+  `;
+}
+window.setManagerReportsTab=id=>{ managerReportsTab=id; renderManagerReportsScreen(); };
+window.mockAssignReport=id=>{
+  const r=MOCK_MANAGER_REPORTS.find(x=>x.id===id);
+  if(r){ r.status='in_progress'; toast('✅ Report assigned (placeholder — no backend yet)'); renderManagerReportsScreen(); }
+};
+window.mockResolveReport=id=>{
+  const r=MOCK_MANAGER_REPORTS.find(x=>x.id===id);
+  if(r){ r.status='resolved'; toast('✅ Report marked resolved (placeholder — no backend yet)'); renderManagerReportsScreen(); }
+};
+window.mockNavigateToReport=()=>{
+  toast('📍 Navigate to report — coming soon');
+};
+
+// ── MANAGER OPERATIONS DASHBOARD TAB (mock data — no backend analytics yet) ─────────────
+function renderManagerDashboardScreen(){
+  const stats=[
+    {icon:'👥',label:'Attendance',val:'4,281'},
+    {icon:'🚨',label:'Open Reports',val:4},
+    {icon:'⏱️',label:'Avg Resolution Time',val:'12 min'},
+    {icon:'📈',label:'Crowd Density',val:'Moderate'},
+    {icon:'🍔',label:'Food Queue Avg',val:'8 min'},
+    {icon:'🏥',label:'Medical Incidents',val:2},
+    {icon:'📢',label:'Announcements Sent',val:5},
+  ];
+  document.getElementById('mgmtdashBody').innerHTML=`
+    <div class="home-section-title">Operations Dashboard</div>
+    <div class="dash-grid">
+      ${stats.map(s=>`
+        <div class="dash-card" style="text-align:center;cursor:default">
+          <div class="dash-card-icon">${s.icon}</div>
+          <div style="font-size:18px;font-weight:700">${s.val}</div>
+          <div class="dash-card-label">${s.label}</div>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:16px;text-align:center">Mock data — live analytics coming soon</div>
+  `;
+}
+
+// ── MANAGER PROFILE TAB (Avatar / Role / Venue Permissions / Settings / Logout) ──────────
+function renderManagerProfileScreen(){
+  document.getElementById('profileBody').innerHTML=`
+    <div class="home-card" style="text-align:center">
+      <div style="font-size:40px">${myEmoji||'👤'}</div>
+      <div style="font-weight:700;font-size:16px;margin-top:4px">${esc(currentDisplayName())}</div>
+      <div style="font-size:11px;color:var(--muted)">Venue Operations Manager</div>
+    </div>
+    <div class="home-section-title">Role</div>
+    <div class="home-card">Venue Manager</div>
+    <div class="home-section-title">Venue Permissions</div>
+    <div class="home-card">
+      <div class="modal-row"><div class="modal-row-label">Reports</div><div class="modal-row-val">Manage</div></div>
+      <div class="modal-row"><div class="modal-row-label">Announcements</div><div class="modal-row-val">Send</div></div>
+      <div class="modal-row"><div class="modal-row-label">Staff</div><div class="modal-row-val">View</div></div>
+      <div class="modal-row"><div class="modal-row-label">Venue Settings</div><div class="modal-row-val">Edit</div></div>
+    </div>
+    <div class="home-section-title">Settings</div>
+    <button class="vs-btn vs-btn-primary" style="width:100%;margin-bottom:8px" onclick="openProfile()">⚙️ Theme, accessibility &amp; battery saver</button>
+    <div style="display:flex;gap:8px;margin-bottom:8px">
+      <a class="vs-btn" style="flex:1;text-align:center;text-decoration:none" href="terms.html" target="_blank">Terms</a>
+      <a class="vs-btn" style="flex:1;text-align:center;text-decoration:none" href="privacy.html" target="_blank">Privacy</a>
+    </div>
+    <button class="vs-btn" style="width:100%;border-color:rgba(239,68,68,.35);color:var(--red)" onclick="openLogoutConfirm()">🚪 Logout</button>
+  `;
+}
+
 // ── PROFILE TAB (top-level — folds the existing profileModal's settings in, plus real stats) ──
 function renderProfileScreen(){
+  if(myRole==='manager'){ renderManagerProfileScreen(); return; }
   const level=Math.floor(myXP/100)+1;
   let memStats={distance:0,zones:0,artists:0};
   try{
@@ -4538,7 +4819,17 @@ function renderEventDashboard(){
   const e=events.find(x=>x.code===myGroup);
   const titleEl=document.getElementById('dashTitle');
   if(titleEl) titleEl.textContent=(e&&e.name)||myGroup||'—';
-  const cards=[
+  const cards=myRole==='manager'?[
+    {icon:'🗺️',label:'Open Map',action:"switchTab('map')"},
+    {icon:'🚨',label:'Reports',action:"exitEventContext('reports')"},
+    {icon:'👥',label:'Crowd',action:"openPlaceholder('Crowd Intelligence','Live crowd density and heatmap analytics for this venue — coming soon.')"},
+    {icon:'📢',label:'Announcements',action:"openPlaceholder('Announcements','Broadcasting announcements to attendees — coming soon.')"},
+    {icon:'👮',label:'Staff',action:"openPlaceholder('Staff','Staff roster and live locations — coming soon.')"},
+    {icon:'📊',label:'Analytics',action:"exitEventContext('mgmtdash')"},
+    {icon:'🛍️',label:'Merchandise',action:"openMerch()"},
+    {icon:'💬',label:'Chat',action:"switchTab('chat')"},
+    {icon:'⚙️',label:'Venue Settings',action:"openPlaceholder('Venue Settings','Venue configuration for managers — coming soon.')"},
+  ]:[
     {icon:'🗺️',label:'Open Map',action:"switchTab('map')"},
     {icon:'📅',label:'Schedule',action:"openSchedule()"},
     {icon:'👥',label:'Friends',action:"openFriends()"},
