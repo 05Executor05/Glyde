@@ -654,6 +654,7 @@ const MGMT_TABS = [
   {id:'schedule', label:'🎤 Schedule'},
   {id:'merch',    label:'👕 Merch'},
   {id:'food',     label:'🍔 Food'},
+  {id:'orders',   label:'📦 Orders'},
   {id:'moderation',label:'🚩 Moderation'},
   {id:'analytics',label:'📊 Analytics'},
   {id:'sponsors', label:'🏷️ Sponsors'},
@@ -680,6 +681,9 @@ let vendorStatus = {};
 let zoneStatus = {};
 let sponsors = {};
 let flaggedMessages = {};
+let allMerchOrders = {};
+let allFoodOrders = {};
+let orderSearchQuery = '';
 let clientErrors = {};
 
 const ALERT_TYPES = [
@@ -764,6 +768,8 @@ function listenManagement() {
   onValue(ref(db, `groups/${eventGroup}/sponsors`), snap => { sponsors = snap.val() || {}; if (mgmtTab === 'sponsors') renderManageBody(); });
   onValue(ref(db, `groups/${eventGroup}/flaggedMessages`), snap => { flaggedMessages = snap.val() || {}; if (mgmtTab === 'moderation') renderManageBody(); });
   onValue(ref(db, `groups/${eventGroup}/clientErrors`), snap => { clientErrors = snap.val() || {}; if (mgmtTab === 'analytics') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/merchOrders`), snap => { allMerchOrders = snap.val() || {}; if (mgmtTab === 'orders') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/foodOrders`), snap => { allFoodOrders = snap.val() || {}; if (mgmtTab === 'orders') renderManageBody(); });
 }
 
 // ── ORGANIZER DASHBOARD (announcements, vendor mgmt, map mgmt, analytics, sponsors) ─
@@ -790,6 +796,7 @@ function renderManageBody() {
   else if (mgmtTab === 'schedule') body.innerHTML = renderScheduleMgmtTab();
   else if (mgmtTab === 'merch') body.innerHTML = renderMerchMgmtTab();
   else if (mgmtTab === 'food') body.innerHTML = renderFoodMgmtTab();
+  else if (mgmtTab === 'orders') body.innerHTML = renderOrdersTab();
   else if (mgmtTab === 'moderation') body.innerHTML = renderModerationTab();
   else if (mgmtTab === 'analytics') body.innerHTML = renderAnalyticsTab();
   else if (mgmtTab === 'sponsors') body.innerHTML = renderSponsorsTab();
@@ -1274,6 +1281,71 @@ window.resetFoodToDemoDefaults = () => {
     foodEditId = null;
     toast('↺ Reset to Demo Festival defaults');
   }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── ORDER FULFILLMENT (merch + food pickup codes — closes the loop between an attendee's
+// reservation/pre-order and a real person at the tent handing it over) ──
+function flattenOrders(ordersByUid, kind) {
+  const out = [];
+  Object.entries(ordersByUid).forEach(([uid, orders]) => {
+    Object.entries(orders || {}).forEach(([orderId, o]) => {
+      out.push({ ...o, uid, orderId, kind });
+    });
+  });
+  return out;
+}
+function renderOrdersTab() {
+  const merch = flattenOrders(allMerchOrders, 'merch').filter(o => o.status !== 'picked_up');
+  const food = flattenOrders(allFoodOrders, 'food'); // no separate "picked up" status exists for food
+  let all = [...merch, ...food].sort((a, b) => (b.ts||0) - (a.ts||0));
+
+  const q = orderSearchQuery.trim().toUpperCase();
+  if (q) all = all.filter(o => (o.pickupCode||'').toUpperCase().includes(q));
+
+  const rows = all.map(o => {
+    const label = o.kind === 'merch' ? `${esc(o.name)}${o.size?' · '+esc(o.size):''}${o.color?' · '+esc(o.color):''}` : `${esc(o.item)} — ${esc(o.vendorName||'')}`;
+    const statusLabel = o.kind === 'merch'
+      ? (o.status === 'picked_up' ? '✅ Picked up' : '⏳ Reserved')
+      : (o.status === 'ready' ? (o.pickedUpAt ? '✅ Picked up' : '🔔 Ready for pickup') : '👨‍🍳 Preparing');
+    let actionBtn = '';
+    if (o.kind === 'merch' && o.status !== 'picked_up') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markOrderPickedUp('merch','${o.uid}','${o.orderId}')">✅ Mark picked up</button>`;
+    } else if (o.kind === 'food' && o.status !== 'ready') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markFoodOrderReady('${o.uid}','${o.orderId}')">🔔 Mark ready</button>`;
+    } else if (o.kind === 'food' && o.status === 'ready' && !o.pickedUpAt) {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markOrderPickedUp('food','${o.uid}','${o.orderId}')">✅ Mark picked up</button>`;
+    }
+    return `<div style="padding:8px 0;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">${o.kind==='merch'?'👕':'🍔'}</span>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600">${label}</div>
+          <div style="font-size:10px;color:var(--muted)">${statusLabel} · ${timeAgo(o.ts)}</div>
+        </div>
+        <div class="pickup-code" style="font-size:13px">${esc(o.pickupCode||'—')}</div>
+      </div>
+      ${actionBtn ? `<div style="margin-top:6px">${actionBtn}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `
+    <input class="login-field" id="orderSearchInput" placeholder="Search by pickup code…" value="${esc(orderSearchQuery)}" oninput="setOrderSearch(this.value)" style="margin-bottom:10px;font-family:'Space Mono',monospace;letter-spacing:2px"/>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Orders (${all.length})</div>
+    ${rows || '<div style="font-size:12px;color:var(--muted);padding:10px 0">No orders match</div>'}
+  `;
+}
+window.setOrderSearch = val => { orderSearchQuery = val; renderManageBody(); };
+window.markOrderPickedUp = (kind, uid, orderId) => {
+  const path = kind === 'merch' ? 'merchOrders' : 'foodOrders';
+  const patch = kind === 'merch' ? { status: 'picked_up', pickedUpAt: Date.now() } : { pickedUpAt: Date.now() };
+  update(ref(db, `groups/${eventGroup}/${path}/${uid}/${orderId}`), patch)
+    .then(() => { toast('✅ Marked picked up'); renderManageBody(); })
+    .catch(() => toast('⚠️ Failed to update order','e'));
+};
+window.markFoodOrderReady = (uid, orderId) => {
+  update(ref(db, `groups/${eventGroup}/foodOrders/${uid}/${orderId}`), { status: 'ready' })
+    .then(() => { toast('🔔 Marked ready for pickup'); renderManageBody(); })
+    .catch(() => toast('⚠️ Failed to update order','e'));
 };
 
 // ── MODERATION (attendee-reported chat messages, staff-only visible per security rules) ──
