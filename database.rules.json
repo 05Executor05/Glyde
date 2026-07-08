@@ -59,6 +59,10 @@
           ".read": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true",
           ".write": "auth != null"
         },
+        "staffRoster": {
+          ".read": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true",
+          "$uid": { ".write": "auth != null && auth.uid === $uid" }
+        },
 
         "$other": { ".read": false, ".write": false }
       }

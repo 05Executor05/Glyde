@@ -377,7 +377,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, update, push, set, get }
+import { getDatabase, ref, onValue, update, push, set, get, onDisconnect }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -609,13 +609,10 @@ async function loadFoodConfig(code) {
   onValue(ref(db, `groups/${code}/foodConfig`), snap => applyFoodConfig(snap.val()));
 }
 
-const STAFF = [
-  {id:'s1', name:'Carlos R.',  zone:'North Zone',  emoji:'👷'},
-  {id:'s2', name:'Priya M.',   zone:'South Zone',  emoji:'👷'},
-  {id:'s3', name:'Tom K.',     zone:'East Zone',   emoji:'👷'},
-  {id:'s4', name:'Aisha B.',   zone:'West Zone',   emoji:'👷'},
-  {id:'s5', name:'Medical Team', zone:'All Areas', emoji:'🏥'},
-];
+// Real logged-in staff, sourced from groups/{code}/staffRoster/{uid} — replaces a previous
+// hardcoded/fictional STAFF list that "assign to staff" used to pick from, which never
+// corresponded to any actual person using the dashboard.
+let staffRoster = {};
 
 // Mirrors index.html's DEFAULT_PRODUCTS — the built-in fallback + "reset to defaults" seed for
 // the Merch Catalog editor. Must stay a field mirror (category/icon/price/sizes/colors/stock)
@@ -718,6 +715,11 @@ window.managerLogin = async () => {
     // next time they sign in (only really persists across devices once signed in with Google —
     // an anonymous uid is tied to this browser, so this is a same-device convenience until then).
     update(ref(db, `organizers/${staffUid}/events/${code}`), { name: venue, lastAccessed: Date.now() }).catch(() => {});
+    // Real presence entry for "assign to staff" — auto-removed on disconnect so the roster only
+    // ever shows people actually connected right now, not everyone who's ever logged in.
+    const rosterRef = ref(db, `groups/${code}/staffRoster/${staffUid}`);
+    onDisconnect(rosterRef).remove();
+    set(rosterRef, { name: staff, lastSeen: Date.now() }).catch(() => {});
   }
 
   // Organizer's venue name is authoritative for attendees' Home/Events cards (which
@@ -732,6 +734,7 @@ window.managerLogin = async () => {
   listenReports();
   listenAlerts();
   listenManagement();
+  listenStaffRoster();
   renderReportList();
   updateStats();
   requestAnimationFrame(draw);
@@ -743,6 +746,9 @@ function listenAttendees() {
     attendees = snap.val() || {};
     updateStats();
   });
+}
+function listenStaffRoster() {
+  onValue(ref(db, `groups/${eventGroup}/staffRoster`), snap => { staffRoster = snap.val() || {}; });
 }
 function listenAlerts() {
   onValue(ref(db, `groups/${eventGroup}/alerts`), snap => {
@@ -1450,14 +1456,65 @@ window.clearAlert = id => {
   toast('Alert cleared');
 };
 
+let knownReportIds = new Set();
 function listenReports() {
   onValue(ref(db, `groups/${eventGroup}/reports`), snap => {
-    reports = snap.val() || {};
-    Object.entries(reports).forEach(([id, r]) => { r.id = id; });
+    const incoming = snap.val() || {};
+    Object.entries(incoming).forEach(([id, r]) => { r.id = id; });
+    // Only alert for reports that arrive AFTER the initial load — the first snapshot on
+    // connect can already contain many open reports, and those shouldn't all fire an alarm.
+    if (reportsLoaded) {
+      Object.entries(incoming).forEach(([id, r]) => {
+        if (knownReportIds.has(id) || r.resolved) return;
+        const t = REPORT_TYPES[r.type] || {};
+        if (t.urgent || r.priority === 'high') {
+          playUrgentReportAlert();
+          toast(`🚨 New urgent report: ${t.label || r.type} — ${r.loc || 'Venue'}`, 'w');
+        }
+      });
+    }
+    knownReportIds = new Set(Object.keys(incoming));
+    reports = incoming;
     reportsLoaded = true;
     renderReportList();
     updateStats();
   });
+}
+
+// Web Audio beep — no external audio asset needed, works even if the tab has been idle.
+let alertAudioCtx = null;
+function playUrgentReportAlert() {
+  try {
+    alertAudioCtx = alertAudioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = alertAudioCtx;
+    [0, 0.18, 0.36].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.16);
+    });
+  } catch (e) {}
+  flashTabTitle();
+}
+let titleFlashTimer = null;
+function flashTabTitle() {
+  const original = document.title.replace(/^🚨 /, '');
+  let on = false, count = 0;
+  clearInterval(titleFlashTimer);
+  titleFlashTimer = setInterval(() => {
+    document.title = on ? original : '🚨 New urgent report';
+    on = !on;
+    count++;
+    if (count > 8) { clearInterval(titleFlashTimer); document.title = original; }
+  }, 800);
+  window.addEventListener('focus', () => { clearInterval(titleFlashTimer); document.title = original; }, { once: true });
 }
 
 // ── STATS ─────────────────────────────────────────────────────────────────────
@@ -1573,21 +1630,22 @@ window.openAssign = id => {
   const r = reports[id];
   const t = REPORT_TYPES[r?.type] || {label:r?.type||'Issue'};
   document.getElementById('assignRepLabel').textContent = `${t.label} — ${r?.loc||'Venue'}`;
-  document.getElementById('staffList').innerHTML = STAFF.map(s => `
-    <div class="staff-item" id="staff-${s.id}" onclick="selectStaff('${s.id}')">
-      <div class="staff-avatar">${s.emoji}</div>
+  const roster = Object.entries(staffRoster);
+  document.getElementById('staffList').innerHTML = roster.length ? roster.map(([uid, s]) => `
+    <div class="staff-item" id="staff-${uid}" onclick="selectStaff('${uid}')">
+      <div class="staff-avatar">👷</div>
       <div>
-        <div class="staff-name">${s.name}</div>
-        <div class="staff-zone">${s.zone}</div>
+        <div class="staff-name">${esc(s.name)}${uid===staffUid?' (you)':''}</div>
+        <div class="staff-zone">Online now</div>
       </div>
-    </div>`).join('');
+    </div>`).join('') : '<div style="font-size:12px;color:var(--muted);padding:10px 0">No other staff currently online — only people actively signed into this dashboard can be assigned.</div>';
   document.getElementById('assignModal').classList.add('open');
 };
 
-window.selectStaff = id => {
-  selectedStaff = id;
+window.selectStaff = uid => {
+  selectedStaff = uid;
   document.querySelectorAll('.staff-item').forEach(el=>el.classList.remove('sel'));
-  document.getElementById('staff-'+id)?.classList.add('sel');
+  document.getElementById('staff-'+uid)?.classList.add('sel');
 };
 
 window.closeAssign = () => {
@@ -1597,8 +1655,9 @@ window.closeAssign = () => {
 
 window.confirmAssign = () => {
   if (!selectedStaff || !assigningId) { toast('Select a staff member','w'); return; }
-  const s = STAFF.find(x=>x.id===selectedStaff);
-  update(ref(db, `groups/${eventGroup}/reports/${assigningId}`), {assigned:s.name});
+  const s = staffRoster[selectedStaff];
+  if (!s) { toast('That staff member is no longer online','w'); return; }
+  update(ref(db, `groups/${eventGroup}/reports/${assigningId}`), {assigned:s.name, assignedUid:selectedStaff});
   closeAssign();
   toast(`👷 Assigned to ${s.name}`);
 };
