@@ -84,13 +84,20 @@ body {
 .join-logo span{color:var(--muted);}
 .join-tag{font-size:13px;color:var(--muted);margin-bottom:36px;}
 
-/* ── SPLASH / AUTH ── */
-#splashScreen,#authScreen{
+/* ── SPLASH / AUTH / ROLE SELECT ── */
+#splashScreen,#authScreen,#roleSelectScreen{
   position:fixed;inset:0;background:var(--bg);z-index:500;
   display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;
+  overflow-y:auto;
 }
-#authScreen{display:none;}
-#authScreen.show{display:flex;}
+#authScreen,#roleSelectScreen{display:none;}
+#authScreen.show,#roleSelectScreen.show{display:flex;}
+.role-card{width:100%;max-width:340px;background:var(--surface2);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:16px;text-align:center;cursor:pointer;transition:all .15s;}
+.role-card:hover{border-color:var(--accent);}
+.role-card:active{transform:scale(.98);opacity:.9;}
+.role-card-icon{font-size:38px;margin-bottom:8px;}
+.role-card-title{font-size:18px;font-weight:700;margin-bottom:8px;}
+.role-card-desc{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5;}
 .fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;align-self:flex-start;font-family:'Space Mono',monospace;}
 .fi{width:100%;max-width:320px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;outline:none;margin-bottom:16px;}
 .fi:focus{border-color:var(--accent);}
@@ -743,15 +750,13 @@ canvas:active{cursor:grabbing;}
   </div>
 </div>
 
-<!-- ── ROLE PICKER (shown once after login until a role is chosen — Phase 1 mock role assignment, no backend role field yet) ── -->
-<div class="modal-overlay" id="rolePanel">
-  <div class="modal">
-    <div class="modal-title">Choose your role</div>
-    <div class="modal-actions">
-      <button class="modal-btn modal-confirm" style="background:var(--accent);color:#fff" onclick="confirmRole('attendee')">🎪 Attendee</button>
-      <button class="modal-btn" style="background:var(--surface2);color:var(--text);border:1px solid var(--border)" onclick="confirmRole('manager')">🛡️ Venue Manager</button>
-    </div>
-  </div>
+<!-- ── ROLE SELECTION (shown before authentication — and again after logout, once the role is
+     cleared. Cards are rendered from the ROLE_DEFS registry so a future role only needs an
+     entry there, not new markup here.) ── -->
+<div id="roleSelectScreen">
+  <div class="join-logo">Glyde<span>.app</span></div>
+  <div class="join-tag">Choose how you want to use Glyde</div>
+  <div id="roleCardsWrap" style="width:100%;display:flex;flex-direction:column;align-items:center"></div>
 </div>
 
 <!-- ── PLACEHOLDER MODAL (generic "coming soon" surface reused by not-yet-built Manager features) ── -->
@@ -1866,6 +1871,24 @@ const myId='u_'+Math.random().toString(36).slice(2,9);
 let myEmoji=EMOJIS[0], myColor=COLORS[0], myName='', myGroup='';
 // Role-based access (Phase 1): mocked via localStorage since there's no backend role field yet.
 let myRole='';
+let currentAuthUser=null;
+// ── ROLE REGISTRY — single source of truth for the Role Selection screen. To add a future
+// role (Security, Medical, Vendor, Admin): add one entry here (its card appears automatically),
+// then add that role's `myRole==='id'` branches wherever Home/nav/Profile already branch on
+// 'manager' (renderAppNav, renderHomeScreen, renderProfileScreen, renderEventDashboard). ──────
+const ROLE_DEFS={
+  attendee:{
+    icon:'🎉',title:'Attendee',
+    desc:'Navigate events, connect with friends, chat, explore venues, and enjoy the festival experience.',
+    cta:'Continue as Attendee',
+  },
+  manager:{
+    icon:'🛠',title:'Venue Manager',
+    desc:'Manage venues, monitor reports, oversee operations, and coordinate event staff.',
+    cta:'Continue as Venue Manager',
+    theme:'light', // sensible one-time default applied when this role is first chosen
+  },
+};
 let myX=.50, myY=.65;
 let myRealLat=null,myRealLng=null;
 let peers={};
@@ -4202,7 +4225,25 @@ function authErrorMessage(e){
 }
 function showAuthScreen(){
   document.getElementById('splashScreen').style.display='none';
+  document.getElementById('roleSelectScreen').classList.remove('show');
   document.getElementById('authScreen').classList.add('show');
+}
+
+// ── ROLE SELECTION SCREEN (pre-auth landing page — cards rendered from ROLE_DEFS) ────────
+function renderRoleSelectScreen(){
+  document.getElementById('roleCardsWrap').innerHTML=Object.entries(ROLE_DEFS).map(([id,r])=>`
+    <div class="role-card" onclick="confirmRole('${id}')">
+      <div class="role-card-icon">${r.icon}</div>
+      <div class="role-card-title">${esc(r.title)}</div>
+      <div class="role-card-desc">${esc(r.desc)}</div>
+      <button class="jbtn" onclick="event.stopPropagation();confirmRole('${id}')">${esc(r.cta)}</button>
+    </div>`).join('');
+}
+function showRoleSelectScreen(){
+  document.getElementById('splashScreen').style.display='none';
+  document.getElementById('authScreen').classList.remove('show');
+  renderRoleSelectScreen();
+  document.getElementById('roleSelectScreen').classList.add('show');
 }
 // ── FIRST-RUN ONBOARDING TOUR (shown once, explains the 5 bottom-nav tabs) ────
 const ONBOARD_STEPS=[
@@ -4247,6 +4288,7 @@ function maybeShowOnboardTour(){
 function showAppAfterAuth(){
   document.getElementById('splashScreen').style.display='none';
   document.getElementById('authScreen').classList.remove('show');
+  document.getElementById('roleSelectScreen').classList.remove('show');
   renderAppNav();
   const checkoutResult=new URLSearchParams(window.location.search).get('checkout');
   if(checkoutResult){
@@ -4266,41 +4308,48 @@ function showAppAfterAuth(){
   }
   initBackNavGuard();
 }
-onAuthStateChanged(auth,user=>{
+// ── BOOT / SESSION ROUTING — the single decision point re-run on every auth-state change and
+// every role selection, so "session restore," "role cleared after logout," and "fresh device"
+// all fall out of the same three checks instead of three separate code paths: ─────────────────
+//   1. No role stored yet → Role Selection screen first, no matter the auth state (this is
+//      also what makes a post-logout reload land here instead of the login screen).
+//   2. Role known + already authenticated → skip both Role Selection and the login screen
+//      entirely (session restore) — straight to the nickname prompt (if no display name yet)
+//      or the correct role's Home screen.
+//   3. Role known + not authenticated → skip Role Selection, show the login screen.
+function routeFromAuthState(user){
+  currentAuthUser=user;
+  document.getElementById('splashScreen').style.display='none';
+  myRole=loadRole();
+  if(!myRole){
+    showRoleSelectScreen();
+    return;
+  }
   if(user){
     authProfile={uid:user.uid,name:user.displayName||null,isAnonymous:user.isAnonymous};
     if(!authProfile.name){
-      document.getElementById('splashScreen').style.display='none';
       document.getElementById('authScreen').classList.remove('show');
+      document.getElementById('roleSelectScreen').classList.remove('show');
       document.getElementById('nicknamePanel').classList.add('open');
     } else {
-      proceedPostAuth();
+      showAppAfterAuth();
     }
   } else {
     showAuthScreen();
   }
-});
-
-// ── ROLE GATE: after auth (and after any nickname prompt), route to the role picker exactly
-// once — subsequent logins reuse the device's previously-chosen mock role. ──────────────────
-function proceedPostAuth(){
-  myRole=loadRole();
-  if(!myRole){
-    document.getElementById('splashScreen').style.display='none';
-    document.getElementById('authScreen').classList.remove('show');
-    document.getElementById('rolePanel').classList.add('open');
-  } else {
-    showAppAfterAuth();
-  }
 }
+onAuthStateChanged(auth,routeFromAuthState);
+
 window.confirmRole=(role)=>{
+  const def=ROLE_DEFS[role];
+  if(!def)return;
   myRole=role;
   saveRole();
-  document.getElementById('rolePanel').classList.remove('open');
-  // Sensible one-time default per spec (white/light background for Manager) — reuses the
+  // Sensible one-time default per role (e.g. white/light background for Manager) — reuses the
   // existing theme system, doesn't lock out the normal Dark/Light/HC toggle afterwards.
-  if(myRole==='manager') setTheme('light');
-  showAppAfterAuth();
+  if(def.theme) setTheme(def.theme);
+  document.getElementById('roleSelectScreen').classList.remove('show');
+  routeFromAuthState(currentAuthUser);
 };
 
 window.authSignInGoogle=async()=>{
@@ -4319,9 +4368,11 @@ window.confirmLogout=async()=>{
   closeLogoutConfirm();
   if(myGroup) set(ref(db,`groups/${myGroup}/users/${myId}`),null).catch(()=>{});
   try{ await signOut(auth); }catch(e){}
+  try{ localStorage.removeItem('glyde_role'); }catch(e){}
   // Device-level preferences (theme, large text, voice guidance, battery saver, map layers,
-  // recent searches, emoji/color) deliberately survive logout — only the auth session itself
-  // and this device's live event presence are cleared.
+  // recent searches, emoji/color) deliberately survive logout — only the auth session, this
+  // device's live event presence, and the selected role are cleared, so the next load lands
+  // back on Role Selection (routeFromAuthState) rather than the login screen directly.
   location.reload();
 };
 window.confirmNickname=async()=>{
@@ -4330,7 +4381,9 @@ window.confirmNickname=async()=>{
   try{ await updateProfile(auth.currentUser,{displayName:name}); }catch(e){}
   authProfile=authProfile?{...authProfile,name}:{name};
   document.getElementById('nicknamePanel').classList.remove('open');
-  proceedPostAuth();
+  // myRole is guaranteed to already be set here — routeFromAuthState always resolves Role
+  // Selection before the nickname prompt can ever be shown.
+  showAppAfterAuth();
 };
 
 // Phone sign-in (2-step: number → OTP). Requires the Phone provider enabled in the
