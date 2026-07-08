@@ -121,11 +121,15 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:1;}
   border-bottom:1px solid var(--border);
   flex-shrink:0;z-index:100;
 }
-.hdr-mid{flex:1;min-width:0;font-size:17px;font-weight:700;color:var(--text);letter-spacing:.1px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:0 4px;transition:opacity .15s;}
+.hdr-mid{flex:1;min-width:0;color:var(--text);text-align:center;cursor:pointer;padding:0 4px;transition:opacity .15s;}
 .hdr-mid:active{opacity:.7;}
+.hdr-brand{font-size:10px;font-weight:800;letter-spacing:1.5px;text-transform:uppercase;color:var(--accent);line-height:1.2;}
+.hdr-venue{display:flex;align-items:center;justify-content:center;gap:6px;font-size:15px;font-weight:700;letter-spacing:.1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px;}
+.hdr-venue-name{overflow:hidden;text-overflow:ellipsis;}
+.hdr-dot{color:var(--muted);font-weight:400;}
 .profile-btn{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all .15s;flex-shrink:0;}
 .profile-btn:hover{border-color:var(--neon);}
-.live-pill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;}
+.live-pill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;flex-shrink:0;}
 
 /* ── PROFILE MODAL ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:400;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);padding:20px;opacity:0;pointer-events:none;transition:opacity .18s ease;}
@@ -197,7 +201,7 @@ input::placeholder,textarea::placeholder{color:var(--muted);opacity:1;}
 .more-menu-row:active,.layer-row:active,.search-result:active,.search-cat:active,.search-chip:active,
 .ch-item:active,.drawer-ch:active,.mchip:active,.reaction:active,.loc-pin:active,.ep:active,
 .theme-opt:active,.schedule-stage-tab:active,.merch-tab:active,.merch-cat-chip:active,
-.variant-chip:active,.cuisine-chip:active,.floor-chip:active,.vs-close:active,.layers-close:active,
+.variant-chip:active,.cuisine-chip:active,.floor-chip:active,.vs-close:active,.layers-close:active,.nav-close:active,
 .friend-nav-btn:active,.contact-action-btn:active,.chat-hamburger:active,.drawer-close:active,
 .now-playing:active,.sched-star:active,.reply-cancel:active,.msg-action-btn:active,
 .alert-banner-close:active,.search-cancel:active,.vendor-card:active,.merch-product-card:active,
@@ -279,6 +283,8 @@ canvas:active{cursor:grabbing;}
 .nav-name{font-size:15px;font-weight:700;}
 .nav-sub{font-size:11px;color:var(--muted);margin-top:2px;}
 .nav-dist{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;padding:4px 10px;border-radius:20px;background:rgba(124,58,237,.15);color:var(--neon);border:1px solid rgba(124,58,237,.3);margin-left:auto;white-space:nowrap;}
+.nav-close{width:28px;height:28px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:13px;color:var(--muted);flex-shrink:0;transition:all .15s;}
+.nav-close:hover{color:var(--text);border-color:var(--red);}
 .arrow-row{display:flex;align-items:center;justify-content:center;margin-bottom:10px;}
 .arrow-svg{transition:transform .4s ease;filter:drop-shadow(0 0 10px rgba(167,139,250,.7));}
 .cbtn{width:100%;padding:9px;background:transparent;border:1px solid var(--border);border-radius:10px;color:var(--muted);font-family:'Space Grotesk',sans-serif;font-size:13px;font-weight:600;cursor:pointer;transition:all .2s;}
@@ -422,11 +428,11 @@ canvas:active{cursor:grabbing;}
 .photo-tile{border-radius:10px;overflow:hidden;background:var(--surface2);border:1px solid var(--border);}
 .photo-tile img{width:100%;height:90px;object-fit:cover;display:block;}
 .photo-tile-meta{padding:6px 8px;font-size:9px;color:var(--muted);}
-.recap-card{background:linear-gradient(160deg,rgba(124,58,237,.18),rgba(17,17,28,.9));border:1px solid var(--accent);border-radius:16px;padding:20px;text-align:center;}
+.recap-card{background:var(--surface2);border:1px solid var(--accent);border-radius:16px;padding:20px;text-align:center;}
 .recap-title{font-family:'Space Mono',monospace;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:4px;}
 .recap-name{font-size:20px;font-weight:700;color:var(--neon);margin-bottom:16px;}
 .recap-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
-.recap-stat-val{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;}
+.recap-stat-val{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;color:var(--text);}
 .recap-stat-label{font-size:11px;color:var(--muted);margin-top:2px;font-weight:600;}
 .recap-artists{font-size:11px;color:var(--text);margin-bottom:16px;line-height:1.6;}
 
@@ -845,10 +851,16 @@ canvas:active{cursor:grabbing;}
      top-bar space) ── -->
 <div class="header">
   <button class="profile-btn" onclick="goHomeFromEvent()" aria-label="Home" title="Home">🏠</button>
-  <div class="hdr-mid" id="grpLabel" onclick="backToDashboard()" title="Back to dashboard" role="button">—</div>
-  <div class="live-pill">
-    <div class="ldot" id="ldot" style="background:var(--amber)"></div>
-    <span id="llbl" style="color:var(--amber)">CONNECTING</span>
+  <div class="hdr-mid" id="grpLabel" onclick="backToDashboard()" title="Back to dashboard" role="button">
+    <div class="hdr-brand">Glyde</div>
+    <div class="hdr-venue">
+      <span class="hdr-venue-name" id="hdrVenueName">—</span>
+      <span class="hdr-dot">•</span>
+      <div class="live-pill">
+        <div class="ldot" id="ldot" style="background:var(--amber)"></div>
+        <span id="llbl" style="color:var(--amber)">CONNECTING</span>
+      </div>
+    </div>
   </div>
   <button class="profile-btn" onclick="openFriends()" aria-label="Friends" title="Friends">👥</button>
   <button class="profile-btn" onclick="openSchedule()" aria-label="Event schedule" title="Event schedule">📅</button>
@@ -889,6 +901,7 @@ canvas:active{cursor:grabbing;}
         <div class="nav-av" id="navAv">🦋</div>
         <div><div class="nav-name" id="navNm">—</div><div class="nav-sub">Live location</div></div>
         <div class="nav-dist" id="navDst">—</div>
+        <div class="nav-close" onclick="cancelNav()" aria-label="Close navigation" title="Close navigation" role="button">✕</div>
       </div>
       <div class="arrow-row">
         <svg class="arrow-svg" id="arrowSvg" width="48" height="48" viewBox="0 0 48 48">
@@ -909,6 +922,7 @@ canvas:active{cursor:grabbing;}
       <div id="vsDensity" style="margin-bottom:10px"></div>
       <div class="vs-actions">
         <button class="vs-btn vs-btn-primary" onclick="navToZoneBtn()">🧭 Navigate</button>
+        <button class="vs-btn" id="vsFoodBtn" onclick="orderFoodFromVenueSheet()" style="display:none">🍔 Order Food</button>
         <button class="vs-btn" id="vsFavBtn" onclick="toggleFavorite()">☆ Favorite</button>
         <button class="vs-btn" onclick="shareDestination()">📤 Share</button>
         <button class="vs-btn" onclick="setMeetingPointAtVenue()">🚩 Meet Here</button>
@@ -2071,7 +2085,7 @@ async function enterApp(name,code){
   myName=name;myGroup=code;
   saveProfile();
   closeJoinOverlay();
-  document.getElementById('grpLabel').textContent=code;
+  document.getElementById('hdrVenueName').textContent=code;
   document.getElementById('groupCodeDisplay').textContent=code;
   document.getElementById('profName').textContent=`${myEmoji} ${myName}`;
   document.getElementById('profGroup').textContent=code;
@@ -2319,6 +2333,15 @@ window.switchTab=tab=>{
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   document.getElementById('screen-'+tab)?.classList.add('active');
   document.getElementById('tab-'+tab)?.classList.add('active');
+  if(tab==='map'){
+    // The canvas's very first resize() (module load time) always measures a 0×0 element —
+    // #screen-map is still display:none behind the splash/auth screens at that point, and
+    // nothing re-measures it until a real window 'resize' event happens to fire (which is why
+    // the map only ever "fixed itself" after some unrelated interaction that coincidentally
+    // triggered one, e.g. the mobile keyboard opening for the search box). Re-measure now, every
+    // time the map screen actually becomes visible, so it's never left stuck at 0×0.
+    resize();
+  }
   if(tab==='chat'){
     unreadCounts[currentChannel]=0;
     markRead(currentChannel);
@@ -2423,7 +2446,7 @@ function listenGroup(){
     Object.entries(data).forEach(([uid,u])=>{if(uid!==myId)peers[uid]=u;});
     renderMapBar();renderMobBar();
     const n=Object.keys(peers).length+1;
-    document.getElementById('grpLabel').textContent=`${myGroup} · ${n} online`;
+    document.getElementById('hdrVenueName').textContent=`${myGroup} · ${n} online`;
     ensureDMChannels();
     if(!currentChannel.startsWith('dm-')) document.getElementById('chOnline').textContent=`${n} online`;
     checkArrivals();
@@ -2609,22 +2632,51 @@ function handleTapIfClick(clientX,clientY){
   }
 }
 
-// ── NAV ───────────────────────────────────────────────────────────────────────
-window.navTo=uid=>{
-  const f=peers[uid];if(!f)return;
-  navZoneIdx=null;navCustom=null;
-  navUid=uid;
+// ── UNIVERSAL NAVIGATION ENGINE ────────────────────────────────────────────────
+// The one and only navigation implementation in the app. Every "Navigate" action —
+// Map POI, Food Orders, Chat shared location, Friends, Reports, Safety/Medical, Meet Here,
+// Merchandise — funnels through navigateTo() so they all open the exact same nav card,
+// arrow, live distance and Stop/X behavior instead of each maintaining its own copy.
+// destination is exactly one of: {uid} (a friend/peer), {zoneIdx} (a venue zone), or {x,y}
+// (an arbitrary map point, e.g. an SOS alert or a shared chat location).
+window.navigateTo=(dest={})=>{
+  const {uid,zoneIdx,x,y}=dest;
+  let icon=dest.icon,label=dest.label,color=dest.color;
+  navUid=null;navZoneIdx=null;navCustom=null;
+  if(uid!=null){
+    const f=peers[uid];if(!f)return false;
+    navUid=uid;
+    icon=icon||f.emoji;label=label||f.name;color=color||f.color;
+  } else if(zoneIdx!=null){
+    const z=ZONES[zoneIdx];if(!z)return false;
+    if(zoneStatus[zoneIdx]?.closed){toast(`🚫 ${z.label} is currently closed by organizers`,'w');return false;}
+    navZoneIdx=zoneIdx;
+    icon=icon||z.icon;label=label||z.label;color=color||z.color;
+  } else if(x!=null&&y!=null){
+    navCustom={x,y};
+    label=label||'Destination';icon=icon||'📍';
+  } else return false;
+  color=color||'var(--accent)';
+  // Close whatever screen/panel/sheet the user pressed Navigate from and land on the map —
+  // the destination is always reached the same way, regardless of where Navigate was pressed.
+  closeVenueSheet();closeFood();closeFriends();closeMerch();
+  if(document.getElementById('eventShell').style.display!=='flex') enterEventContext();
+  switchTab('map');
   document.getElementById('navCard').classList.add('on');
-  document.getElementById('navAv').textContent=f.emoji;
-  document.getElementById('navAv').style.borderColor=f.color;
-  document.getElementById('navAv').style.background=f.color+'22';
-  document.getElementById('navNm').textContent=f.name;
-  document.getElementById('navNm').style.color=f.color;
+  document.getElementById('navAv').textContent=icon;
+  document.getElementById('navAv').style.borderColor=color;
+  document.getElementById('navAv').style.background=color[0]==='#'?color+'22':(dest.avBg||'rgba(124,58,237,.2)');
+  document.getElementById('navNm').textContent=label;
+  document.getElementById('navNm').style.color=color;
   document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
-  document.querySelector(`[data-uid="${uid}"]`)?.classList.add('on');
-  toast(`Navigating to ${f.emoji} ${f.name}`);
-  speakGuidance(`Navigating to ${f.name}`);
+  if(uid!=null) document.querySelector(`[data-uid="${uid}"]`)?.classList.add('on');
+  const msg=dest.announce||`Navigating to ${label}`;
+  toast(msg);
+  speakGuidance(dest.speak||msg);
+  logEvent('navigate_to',{kind:uid!=null?'friend':zoneIdx!=null?'zone':'point',label});
+  return true;
 };
+window.navTo=uid=>navigateTo({uid});
 window.cancelNav=()=>{navUid=null;navZoneIdx=null;navCustom=null;document.getElementById('navCard').classList.remove('on');document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));};
 
 // ── VENUE DETAIL BOTTOM SHEET ─────────────────────────────────────────────────
@@ -2649,6 +2701,8 @@ window.openVenueSheet=idx=>{
     floorsWrap.style.display='none';
   }
   updateFavBtn();
+  const foodBtn=document.getElementById('vsFoodBtn');
+  foodBtn.style.display=(z.category==='food'||z.category==='drinks')?'':'none';
   renderZoneDensity(idx);
   if(!visitedZones.has(idx)){
     visitedZones.add(idx);saveGamifyState();
@@ -2680,24 +2734,31 @@ window.closeVenueSheet=()=>{
 window.navToZoneBtn=()=>{
   if(openZoneIdx==null)return;
   navToZone(openZoneIdx);
-  closeVenueSheet();
 };
 function navToZone(idx){
-  const z=ZONES[idx];
-  if(zoneStatus[idx]?.closed){ toast(`🚫 ${z.label} is currently closed by organizers`,'w'); return; }
-  navUid=null;navZoneIdx=idx;navCustom=null;
-  document.getElementById('navCard').classList.add('on');
-  document.getElementById('navAv').textContent=z.icon;
-  document.getElementById('navAv').style.borderColor=z.color;
-  document.getElementById('navAv').style.background=z.color+'22';
-  document.getElementById('navNm').textContent=z.label;
-  document.getElementById('navNm').style.color=z.color;
-  document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
-  toast(`Navigating to ${z.icon} ${z.label}`);
-  speakGuidance(`Navigating to ${z.label}${z.accessible?', a wheelchair accessible location':''}`);
-  logEvent('nav_to_zone',{zone:z.label});
+  const z=ZONES[idx];if(!z)return;
+  navigateTo({zoneIdx:idx,speak:`Navigating to ${z.label}${z.accessible?', a wheelchair accessible location':''}`});
 }
 window.navToZone=navToZone;
+// Map zones (food/drinks category) mark a general food-service area, while FOOD_VENDORS is a
+// separate list of orderable vendors with their own menus/positions — jump straight to whichever
+// vendor sits closest to the tapped zone instead of dropping the attendee into the full list.
+window.orderFoodFromVenueSheet=()=>{
+  if(openZoneIdx==null)return;
+  const z=ZONES[openZoneIdx];
+  attachFoodListener();
+  foodTab='vendors';
+  let vendor=null,best=Infinity;
+  FOOD_VENDORS.forEach(v=>{
+    const d=(v.x-z.x)**2+(v.y-z.y)**2;
+    if(d<best){best=d;vendor=v;}
+  });
+  openVendorId=vendor?vendor.id:null;
+  document.getElementById('foodPanel').classList.add('open');
+  renderFoodPanel();
+  closeVenueSheet();
+  logEvent('order_food_from_map',{zone:z.label,vendorId:vendor?.id||null});
+};
 
 // ── FAVORITES ─────────────────────────────────────────────────────────────────
 function saveFavorites(){ try{ localStorage.setItem('glyde_favorites',JSON.stringify([...favorites])); }catch(e){} }
@@ -3036,30 +3097,17 @@ window.rateVendor=(id,stars)=>{
 window.backToVendorList=()=>{openVendorId=null;renderVendorList();};
 window.navToVendor=id=>{
   const v=FOOD_VENDORS.find(x=>x.id===id);if(!v)return;
-  navUid=null;navZoneIdx=null;navCustom={x:v.x,y:v.y};
-  document.getElementById('navCard').classList.add('on');
-  document.getElementById('navAv').textContent=v.icon;
-  document.getElementById('navAv').style.borderColor='#d97706';
-  document.getElementById('navAv').style.background='rgba(217,119,6,.2)';
-  document.getElementById('navNm').textContent=v.name;
-  document.getElementById('navNm').style.color='#d97706';
-  toast(`Navigating to ${v.icon} ${v.name}`);
-  speakGuidance(`Navigating to ${v.name}`);
-  closeFood();
+  navigateTo({x:v.x,y:v.y,icon:v.icon,label:v.name,color:'#d97706'});
 };
 window.navToSosAlert=el=>{
   const x=parseFloat(el.dataset.x),y=parseFloat(el.dataset.y);
   if(isNaN(x)||isNaN(y))return;
-  navUid=null;navZoneIdx=null;navCustom={x,y};
-  document.getElementById('navCard').classList.add('on');
-  document.getElementById('navAv').textContent='🚨';
-  document.getElementById('navAv').style.borderColor='var(--red)';
-  document.getElementById('navAv').style.background='rgba(239,68,68,.2)';
-  document.getElementById('navNm').textContent='SOS Alert';
-  document.getElementById('navNm').style.color='var(--red)';
-  toast('Navigating to SOS location');
-  speakGuidance('Navigating to the SOS alert location');
-  switchTab('map');
+  navigateTo({x,y,icon:'🚨',label:'SOS Alert',color:'var(--red)',avBg:'rgba(239,68,68,.2)',announce:'Navigating to SOS location',speak:'Navigating to the SOS alert location'});
+};
+window.navToChatLocation=el=>{
+  const x=parseFloat(el.dataset.x),y=parseFloat(el.dataset.y);
+  if(isNaN(x)||isNaN(y)){ toast(`📍 ${el.dataset.name}`); return; }
+  navigateTo({x,y,icon:'📍',label:el.dataset.name||'Shared Location'});
 };
 window.preOrderItem=async(vendorId,itemIdx)=>{
   if(!myGroup)return;
@@ -3416,6 +3464,7 @@ function renderMerchOrders(){
       <div style="font-size:11px;color:var(--muted);margin-top:2px">${o.size?o.size+' · ':''}${o.color?o.color+' · ':''}$${o.price}</div>
       <div class="pickup-code">${o.pickupCode}</div>
       <div style="font-size:10px;color:var(--muted);text-align:center">Show this code at the merch tent to collect your item</div>
+      ${o.status!=='picked_up'?`<button class="vs-btn vs-btn-primary" style="width:100%;margin-top:8px" onclick="navToNearest('merch')">🧭 Navigate to Merch Store</button>`:''}
     </div>`).join('');
 }
 
@@ -3745,19 +3794,10 @@ window.clearMeetingPoint=()=>{
 };
 function navToMeetingPoint(){
   if(!meetingPoint)return;
-  navUid=null;navZoneIdx=null;navCustom={x:meetingPoint.x,y:meetingPoint.y};
-  document.getElementById('navCard').classList.add('on');
-  document.getElementById('navAv').textContent='🚩';
-  document.getElementById('navAv').style.borderColor='#facc15';
-  document.getElementById('navAv').style.background='rgba(250,204,21,.2)';
-  document.getElementById('navNm').textContent=meetingPoint.label;
-  document.getElementById('navNm').style.color='#facc15';
-  document.querySelectorAll('.mchip').forEach(c=>c.classList.remove('on'));
-  toast(`Navigating to 🚩 ${meetingPoint.label}`);
-  speakGuidance(`Navigating to the meeting point at ${meetingPoint.label}`);
-  logEvent('nav_to_meeting_point',{});
+  navigateTo({x:meetingPoint.x,y:meetingPoint.y,icon:'🚩',label:meetingPoint.label,color:'#facc15',
+    announce:`Navigating to 🚩 ${meetingPoint.label}`,speak:`Navigating to the meeting point at ${meetingPoint.label}`});
 }
-window.navToMeetingPoint=()=>{navToMeetingPoint();closeFriends();};
+window.navToMeetingPoint=navToMeetingPoint;
 
 // ── FRIENDS PANEL ─────────────────────────────────────────────────────────────
 window.openFriends=()=>{
@@ -3995,9 +4035,9 @@ function renderChat(){
         <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
         <div class="msg-body">
           <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${esc(msg.author)}</span><span class="msg-time">${fmtTime(msg.ts)}</span></div>
-          <div class="loc-pin" onclick="toast('📍 ${esc(msg.locName)}')">
+          <div class="loc-pin" data-x="${msg.x}" data-y="${msg.y}" data-name="${esc(msg.locName)}" onclick="navToChatLocation(this)">
             <div style="font-size:22px">📍</div>
-            <div><div style="font-size:13px;font-weight:700;color:var(--neon)">${esc(msg.locName)}</div><div style="font-size:11px;color:var(--muted)">Shared location</div></div>
+            <div><div style="font-size:13px;font-weight:700;color:var(--neon)">${esc(msg.locName)}</div><div style="font-size:11px;color:var(--muted)">Shared location — tap to navigate</div></div>
           </div>
         </div></div>`;
       return;
@@ -4124,7 +4164,7 @@ function renderTypingBar(){
 setInterval(()=>renderTypingBar(),2000);
 
 window.shareLocation=()=>{
-  postMessage(currentChannel,{type:'location',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),locName:'My Location'});
+  postMessage(currentChannel,{type:'location',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),locName:'My Location',x:myX,y:myY});
   toast('📍 Location shared');closeEmoji();
 };
 
@@ -4155,7 +4195,7 @@ function renderReplyBar(){
 window.startForward=msgId=>{
   const msg=CHANNELS[currentChannel].messages.find(m=>m.id===msgId);
   if(!msg)return;
-  forwardTarget={author:msg.author,text:msg.text,type:msg.type,url:msg.url,locName:msg.locName};
+  forwardTarget={author:msg.author,text:msg.text,type:msg.type,url:msg.url,locName:msg.locName,x:msg.x,y:msg.y};
   const list=Object.keys(CHANNELS).filter(k=>k!==currentChannel);
   document.getElementById('forwardList').innerHTML=list.map(k=>`
     <div class="search-result" onclick="confirmForward('${k}')">
@@ -4169,7 +4209,7 @@ window.confirmForward=key=>{
   if(!forwardTarget)return;
   const data={author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),reactions:{},forwardedFrom:forwardTarget.author};
   if(forwardTarget.type==='image'){data.type='image';data.url=forwardTarget.url;}
-  else if(forwardTarget.type==='location'){data.type='location';data.locName=forwardTarget.locName;}
+  else if(forwardTarget.type==='location'){data.type='location';data.locName=forwardTarget.locName;data.x=forwardTarget.x;data.y=forwardTarget.y;}
   else data.text=forwardTarget.text;
   postMessage(key,data);
   toast(`↪ Forwarded to ${CHANNELS[key].name}`);
@@ -4446,14 +4486,12 @@ function nearestZoneByCategory(cat){
 window.navToNearest=cat=>{
   const idx=nearestZoneByCategory(cat);
   if(idx==null){toast(`No ${cat} zone found`,'w');return;}
-  switchTab('map');
   navToZone(idx);
   logEvent('nav_nearest',{category:cat});
 };
 window.navToNearestExit=()=>{
   const idx=nearestZoneByCategory('exit');
   if(idx==null)return;
-  switchTab('map');
   navToZone(idx);
   const hasClosure=Object.values(alerts).some(a=>a.active&&a.type==='closure');
   if(hasClosure) toast('⚠️ Some routes may be closed — check the map for closures','w');
@@ -5038,7 +5076,7 @@ function renderChatsScreen(){
     return;
   }
   document.getElementById('chatsBody').innerHTML=`
-    <div class="home-section-title">${esc(document.getElementById('grpLabel').textContent)}</div>
+    <div class="home-section-title">${esc(document.getElementById('hdrVenueName').textContent)}</div>
     ${Object.entries(CHANNELS).map(([key,c])=>`
       <div class="event-card" onclick="openEventChat('${key}')">
         <div class="event-card-icon">${c.icon}</div>
@@ -5175,10 +5213,7 @@ window.navigateToReportCard=id=>{
     const key=id.slice('real:'.length);
     const r=realReportsRaw[key];
     if(r&&r.x!=null&&r.y!=null){
-      navUid=null;navZoneIdx=null;navCustom={x:r.x,y:r.y};
-      enterEventContext();switchTab('map');
-      document.getElementById('navCard').classList.add('on');
-      toast('Navigating to the report location');
+      navigateTo({x:r.x,y:r.y,icon:'📍',label:'Report Location',announce:'Navigating to the report location'});
     }
     return;
   }
