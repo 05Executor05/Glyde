@@ -23,6 +23,9 @@
 }
 
 *{margin:0;padding:0;box-sizing:border-box;}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:2px solid var(--neon);outline-offset:2px;}
+button{transition:transform .1s ease;}
+button:active{transform:scale(.94);}
 body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--text);height:100dvh;display:flex;flex-direction:column;overflow:hidden;}
 
 /* ── LOGIN ── */
@@ -38,7 +41,9 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--tex
 .login-field{width:100%;max-width:340px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;outline:none;margin-bottom:12px;}
 .login-field:focus{border-color:var(--accent);}
 .login-btn{width:100%;max-width:340px;padding:15px;background:var(--accent);color:#fff;border:none;border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;}
+.login-btn-alt{width:100%;max-width:340px;padding:15px;background:var(--surface2);color:var(--text);border:1px solid var(--border);border-radius:12px;font-family:'Space Grotesk',sans-serif;font-size:16px;font-weight:700;cursor:pointer;transition:opacity .2s;}
 .login-btn:hover{opacity:.88;}
+.login-btn-alt:hover{opacity:.85;}
 .login-hint{font-size:12px;color:var(--muted);margin-top:14px;text-align:center;}
 
 /* ── HEADER ── */
@@ -58,6 +63,20 @@ body{font-family:'Space Grotesk',sans-serif;background:var(--bg);color:var(--tex
 .ldot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:blink 2s infinite;}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
 .event-code{font-size:11px;color:var(--muted);font-family:'Space Mono',monospace;background:var(--surface2);padding:4px 10px;border-radius:8px;border:1px solid var(--border);}
+.alert-broadcast-btn{font-size:11px;font-weight:700;padding:7px 14px;border-radius:20px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:var(--amber);cursor:pointer;transition:all .15s;font-family:'Space Grotesk',sans-serif;}
+.alert-broadcast-btn:hover{background:rgba(245,158,11,.22);}
+.alert-type-row{display:flex;gap:8px;margin-bottom:14px;}
+.alert-type-chip{flex:1;padding:10px 6px;text-align:center;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;}
+.alert-type-chip.sel{border-color:var(--accent);color:var(--neon);background:rgba(124,58,237,.12);}
+.alert-sev-row{display:flex;gap:8px;margin-bottom:14px;}
+.alert-sev-chip{flex:1;padding:8px;text-align:center;border-radius:10px;background:var(--surface2);border:1px solid var(--border);color:var(--muted);font-size:11px;font-weight:700;cursor:pointer;transition:all .15s;}
+.alert-sev-chip.info.sel{border-color:#3b82f6;color:#3b82f6;background:rgba(59,130,246,.12);}
+.alert-sev-chip.warning.sel{border-color:var(--amber);color:var(--amber);background:rgba(245,158,11,.12);}
+.alert-sev-chip.severe.sel{border-color:var(--red);color:var(--red);background:rgba(239,68,68,.12);}
+.alert-select{width:100%;padding:11px 13px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:13px;margin-bottom:14px;}
+.alert-active-list{margin-top:16px;max-height:160px;overflow-y:auto;}
+.alert-active-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px;}
+.alert-active-clear{margin-left:auto;font-size:11px;color:var(--red);cursor:pointer;font-weight:600;}
 
 /* ── LAYOUT ── */
 .app-body{display:flex;flex:1;overflow:hidden;}
@@ -158,6 +177,10 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 /* Empty state */
 .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;padding:40px;text-align:center;}
+
+/* ── SKELETON LOADING ── */
+.skel{background:linear-gradient(90deg,var(--surface2) 25%,var(--border) 50%,var(--surface2) 75%);background-size:200% 100%;border-radius:6px;animation:skel-shimmer 1.4s infinite;}
+@keyframes skel-shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
 .empty-icon{font-size:48px;margin-bottom:12px;opacity:.3;}
 .empty-text{font-size:14px;color:var(--muted);}
 
@@ -167,9 +190,10 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 .toast.w{border-color:var(--amber);color:var(--amber);}
 
 /* Assign modal */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
-.modal-overlay.open{display:flex;}
-.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:340px;box-shadow:0 16px 48px rgba(0,0,0,.6);}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:400;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .18s ease;}
+.modal-overlay.open{opacity:1;pointer-events:auto;}
+.modal{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;width:340px;box-shadow:0 16px 48px rgba(0,0,0,.6);transform:scale(.96);transition:transform .18s ease;}
+.modal-overlay.open .modal{transform:scale(1);}
 .modal-title{font-size:16px;font-weight:700;margin-bottom:4px;}
 .modal-sub{font-size:12px;color:var(--muted);margin-bottom:20px;}
 .staff-list{display:flex;flex-direction:column;gap:8px;margin-bottom:20px;}
@@ -203,11 +227,21 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   <div class="login-logo">Glyde<span>.mgr</span></div>
   <div class="login-sub">Venue Manager Dashboard</div>
   <div class="login-badge">🔒 Staff Access Only</div>
+  <button class="login-btn-alt" id="orgGoogleBtn" onclick="orgSignInGoogle()">🔵 Sign in with Google</button>
+  <div class="login-hint" id="orgSignedInAs" style="display:none"></div>
+  <div id="myEventsSection" style="display:none;width:100%;max-width:340px;margin-top:10px">
+    <div class="login-hint" style="text-align:left;margin-bottom:6px">Your events</div>
+    <div id="myEventsList"></div>
+  </div>
+  <div style="height:1px;background:var(--border);width:100%;max-width:340px;margin:16px 0"></div>
   <input class="login-field" id="venueInput" placeholder="Venue name (e.g. Horizon Festival)" maxlength="40"/>
   <input class="login-field" id="eventCodeInput" placeholder="Event group code (e.g. HZ-4829)" maxlength="10" style="font-family:'Space Mono',monospace;letter-spacing:3px;"/>
   <input class="login-field" id="staffNameInput" placeholder="Your name" maxlength="30"/>
   <button class="login-btn" onclick="managerLogin()">Open Dashboard →</button>
   <div class="login-hint">Use the same group code your attendees are using</div>
+  <div style="font-size:11px;color:var(--muted);margin-top:12px;text-align:center">
+    By continuing you agree to Glyde's <a href="terms.html" target="_blank" style="color:var(--accent)">Terms</a> and <a href="privacy.html" target="_blank" style="color:var(--accent)">Privacy Policy</a>
+  </div>
 </div>
 
 <!-- HEADER -->
@@ -216,6 +250,8 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   <div class="mgr-badge">🔒 Manager</div>
   <div class="venue-name" id="venueName">—</div>
   <div class="hdr-right">
+    <button class="alert-broadcast-btn" onclick="openManageModal()" style="background:rgba(59,130,246,.12);border-color:rgba(59,130,246,.4);color:var(--blue)">⚙️ Manage</button>
+    <button class="alert-broadcast-btn" onclick="openAlertModal()">📢 Broadcast Alert</button>
     <div class="event-code" id="eventCodeDisplay">—</div>
     <div class="live-pill"><div class="ldot"></div>LIVE</div>
   </div>
@@ -244,11 +280,11 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
       <div class="stat-label">Resolved today</div>
     </div>
   </div>
-  <div class="stat">
-    <div class="stat-icon">⚡</div>
+  <div class="stat" style="display:none">
+    <div class="stat-icon">🆘</div>
     <div>
-      <div class="stat-val" id="statAvgTime">—</div>
-      <div class="stat-label">Avg response</div>
+      <div class="stat-val" id="statAlerts" style="color:var(--red)">0</div>
+      <div class="stat-label">Active alerts</div>
     </div>
   </div>
 </div>
@@ -260,9 +296,9 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
   <div class="map-panel">
     <canvas id="mgCanvas"></canvas>
     <div class="map-ctrl">
-      <button class="mcbtn" onclick="mzoom(1.2)">+</button>
-      <button class="mcbtn" onclick="mzoom(.8)">−</button>
-      <button class="mcbtn" onclick="mreset()">◎</button>
+      <button class="mcbtn" onclick="mzoom(1.2)" aria-label="Zoom in">+</button>
+      <button class="mcbtn" onclick="mzoom(.8)" aria-label="Zoom out">−</button>
+      <button class="mcbtn" onclick="mreset()" aria-label="Reset map view">◎</button>
     </div>
     <div class="map-legend">
       <div class="legend-title">Report Types</div>
@@ -273,6 +309,7 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
       <div class="legend-row"><div class="legend-dot" style="background:#8b5cf6"></div>Litter</div>
       <div class="legend-row"><div class="legend-dot" style="background:#f472b6"></div>Security</div>
       <div class="legend-row"><div class="legend-dot" style="background:#fff"></div>Attendee</div>
+      <div class="legend-row"><div class="legend-dot" style="background:#ef4444"></div>🆘 Panic alert</div>
     </div>
   </div>
 
@@ -295,6 +332,34 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 </div>
 
+<!-- ALERT BROADCAST MODAL -->
+<div class="modal-overlay" id="alertModal">
+  <div class="modal" style="width:360px">
+    <div class="modal-title">Broadcast Alert</div>
+    <div class="alert-type-row" id="alertTypeRow"></div>
+    <select class="alert-select" id="alertLocationSelect"></select>
+    <input class="login-field" id="alertLabelInput" placeholder="Alert message…" maxlength="80" style="margin-bottom:14px"/>
+    <div class="alert-sev-row" id="alertSevRow"></div>
+    <div class="modal-actions">
+      <button class="modal-btn modal-cancel" onclick="closeAlertModal()">Cancel</button>
+      <button class="modal-btn modal-confirm" onclick="confirmBroadcastAlert()">📢 Send</button>
+    </div>
+    <div class="alert-active-list" id="alertActiveList"></div>
+  </div>
+</div>
+
+<!-- MANAGE MODAL (organizer dashboard: announcements, vendors, map, analytics, sponsors) -->
+<div class="modal-overlay" id="manageModal">
+  <div class="modal" style="width:420px;max-height:82vh;display:flex;flex-direction:column">
+    <div class="modal-title" style="margin-bottom:10px">Organizer Dashboard</div>
+    <div class="filter-bar" id="mgmtTabRow" style="padding:0 0 10px;flex-shrink:0"></div>
+    <div id="manageBody" style="overflow-y:auto;flex:1;min-height:0"></div>
+    <div class="modal-actions" style="margin-top:14px;flex-shrink:0">
+      <button class="modal-btn modal-cancel" style="flex:none;padding:11px 20px" onclick="closeManageModal()">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- ASSIGN MODAL -->
 <div class="modal-overlay" id="assignModal">
   <div class="modal">
@@ -312,8 +377,10 @@ canvas{position:absolute;top:0;left:0;width:100%;height:100%;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, onValue, set, push, remove }
+import { getDatabase, ref, onValue, update, push, set, get, onDisconnect }
   from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, GoogleAuthProvider, signInWithPopup }
+  from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
 const fbApp = initializeApp({
   apiKey:"AIzaSyDocnNn4xfEGcOZWS5mreGx5bvVAEO0TSw",
@@ -326,6 +393,58 @@ const fbApp = initializeApp({
 });
 const db = getDatabase(fbApp);
 
+// ── AUTH (anonymous by default — gives the organizer a stable uid so Firebase security rules
+// can tell real staff apart from attendees, with no sign-in UI required. Google sign-in is
+// offered as an upgrade: it makes that uid persistent across devices/browsers, which is what
+// "My Events" (organizers/{uid}/events) needs to actually follow the organizer around.) ──
+const auth = getAuth(fbApp);
+let staffUid = null;
+let resolveStaffAuthReady;
+const staffAuthReady = new Promise(resolve => { resolveStaffAuthReady = resolve; });
+onAuthStateChanged(auth, user => {
+  if (user) {
+    staffUid = user.uid;
+    resolveStaffAuthReady(user.uid);
+    updateOrgAuthUI(user);
+  } else {
+    signInAnonymously(auth).catch(() => resolveStaffAuthReady(null));
+  }
+});
+function updateOrgAuthUI(user) {
+  const googleBtn = document.getElementById('orgGoogleBtn');
+  const signedInEl = document.getElementById('orgSignedInAs');
+  if (!user.isAnonymous) {
+    googleBtn.style.display = 'none';
+    signedInEl.style.display = 'block';
+    signedInEl.textContent = `Signed in as ${user.displayName || user.email || 'Organizer'}`;
+    loadMyEvents(user.uid);
+  } else {
+    document.getElementById('myEventsSection').style.display = 'none';
+  }
+}
+window.orgSignInGoogle = async () => {
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { toast('Sign-in failed — try again', 'w'); }
+};
+function loadMyEvents(uid) {
+  onValue(ref(db, `organizers/${uid}/events`), snap => {
+    const events = snap.val() || {};
+    const entries = Object.entries(events).sort((a, b) => (b[1].lastAccessed||0) - (a[1].lastAccessed||0));
+    const section = document.getElementById('myEventsSection');
+    if (!entries.length) { section.style.display = 'none'; return; }
+    section.style.display = 'block';
+    document.getElementById('myEventsList').innerHTML = entries.map(([code, e]) => `
+      <div style="display:flex;align-items:center;gap:10px;padding:8px;background:var(--surface2);border:1px solid var(--border);border-radius:10px;margin-bottom:6px;cursor:pointer" onclick="resumeMyEvent('${code}','${esc(e.name||code)}')">
+        <span style="font-size:20px">🎪</span>
+        <div style="flex:1"><div style="font-size:13px;font-weight:600">${esc(e.name||code)}</div><div style="font-size:11px;color:var(--muted);font-family:'Space Mono',monospace">${code}</div></div>
+      </div>`).join('');
+  });
+}
+window.resumeMyEvent = (code, name) => {
+  document.getElementById('venueInput').value = name;
+  document.getElementById('eventCodeInput').value = code;
+};
+
 // ── CONFIG ────────────────────────────────────────────────────────────────────
 const REPORT_TYPES = {
   toilet:  {label:'Dirty Toilet',  icon:'🚻', color:'#06b6d4', urgent:false},
@@ -334,34 +453,212 @@ const REPORT_TYPES = {
   medical: {label:'Medical Alert', icon:'🏥', color:'#ef4444', urgent:true},
   litter:  {label:'Litter Issue',  icon:'🗑️', color:'#8b5cf6', urgent:false},
   security:{label:'Security Alert',icon:'🛡️', color:'#f472b6', urgent:true},
+  sos:     {label:'SOS Alert',     icon:'🆘', color:'#ef4444', urgent:true},
 };
 
-const ZONES = [
-  {label:'MAIN STAGE',  x:.50,y:.20,w:.26,h:.11,color:'#9333ea',icon:'🎵'},
-  {label:'EAST STAGE',  x:.76,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵'},
-  {label:'WEST STAGE',  x:.14,y:.43,w:.15,h:.09,color:'#7c3aed',icon:'🎵'},
-  {label:'FOOD VILLAGE',x:.61,y:.55,w:.13,h:.08,color:'#d97706',icon:'🍔'},
-  {label:'MEDICAL',     x:.50,y:.61,w:.09,h:.06,color:'#dc2626',icon:'🏥'},
-  {label:'TOILETS',     x:.28,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻'},
-  {label:'TOILETS',     x:.67,y:.63,w:.07,h:.06,color:'#0891b2',icon:'🚻'},
-  {label:'WATER',       x:.38,y:.51,w:.05,h:.05,color:'#059669',icon:'💧'},
-  {label:'WATER',       x:.59,y:.51,w:.05,h:.05,color:'#059669',icon:'💧'},
+// Mirrors index.html's DEFAULT_ZONES/DEFAULT_PATHS/DEFAULT_PATH_LABELS for "Glyde Demo
+// Festival" — the built-in fallback + "reset to defaults" seed for the Venue Editor.
+// ZONES/PATHS/PATH_LABELS themselves are mutable, loaded per-event via loadVenueConfig().
+// Must stay a byte-for-byte field mirror of index.html's DEFAULT_ZONES — in particular
+// `category` (and `accessible`/`floors`) — since venueConfig written from here is read
+// directly by index.html's rendering/search/safety/schedule logic, all keyed off `category`.
+const DEFAULT_ZONES = [
+  {label:'MAIN STAGE',        x:.50,y:.14,w:.26,h:.10,color:'#9333ea',icon:'🎵',floors:3,category:'stage'},
+  {label:'INDIE STAGE',       x:.78,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎸',floors:2,category:'stage'},
+  {label:'EDM ARENA',         x:.22,y:.28,w:.16,h:.08,color:'#7c3aed',icon:'🎧',floors:2,category:'stage'},
+  {label:'BURGER HUB',        x:.35,y:.47,w:.08,h:.06,color:'#d97706',icon:'🍔',floors:1,category:'food'},
+  {label:'PIZZA CORNER',      x:.50,y:.47,w:.08,h:.06,color:'#d97706',icon:'🍕',floors:1,category:'food'},
+  {label:'COFFEE STOP',       x:.65,y:.47,w:.08,h:.06,color:'#d97706',icon:'☕',floors:1,category:'food'},
+  {label:'BEER GARDEN',       x:.40,y:.58,w:.09,h:.06,color:'#b45309',icon:'🍺',floors:1,category:'drinks'},
+  {label:'COCKTAIL BAR',      x:.60,y:.58,w:.09,h:.06,color:'#b45309',icon:'🍹',floors:1,category:'drinks'},
+  {label:'TOILETS',           x:.15,y:.55,w:.07,h:.05,color:'#0891b2',icon:'🚻',floors:1,category:'restroom',accessible:true},
+  {label:'TOILETS',           x:.85,y:.55,w:.07,h:.05,color:'#0891b2',icon:'🚻',floors:1,category:'restroom'},
+  {label:'WATER STATION',     x:.25,y:.70,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+  {label:'WATER STATION',     x:.75,y:.70,w:.05,h:.05,color:'#059669',icon:'💧',floors:1,category:'water'},
+  {label:'MEDICAL TENT',      x:.50,y:.72,w:.09,h:.06,color:'#dc2626',icon:'🏥',floors:1,category:'medical',accessible:true},
+  {label:'CHARGING STATION',  x:.35,y:.80,w:.07,h:.05,color:'#3b82f6',icon:'🔌',floors:1,category:'charging'},
+  {label:'LOCKERS',           x:.65,y:.80,w:.07,h:.05,color:'#64748b',icon:'🔒',floors:1,category:'lockers'},
+  {label:'INFORMATION DESK',  x:.50,y:.85,w:.08,h:.05,color:'#eab308',icon:'ℹ️',floors:1,category:'info',accessible:true},
+  {label:'MERCHANDISE STORE', x:.20,y:.85,w:.09,h:.06,color:'#ec4899',icon:'🛍️',floors:1,category:'merch'},
+  {label:'SECURITY',          x:.80,y:.85,w:.07,h:.05,color:'#f472b6',icon:'🛡️',floors:1,category:'security'},
+  {label:'NORTH EXIT',        x:.50,y:.04,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
+  {label:'SOUTH EXIT',        x:.50,y:.94,w:.10,h:.03,color:'#4ade80',icon:'🚪',floors:1,category:'exit',accessible:true},
+  {label:'QUIET ZONE',        x:.10,y:.15,w:.08,h:.06,color:'#38bdf8',icon:'🧘',floors:1,category:'quiet',accessible:true},
+  {label:'VIP LOUNGE',        x:.90,y:.15,w:.09,h:.06,color:'#38bdf8',icon:'🥂',floors:1,category:'quiet'},
+  {label:'ATM',               x:.90,y:.70,w:.05,h:.05,color:'#eab308',icon:'🏧',floors:1,category:'info',accessible:true},
+  {label:'FIRST AID POST',    x:.20,y:.62,w:.07,h:.05,color:'#dc2626',icon:'⛑️',floors:1,category:'medical',accessible:true},
 ];
 
-const PATHS=[
-  [[.2,.33],[.5,.33],[.8,.33]],
-  [[.5,.33],[.5,.83]],
-  [[.2,.33],[.2,.76],[.5,.83]],
-  [[.8,.33],[.8,.76],[.5,.83]],
-  [[.2,.55],[.8,.55]],
+const DEFAULT_PATHS=[
+  [[.22,.28],[.50,.14],[.78,.28]],
+  [[.50,.14],[.50,.90]],
+  [[.22,.28],[.15,.55],[.20,.85]],
+  [[.78,.28],[.85,.55],[.80,.85]],
+  [[.15,.55],[.85,.55]],
+  [[.50,.04],[.50,.14]],
+  [[.50,.90],[.50,.94]],
 ];
+const DEFAULT_PATH_LABELS=['Stage Concourse','Center Spine','West Loop','East Loop','Mid Crossbar','North Exit Path','South Exit Path'];
+let ZONES=DEFAULT_ZONES;
+let PATHS=DEFAULT_PATHS;
+let PATH_LABELS=DEFAULT_PATH_LABELS;
 
-const STAFF = [
-  {id:'s1', name:'Carlos R.',  zone:'North Zone',  emoji:'👷'},
-  {id:'s2', name:'Priya M.',   zone:'South Zone',  emoji:'👷'},
-  {id:'s3', name:'Tom K.',     zone:'East Zone',   emoji:'👷'},
-  {id:'s4', name:'Aisha B.',   zone:'West Zone',   emoji:'👷'},
-  {id:'s5', name:'Medical Team', zone:'All Areas', emoji:'🏥'},
+// Mirrors index.html's DEFAULT_SCHEDULE (fictional demo lineup, offsets relative to whenever
+// this page loaded — used only as a preview here, never written back to Firebase, since
+// "Reset to Demo Defaults" nulls scheduleConfig rather than re-seeding a static snapshot).
+// Must stay a field mirror of index.html's DEFAULT_SCHEDULE (id/artist/zoneIdx/genre/bio)
+// since a custom scheduleConfig written from here is read directly by index.html's
+// now-playing/schedule-list/reminder logic.
+const EVENT_EPOCH=Date.now();
+function scheduleTime(offsetMin){return EVENT_EPOCH+offsetMin*60000;}
+const DEFAULT_SCHEDULE=[
+  {id:'s0',artist:'Solstice',zoneIdx:0,genre:'Indie Pop',bio:'Sun-soaked indie pop duo opening the main stage.',offsetStart:-60,offsetEnd:-20},
+  {id:'s1',artist:'Nova Wolf',zoneIdx:0,genre:'Electro',bio:'High-energy electro act blending live drums with synths.',offsetStart:-20,offsetEnd:25},
+  {id:'s2',artist:'Kairo',zoneIdx:0,genre:'House',bio:'Rising house producer known for sunset sets.',offsetStart:25,offsetEnd:80},
+  {id:'s3',artist:'The Horizon Collective',zoneIdx:0,genre:'Headliner',bio:"Tonight's headliner — full band, full production.",offsetStart:80,offsetEnd:160},
+  {id:'e0',artist:'Deep Static',zoneIdx:1,genre:'Techno',bio:'Warehouse techno to start the Indie Stage.',offsetStart:-50,offsetEnd:-5},
+  {id:'e1',artist:'Lunar Drift',zoneIdx:1,genre:'Ambient',bio:'Downtempo ambient live set.',offsetStart:-5,offsetEnd:40},
+  {id:'e2',artist:'Echo Chamber',zoneIdx:1,genre:'Drum & Bass',bio:'Fast, heavy, and bass-forward.',offsetStart:40,offsetEnd:100},
+  {id:'w0',artist:'Velvet Static',zoneIdx:2,genre:'Funk',bio:'Live funk band with horns opening the EDM Arena.',offsetStart:-40,offsetEnd:10},
+  {id:'w1',artist:'Night Runner',zoneIdx:2,genre:'Synthwave',bio:'Retro synthwave with a live light show.',offsetStart:10,offsetEnd:70},
+  {id:'w2',artist:'Prism',zoneIdx:2,genre:'Pop',bio:'Breakout pop act closing the EDM Arena.',offsetStart:70,offsetEnd:130},
+];
+let SCHEDULE=DEFAULT_SCHEDULE.map(s=>({...s, startTs:scheduleTime(s.offsetStart), endTs:scheduleTime(s.offsetEnd)}));
+
+// ── PER-EVENT VENUE CONFIG (mirrors index.html's loadVenueConfig) ────────────────────────
+// Keeps the organizer's own map preview and the alert-broadcast location dropdown in sync
+// with whichever venue is actually configured (default demo, or this organizer's own).
+function applyVenueConfig(cfg) {
+  // Only fall back to the demo defaults when no venueConfig exists at all — an organizer who
+  // has deliberately deleted every zone (cfg.zones === []) gets a genuinely empty editor, not
+  // a silent revert to the demo venue.
+  if (cfg && Array.isArray(cfg.zones)) {
+    ZONES = cfg.zones;
+    PATHS = Array.isArray(cfg.paths) ? cfg.paths : [];
+    PATH_LABELS = Array.isArray(cfg.pathLabels) ? cfg.pathLabels : [];
+  } else {
+    ZONES = DEFAULT_ZONES;
+    PATHS = DEFAULT_PATHS;
+    PATH_LABELS = DEFAULT_PATH_LABELS;
+  }
+  if (mgmtTab === 'map') renderManageBody();
+}
+async function loadVenueConfig(code) {
+  try {
+    const snap = await get(ref(db, `groups/${code}/venueConfig`));
+    applyVenueConfig(snap.val());
+  } catch (e) {
+    applyVenueConfig(null);
+  }
+  onValue(ref(db, `groups/${code}/venueConfig`), snap => applyVenueConfig(snap.val()));
+}
+
+// ── PER-EVENT SCHEDULE CONFIG (mirrors index.html's loadScheduleConfig) ──────────────────
+function applyScheduleConfig(cfg) {
+  if (cfg && Array.isArray(cfg.entries)) {
+    SCHEDULE = cfg.entries;
+  } else {
+    SCHEDULE = DEFAULT_SCHEDULE.map(s => ({...s, startTs: scheduleTime(s.offsetStart), endTs: scheduleTime(s.offsetEnd)}));
+  }
+  if (mgmtTab === 'schedule') renderManageBody();
+}
+async function loadScheduleConfig(code) {
+  try {
+    const snap = await get(ref(db, `groups/${code}/scheduleConfig`));
+    applyScheduleConfig(snap.val());
+  } catch (e) {
+    applyScheduleConfig(null);
+  }
+  onValue(ref(db, `groups/${code}/scheduleConfig`), snap => applyScheduleConfig(snap.val()));
+}
+
+// ── PER-EVENT MERCH CATALOG (mirrors index.html's loadMerchConfig) ────────────────────────
+function applyMerchConfig(cfg) {
+  if (cfg && Array.isArray(cfg.products)) {
+    PRODUCTS = cfg.products;
+  } else {
+    PRODUCTS = DEFAULT_PRODUCTS;
+  }
+  if (mgmtTab === 'merch' || mgmtTab === 'vendors') renderManageBody();
+}
+async function loadMerchConfig(code) {
+  try {
+    const snap = await get(ref(db, `groups/${code}/merchConfig`));
+    applyMerchConfig(snap.val());
+  } catch (e) {
+    applyMerchConfig(null);
+  }
+  onValue(ref(db, `groups/${code}/merchConfig`), snap => applyMerchConfig(snap.val()));
+}
+
+// ── PER-EVENT FOOD VENDOR CONFIG (mirrors index.html's loadFoodConfig) ────────────────────
+function applyFoodConfig(cfg) {
+  if (cfg && Array.isArray(cfg.vendors)) {
+    FOOD_VENDORS = cfg.vendors;
+  } else {
+    FOOD_VENDORS = DEFAULT_FOOD_VENDORS;
+  }
+  if (mgmtTab === 'food' || mgmtTab === 'vendors') renderManageBody();
+}
+async function loadFoodConfig(code) {
+  try {
+    const snap = await get(ref(db, `groups/${code}/foodConfig`));
+    applyFoodConfig(snap.val());
+  } catch (e) {
+    applyFoodConfig(null);
+  }
+  onValue(ref(db, `groups/${code}/foodConfig`), snap => applyFoodConfig(snap.val()));
+}
+
+// Real logged-in staff, sourced from groups/{code}/staffRoster/{uid} — replaces a previous
+// hardcoded/fictional STAFF list that "assign to staff" used to pick from, which never
+// corresponded to any actual person using the dashboard.
+let staffRoster = {};
+
+// Mirrors index.html's DEFAULT_PRODUCTS — the built-in fallback + "reset to defaults" seed for
+// the Merch Catalog editor. Must stay a field mirror (category/icon/price/sizes/colors/stock)
+// since merchConfig written from here is read directly by index.html's shop rendering.
+const MERCH_CATEGORIES = [
+  {id:'apparel',label:'Apparel'},{id:'accessories',label:'Accessories'},{id:'music',label:'Music'},
+];
+const DEFAULT_PRODUCTS=[
+  {id:'p1',name:'Horizon Tee',category:'apparel',icon:'👕',price:35,sizes:['S','M','L','XL'],colors:['Black','White'],stock:40},
+  {id:'p2',name:'Festival Hoodie',category:'apparel',icon:'🧥',price:65,sizes:['S','M','L','XL'],colors:['Black'],stock:18},
+  {id:'p3',name:'Sunset Cap',category:'accessories',icon:'🧢',sizes:null,colors:['Black','Tan'],price:28,stock:6},
+  {id:'p4',name:'Glow Wristband',category:'accessories',icon:'💫',sizes:null,colors:null,price:12,stock:120},
+  {id:'p5',name:'Horizon Vinyl LP',category:'music',icon:'💿',sizes:null,colors:null,price:40,stock:15},
+  {id:'p6',name:'Limited Drop Tee',category:'apparel',icon:'✨',sizes:['S','M','L'],colors:['Purple'],price:45,stock:25,dropOffset:15},
+];
+let PRODUCTS=DEFAULT_PRODUCTS;
+
+// Mirrors index.html's DEFAULT_FOOD_VENDORS — the built-in fallback + "reset to defaults" seed
+// for the Food Vendors editor. Must stay a field mirror (cuisine/icon/dietary/x/y/menu) since
+// foodConfig written from here is read directly by index.html's vendor list/detail rendering.
+const CUISINES=['Asian','Mexican','American','Vegan','Dessert'];
+const DEFAULT_FOOD_VENDORS=[
+  {id:'v1',name:'Thai Basil',cuisine:'Asian',icon:'🍜',dietary:['vegetarian','vegan'],x:.58,y:.56,
+    menu:[{item:'Pad Thai',price:14,dietary:['vegetarian']},{item:'Green Curry (Tofu)',price:15,dietary:['vegan']},{item:'Spring Rolls',price:8,dietary:['vegan']}]},
+  {id:'v2',name:'Taco Loco',cuisine:'Mexican',icon:'🌮',dietary:['gluten-free'],x:.62,y:.55,
+    menu:[{item:'Carne Asada Tacos (3)',price:12,dietary:[]},{item:'Veggie Bowl',price:11,dietary:['vegetarian','gluten-free']}]},
+  {id:'v3',name:'Burger Barn',cuisine:'American',icon:'🍔',dietary:[],x:.60,y:.58,
+    menu:[{item:'Classic Cheeseburger',price:13,dietary:[]},{item:'Loaded Fries',price:9,dietary:['vegetarian']}]},
+  {id:'v4',name:'Green Bowl',cuisine:'Vegan',icon:'🥗',dietary:['vegan','vegetarian','gluten-free'],x:.64,y:.57,
+    menu:[{item:'Buddha Bowl',price:13,dietary:['vegan','gluten-free']},{item:'Quinoa Salad',price:11,dietary:['vegan','gluten-free']}]},
+  {id:'v5',name:'Sweet Tooth',cuisine:'Dessert',icon:'🍦',dietary:['vegetarian'],x:.59,y:.53,
+    menu:[{item:'Soft Serve',price:6,dietary:['vegetarian']},{item:'Churros',price:7,dietary:['vegetarian']}]},
+];
+let FOOD_VENDORS=DEFAULT_FOOD_VENDORS;
+const MGMT_TABS = [
+  {id:'announce', label:'📢 Announce'},
+  {id:'vendors',  label:'🛍️ Vendors'},
+  {id:'map',      label:'🗺️ Map'},
+  {id:'schedule', label:'🎤 Schedule'},
+  {id:'merch',    label:'👕 Merch'},
+  {id:'food',     label:'🍔 Food'},
+  {id:'orders',   label:'📦 Orders'},
+  {id:'moderation',label:'🚩 Moderation'},
+  {id:'analytics',label:'📊 Analytics'},
+  {id:'sponsors', label:'🏷️ Sponsors'},
 ];
 
 // ── STATE ─────────────────────────────────────────────────────────────────────
@@ -370,24 +667,36 @@ let venueName = '';
 let staffName = '';
 let attendees = {};
 let reports = {};
-let resolvedCount = 0;
 let currentFilter = 'all';
 let assigningId = null;
 let selectedStaff = null;
 let scale = 1, panX = 0, panY = 0;
+let locatedReportId = null, locatedUntil = 0;
+let alerts = {};
+let alertType = 'hazard';
+let alertSeverity = 'warning';
+let reportsLoaded = false;
+let mgmtTab = 'announce';
+let announcements = {};
+let merchStock = {};
+let vendorStatus = {};
+let zoneStatus = {};
+let sponsors = {};
+let flaggedMessages = {};
+let allMerchOrders = {};
+let allFoodOrders = {};
+let orderSearchQuery = '';
+let clientErrors = {};
 
-// Demo reports to pre-populate
-const DEMO_REPORTS = [
-  {id:'r1', type:'medical', x:.50,y:.61, count:1, time:Date.now()-420000, resolved:false, assigned:null, loc:'Medical Tent Area'},
-  {id:'r2', type:'toilet',  x:.28,y:.63, count:5, time:Date.now()-180000, resolved:false, assigned:'Carlos R.', loc:'West Toilet Block'},
-  {id:'r3', type:'queue',   x:.61,y:.55, count:8, time:Date.now()-300000, resolved:false, assigned:null, loc:'Food Village'},
-  {id:'r4', type:'security',x:.76,y:.43, count:2, time:Date.now()-60000,  resolved:false, assigned:null, loc:'East Stage'},
-  {id:'r5', type:'water',   x:.38,y:.51, count:3, time:Date.now()-600000, resolved:true,  assigned:'Priya M.', loc:'Water Station A'},
-  {id:'r6', type:'litter',  x:.14,y:.43, count:2, time:Date.now()-900000, resolved:true,  assigned:'Tom K.', loc:'West Stage Area'},
+const ALERT_TYPES = [
+  {id:'hazard', label:'⚠️ Hazard', icon:'⚠️'},
+  {id:'closure', label:'🚧 Closure', icon:'🚧'},
+  {id:'weather', label:'⛈️ Weather', icon:'⛈️'},
+  {id:'incident', label:'🚨 Incident', icon:'🚨'},
 ];
 
 // ── LOGIN ─────────────────────────────────────────────────────────────────────
-window.managerLogin = () => {
+window.managerLogin = async () => {
   const venue = document.getElementById('venueInput').value.trim();
   const code  = document.getElementById('eventCodeInput').value.trim().toUpperCase();
   const staff = document.getElementById('staffNameInput').value.trim();
@@ -400,12 +709,38 @@ window.managerLogin = () => {
   document.getElementById('venueName').textContent = venue;
   document.getElementById('eventCodeDisplay').textContent = code;
 
-  // Load demo reports
-  DEMO_REPORTS.forEach(r => { reports[r.id] = r; });
-  resolvedCount = DEMO_REPORTS.filter(r=>r.resolved).length;
+  // Register as staff for this event code so Firebase security rules can tell real organizers
+  // apart from attendees (anyone who knows the code can manage it — same trust model the rest
+  // of the app already uses for joining as an attendee, just now enforced at the database level).
+  // Awaited (not fire-and-forget) so staff-gated reads below — like flaggedMessages — don't race
+  // against this write and permanently fail with permission-denied before it lands.
+  await staffAuthReady;
+  if (staffUid) {
+    await set(ref(db, `groups/${code}/staff/${staffUid}`), true).catch(() => {});
+    // Remembers this event under the organizer's own account so it shows up in "Your events"
+    // next time they sign in (only really persists across devices once signed in with Google —
+    // an anonymous uid is tied to this browser, so this is a same-device convenience until then).
+    update(ref(db, `organizers/${staffUid}/events/${code}`), { name: venue, lastAccessed: Date.now() }).catch(() => {});
+    // Real presence entry for "assign to staff" — auto-removed on disconnect so the roster only
+    // ever shows people actually connected right now, not everyone who's ever logged in.
+    const rosterRef = ref(db, `groups/${code}/staffRoster/${staffUid}`);
+    onDisconnect(rosterRef).remove();
+    set(rosterRef, { name: staff, lastSeen: Date.now() }).catch(() => {});
+  }
 
+  // Organizer's venue name is authoritative for attendees' Home/Events cards (which
+  // otherwise only have the raw join code to show); doesn't touch createdAt if already set.
+  update(ref(db, `groups/${code}/meta`), { name: venue }).catch(() => {});
+
+  loadVenueConfig(code);
+  loadScheduleConfig(code);
+  loadMerchConfig(code);
+  loadFoodConfig(code);
   listenAttendees();
   listenReports();
+  listenAlerts();
+  listenManagement();
+  listenStaffRoster();
   renderReportList();
   updateStats();
   requestAnimationFrame(draw);
@@ -418,25 +753,926 @@ function listenAttendees() {
     updateStats();
   });
 }
+function listenStaffRoster() {
+  onValue(ref(db, `groups/${eventGroup}/staffRoster`), snap => { staffRoster = snap.val() || {}; });
+}
+function listenAlerts() {
+  onValue(ref(db, `groups/${eventGroup}/alerts`), snap => {
+    alerts = snap.val() || {};
+    renderActiveAlertsList();
+  });
+}
+function listenManagement() {
+  onValue(ref(db, `groups/${eventGroup}/announcements`), snap => { announcements = snap.val() || {}; if (mgmtTab === 'announce') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/merchStock`), snap => { merchStock = snap.val() || {}; if (mgmtTab === 'vendors') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/vendorStatus`), snap => { vendorStatus = snap.val() || {}; if (mgmtTab === 'vendors') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/zoneStatus`), snap => { zoneStatus = snap.val() || {}; if (mgmtTab === 'map') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/sponsors`), snap => { sponsors = snap.val() || {}; if (mgmtTab === 'sponsors') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/flaggedMessages`), snap => { flaggedMessages = snap.val() || {}; if (mgmtTab === 'moderation') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/clientErrors`), snap => { clientErrors = snap.val() || {}; if (mgmtTab === 'analytics') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/merchOrders`), snap => { allMerchOrders = snap.val() || {}; if (mgmtTab === 'orders') renderManageBody(); });
+  onValue(ref(db, `groups/${eventGroup}/foodOrders`), snap => { allFoodOrders = snap.val() || {}; if (mgmtTab === 'orders') renderManageBody(); });
+}
 
+// ── ORGANIZER DASHBOARD (announcements, vendor mgmt, map mgmt, analytics, sponsors) ─
+window.openManageModal = () => {
+  mgmtTab = 'announce';
+  document.getElementById('mgmtTabRow').innerHTML = MGMT_TABS.map(t =>
+    `<div class="ftab${mgmtTab===t.id?' active':''}" onclick="setMgmtTab('${t.id}',this)">${t.label}</div>`
+  ).join('');
+  document.getElementById('manageModal').classList.add('open');
+  renderManageBody();
+};
+window.closeManageModal = () => document.getElementById('manageModal').classList.remove('open');
+window.setMgmtTab = (t, el) => {
+  mgmtTab = t;
+  document.querySelectorAll('#mgmtTabRow .ftab').forEach(x => x.classList.remove('active'));
+  el.classList.add('active');
+  renderManageBody();
+};
+function renderManageBody() {
+  const body = document.getElementById('manageBody');
+  if (mgmtTab === 'announce') body.innerHTML = renderAnnounceTab();
+  else if (mgmtTab === 'vendors') body.innerHTML = renderVendorsTab();
+  else if (mgmtTab === 'map') body.innerHTML = renderMapMgmtTab();
+  else if (mgmtTab === 'schedule') body.innerHTML = renderScheduleMgmtTab();
+  else if (mgmtTab === 'merch') body.innerHTML = renderMerchMgmtTab();
+  else if (mgmtTab === 'food') body.innerHTML = renderFoodMgmtTab();
+  else if (mgmtTab === 'orders') body.innerHTML = renderOrdersTab();
+  else if (mgmtTab === 'moderation') body.innerHTML = renderModerationTab();
+  else if (mgmtTab === 'analytics') body.innerHTML = renderAnalyticsTab();
+  else if (mgmtTab === 'sponsors') body.innerHTML = renderSponsorsTab();
+}
+
+function renderAnnounceTab() {
+  const list = Object.entries(announcements).sort((a,b) => b[1].ts - a[1].ts);
+  return `
+    <input class="login-field" id="announceInput" placeholder="Announcement message…" maxlength="120" style="margin-bottom:10px"/>
+    <button class="modal-btn modal-confirm" style="width:100%;margin-bottom:16px" onclick="sendAnnouncement()">📢 Send to all attendees</button>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:4px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Recent (${list.length})</div>
+    ${list.length ? list.map(([id,a]) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px">
+        <span style="flex:1">${esc(a.text)}</span>
+        <span style="color:var(--muted);font-size:10px;font-family:'Space Mono',monospace">${timeAgo(a.ts)}</span>
+        <span style="color:var(--red);cursor:pointer;font-weight:600" onclick="deleteAnnouncement('${id}')">✕</span>
+      </div>`).join('') : '<div style="font-size:12px;color:var(--muted);padding:10px 0">No announcements sent yet</div>'}
+  `;
+}
+window.sendAnnouncement = () => {
+  const text = document.getElementById('announceInput').value.trim();
+  if (!text) { toast('Enter a message','w'); return; }
+  push(ref(db, `groups/${eventGroup}/announcements`), {text, ts:Date.now(), by:staffName});
+  toast('📢 Announcement sent');
+  document.getElementById('announceInput').value = '';
+};
+window.deleteAnnouncement = id => update(ref(db, `groups/${eventGroup}/announcements`), {[id]:null});
+
+function renderVendorsTab() {
+  const merchRows = PRODUCTS.map(p => {
+    const stock = merchStock[p.id] ?? '—';
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${p.icon}</span>
+      <span style="flex:1;font-size:12px;font-weight:600">${esc(p.name)}</span>
+      <button class="mcbtn" style="width:26px;height:26px;font-size:13px;position:static" onclick="adjustStock('${p.id}',-1)">−</button>
+      <span style="font-family:'Space Mono',monospace;font-size:12px;width:28px;text-align:center">${stock}</span>
+      <button class="mcbtn" style="width:26px;height:26px;font-size:13px;position:static" onclick="adjustStock('${p.id}',1)">+</button>
+    </div>`;
+  }).join('');
+  const foodRows = FOOD_VENDORS.map(v => {
+    const closed = !!vendorStatus[v.id]?.closed;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${v.icon}</span>
+      <span style="flex:1;font-size:12px;font-weight:600">${esc(v.name)}</span>
+      <span style="font-size:10px;font-weight:700;color:${closed?'var(--red)':'var(--green)'}">${closed?'CLOSED':'OPEN'}</span>
+      <button class="rep-btn ${closed?'resolve-btn':'assign-btn'}" style="flex:none;padding:6px 10px" onclick="toggleVendorClosed('${v.id}')">${closed?'Reopen':'Close'}</button>
+    </div>`;
+  }).join('');
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Merch stock</div>
+    ${merchRows}
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Food vendors</div>
+    ${foodRows}
+  `;
+}
+window.adjustStock = (id, delta) => {
+  const next = Math.max(0, (merchStock[id] ?? 0) + delta);
+  update(ref(db, `groups/${eventGroup}/merchStock`), {[id]:next});
+};
+window.toggleVendorClosed = id => {
+  const closed = !!vendorStatus[id]?.closed;
+  update(ref(db, `groups/${eventGroup}/vendorStatus/${id}`), {closed: !closed});
+};
+
+// ── VENUE EDITOR (per-event map: add/edit/delete zones, connect them with paths) ─────────
+const VENUE_CATEGORY_OPTIONS = [
+  {id:'stage',label:'Stage'},{id:'food',label:'Food'},{id:'drinks',label:'Drinks'},
+  {id:'restroom',label:'Restroom'},{id:'water',label:'Water'},{id:'medical',label:'Medical'},
+  {id:'charging',label:'Charging'},{id:'lockers',label:'Lockers'},{id:'info',label:'Info Desk'},
+  {id:'merch',label:'Merch Store'},{id:'security',label:'Security'},{id:'exit',label:'Exit'},{id:'quiet',label:'Quiet Zone'},
+];
+let venueEditIdx = null; // null = adding a new zone, else index of the zone being edited
+let scheduleEditId = null; // null = adding a new schedule entry, else id of the entry being edited
+let merchEditId = null; // null = adding a new product, else id of the product being edited
+let foodEditId = null; // null = adding a new vendor, else id of the vendor being edited
+
+function renderMapMgmtTab() {
+  const zoneRows = ZONES.map((z,i) => {
+    const closed = !!zoneStatus[i]?.closed;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${z.icon}</span>
+      <span style="flex:1;font-size:12px;font-weight:600">${esc(z.label)}</span>
+      <span style="font-size:10px;font-weight:700;color:${closed?'var(--red)':'var(--green)'}">${closed?'CLOSED':'OPEN'}</span>
+      <button class="rep-btn ${closed?'resolve-btn':'assign-btn'}" style="flex:none;padding:5px 8px" onclick="toggleZoneClosed(${i})">${closed?'Reopen':'Close'}</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="editVenueZoneForm(${i})">Edit</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="deleteVenueZone(${i})">Delete</button>
+    </div>`;
+  }).join('');
+
+  const editing = venueEditIdx !== null;
+  const z = editing ? ZONES[venueEditIdx] : null;
+  const catOptions = VENUE_CATEGORY_OPTIONS.map(c =>
+    `<option value="${c.id}" ${editing && z.category===c.id ? 'selected' : ''}>${c.label}</option>`
+  ).join('');
+
+  const pathRows = PATHS.map((p,i) => `
+    <div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
+      <span style="flex:1">${esc(PATH_LABELS[i]||'Path '+(i+1))} (${p.length} pts)</span>
+      <span style="color:var(--red);cursor:pointer;font-weight:600" onclick="deleteVenuePath(${i})">✕</span>
+    </div>`).join('');
+
+  const zonePickerOptions = ZONES.map((zz,i) => `<option value="${i}">${esc(zz.label)}</option>`).join('');
+
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Zones (${ZONES.length})</div>
+    ${zoneRows}
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${editing?'Edit zone':'+ Add zone'}</div>
+      <input class="login-field" id="veLabel" placeholder="Name (e.g. Main Stage)" value="${editing?esc(z.label):''}" style="margin-bottom:8px"/>
+      <select class="alert-select" id="veCategory" style="margin-bottom:8px">${catOptions}</select>
+      <input class="login-field" id="veIcon" placeholder="Icon (emoji)" value="${editing?esc(z.icon):'📍'}" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">X position (0-1)</div><input class="login-field" id="veX" type="number" min="0" max="1" step="0.01" value="${editing?z.x:'0.5'}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Y position (0-1)</div><input class="login-field" id="veY" type="number" min="0" max="1" step="0.01" value="${editing?z.y:'0.5'}" style="margin-bottom:0"/></div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Width (0-1)</div><input class="login-field" id="veW" type="number" min="0.02" max="1" step="0.01" value="${editing?z.w:'0.08'}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Height (0-1)</div><input class="login-field" id="veH" type="number" min="0.02" max="1" step="0.01" value="${editing?z.h:'0.06'}" style="margin-bottom:0"/></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="modal-btn modal-confirm" onclick="saveVenueZoneForm()">${editing?'Save changes':'Add zone'}</button>
+        ${editing?'<button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="cancelVenueZoneEdit()">Cancel</button>':''}
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Paths (${PATHS.length})</div>
+    ${pathRows}
+    <div style="margin-top:10px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">+ Connect zones</div>
+      <select class="alert-select" id="vePathZones" multiple size="5" style="margin-bottom:8px;height:auto">${zonePickerOptions}</select>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:8px">Ctrl/Cmd-click to select 2+ zones, in the order to connect them</div>
+      <button class="modal-btn modal-confirm" onclick="addVenuePath()">Connect</button>
+    </div>
+
+    <button class="modal-btn" style="width:100%;margin-top:16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--red)" onclick="resetVenueToDemoDefaults()">↺ Reset to Demo Festival defaults</button>
+  `;
+}
+window.toggleZoneClosed = idx => {
+  const closed = !!zoneStatus[idx]?.closed;
+  update(ref(db, `groups/${eventGroup}/zoneStatus/${idx}`), {closed: !closed});
+};
+
+window.editVenueZoneForm = idx => { venueEditIdx = idx; renderManageBody(); };
+window.cancelVenueZoneEdit = () => { venueEditIdx = null; renderManageBody(); };
+
+function readVenueZoneForm() {
+  const label = document.getElementById('veLabel').value.trim();
+  const category = document.getElementById('veCategory').value;
+  const icon = document.getElementById('veIcon').value.trim() || '📍';
+  const x = parseFloat(document.getElementById('veX').value);
+  const y = parseFloat(document.getElementById('veY').value);
+  const w = parseFloat(document.getElementById('veW').value);
+  const h = parseFloat(document.getElementById('veH').value);
+  if (!label) { toast('Enter a zone name','w'); return null; }
+  if ([x,y,w,h].some(n => isNaN(n))) { toast('Enter valid position/size numbers','w'); return null; }
+  return {label, category, icon, x, y, w, h, color:'#7c3aed', floors:1};
+}
+window.saveVenueZoneForm = () => {
+  const zone = readVenueZoneForm();
+  if (!zone) return;
+  const newZones = [...ZONES];
+  if (venueEditIdx !== null) newZones[venueEditIdx] = {...newZones[venueEditIdx], ...zone};
+  else newZones.push(zone);
+  venueEditIdx = null;
+  saveVenueZones(newZones);
+};
+window.deleteVenueZone = idx => {
+  const newZones = ZONES.filter((_,i) => i !== idx);
+  saveVenueZones(newZones, true);
+};
+// Writes the full zones/paths/pathLabels each time (arrays don't partially "merge" sensibly
+// after a delete/reorder). Deleting a zone shifts every later index, so any per-zone
+// open/closed status is reset rather than silently pointing at the wrong zone.
+function saveVenueZones(newZones, indicesShifted) {
+  update(ref(db, `groups/${eventGroup}/venueConfig`), {zones: newZones, paths: PATHS, pathLabels: PATH_LABELS}).then(() => {
+    toast(indicesShifted ? '🗑️ Zone deleted — open/closed status reset' : '✅ Venue updated');
+    if (indicesShifted) set(ref(db, `groups/${eventGroup}/zoneStatus`), null).catch(() => {});
+  }).catch(() => toast('⚠️ Failed to save venue','e'));
+}
+
+window.addVenuePath = () => {
+  const select = document.getElementById('vePathZones');
+  const idxs = [...select.selectedOptions].map(o => parseInt(o.value));
+  if (idxs.length < 2) { toast('Select at least 2 zones to connect','w'); return; }
+  const points = idxs.map(i => [ZONES[i].x, ZONES[i].y]);
+  const label = idxs.map(i => ZONES[i].label).join(' → ');
+  update(ref(db, `groups/${eventGroup}/venueConfig`), {zones: ZONES, paths: [...PATHS, points], pathLabels: [...PATH_LABELS, label]}).then(() => {
+    toast('✅ Path added');
+  }).catch(() => toast('⚠️ Failed to save path','e'));
+};
+window.deleteVenuePath = idx => {
+  update(ref(db, `groups/${eventGroup}/venueConfig`), {
+    zones: ZONES,
+    paths: PATHS.filter((_,i) => i !== idx),
+    pathLabels: PATH_LABELS.filter((_,i) => i !== idx),
+  }).then(() => toast('✅ Path removed')).catch(() => toast('⚠️ Failed to save','e'));
+};
+window.resetVenueToDemoDefaults = () => {
+  set(ref(db, `groups/${eventGroup}/venueConfig`), {zones: DEFAULT_ZONES, paths: DEFAULT_PATHS, pathLabels: DEFAULT_PATH_LABELS}).then(() => {
+    venueEditIdx = null;
+    toast('↺ Reset to Demo Festival defaults');
+  }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── SCHEDULE EDITOR (per-event lineup: add/edit/delete artists with real start/end times) ──
+function tsToLocalInput(ts) {
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function renderScheduleMgmtTab() {
+  const stages = ZONES.map((z,i) => ({z,i})).filter(({z}) => z.category === 'stage');
+  const entries = [...SCHEDULE].sort((a,b) => a.startTs - b.startTs);
+  const scheduleRows = entries.map(s => {
+    const stage = ZONES[s.zoneIdx];
+    return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="flex:1">
+        <div style="font-size:12px;font-weight:600">${esc(s.artist)} <span style="color:var(--muted);font-weight:400">— ${esc(s.genre)}</span></div>
+        <div style="font-size:10px;color:var(--muted)">${stage?stage.icon+' '+esc(stage.label):'(stage removed)'} · ${new Date(s.startTs).toLocaleString()} – ${new Date(s.endTs).toLocaleTimeString()}</div>
+      </span>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="editScheduleEntryForm('${s.id}')">Edit</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="deleteScheduleEntry('${s.id}')">Delete</button>
+    </div>`;
+  }).join('');
+
+  const editing = scheduleEditId !== null;
+  const s = editing ? SCHEDULE.find(e => e.id === scheduleEditId) : null;
+  const stageOptions = stages.map(({z,i}) =>
+    `<option value="${i}" ${editing && s.zoneIdx===i ? 'selected' : ''}>${z.icon} ${esc(z.label)}</option>`
+  ).join('');
+
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Lineup (${SCHEDULE.length})</div>
+    ${scheduleRows || '<div style="font-size:12px;color:var(--muted);padding:10px 0">No performers scheduled</div>'}
+    ${!stages.length ? '<div style="font-size:11px;color:var(--amber);padding:8px 0">Add a stage zone in the Map tab before scheduling performers.</div>' : `
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${editing?'Edit performer':'+ Add performer'}</div>
+      <input class="login-field" id="seArtist" placeholder="Artist name" value="${editing?esc(s.artist):''}" style="margin-bottom:8px"/>
+      <select class="alert-select" id="seStage" style="margin-bottom:8px">${stageOptions}</select>
+      <input class="login-field" id="seGenre" placeholder="Genre" value="${editing?esc(s.genre):''}" style="margin-bottom:8px"/>
+      <input class="login-field" id="seBio" placeholder="Short bio" value="${editing?esc(s.bio):''}" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:10px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Start</div><input class="login-field" id="seStart" type="datetime-local" value="${editing?tsToLocalInput(s.startTs):''}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">End</div><input class="login-field" id="seEnd" type="datetime-local" value="${editing?tsToLocalInput(s.endTs):''}" style="margin-bottom:0"/></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button class="modal-btn modal-confirm" onclick="saveScheduleEntryForm()">${editing?'Save changes':'Add performer'}</button>
+        ${editing?'<button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="cancelScheduleEntryEdit()">Cancel</button>':''}
+      </div>
+    </div>`}
+
+    <button class="modal-btn" style="width:100%;margin-top:16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--red)" onclick="resetScheduleToDemoDefaults()">↺ Reset to Demo Festival defaults</button>
+  `;
+}
+window.editScheduleEntryForm = id => { scheduleEditId = id; renderManageBody(); };
+window.cancelScheduleEntryEdit = () => { scheduleEditId = null; renderManageBody(); };
+
+function readScheduleEntryForm() {
+  const artist = document.getElementById('seArtist').value.trim();
+  const zoneIdx = parseInt(document.getElementById('seStage').value);
+  const genre = document.getElementById('seGenre').value.trim();
+  const bio = document.getElementById('seBio').value.trim();
+  const startTs = new Date(document.getElementById('seStart').value).getTime();
+  const endTs = new Date(document.getElementById('seEnd').value).getTime();
+  if (!artist) { toast('Enter an artist name','w'); return null; }
+  if (isNaN(zoneIdx)) { toast('Select a stage','w'); return null; }
+  if (isNaN(startTs) || isNaN(endTs)) { toast('Enter valid start/end times','w'); return null; }
+  if (endTs <= startTs) { toast('End time must be after start time','w'); return null; }
+  return {artist, zoneIdx, genre, bio, startTs, endTs};
+}
+window.saveScheduleEntryForm = () => {
+  const entry = readScheduleEntryForm();
+  if (!entry) return;
+  const newEntries = [...SCHEDULE];
+  if (scheduleEditId !== null) {
+    const i = newEntries.findIndex(e => e.id === scheduleEditId);
+    newEntries[i] = {...newEntries[i], ...entry};
+  } else {
+    newEntries.push({id: 'e' + Date.now() + Math.random().toString(36).slice(2,6), ...entry});
+  }
+  scheduleEditId = null;
+  saveScheduleEntries(newEntries);
+};
+window.deleteScheduleEntry = id => {
+  saveScheduleEntries(SCHEDULE.filter(e => e.id !== id));
+};
+function saveScheduleEntries(newEntries) {
+  update(ref(db, `groups/${eventGroup}/scheduleConfig`), {entries: newEntries}).then(() => {
+    toast('✅ Schedule updated');
+  }).catch(() => toast('⚠️ Failed to save schedule','e'));
+}
+window.resetScheduleToDemoDefaults = () => {
+  set(ref(db, `groups/${eventGroup}/scheduleConfig`), null).then(() => {
+    scheduleEditId = null;
+    toast('↺ Reset to Demo Festival defaults');
+  }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── MERCH CATALOG EDITOR (per-event product list: add/edit/delete) ──────────────────────
+function renderMerchMgmtTab() {
+  const productRows = PRODUCTS.map(p => `
+    <div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${p.icon}</span>
+      <span style="flex:1">
+        <div style="font-size:12px;font-weight:600">${esc(p.name)} <span style="color:var(--muted);font-weight:400">— $${p.price}</span></div>
+        <div style="font-size:10px;color:var(--muted)">${esc(p.category)} · stock ${p.stock}${p.sizes?' · sizes '+p.sizes.join('/'):''}${p.colors?' · colors '+p.colors.join('/'):''}</div>
+      </span>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="editMerchProductForm('${p.id}')">Edit</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="deleteMerchProduct('${p.id}')">Delete</button>
+    </div>`).join('');
+
+  const editing = merchEditId !== null;
+  const p = editing ? PRODUCTS.find(x => x.id === merchEditId) : null;
+  const catOptions = MERCH_CATEGORIES.map(c =>
+    `<option value="${c.id}" ${editing && p.category===c.id ? 'selected' : ''}>${c.label}</option>`
+  ).join('');
+
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Products (${PRODUCTS.length})</div>
+    ${productRows || '<div style="font-size:12px;color:var(--muted);padding:10px 0">No products configured</div>'}
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${editing?'Edit product':'+ Add product'}</div>
+      <input class="login-field" id="mpName" placeholder="Name (e.g. Festival Tee)" value="${editing?esc(p.name):''}" style="margin-bottom:8px"/>
+      <select class="alert-select" id="mpCategory" style="margin-bottom:8px">${catOptions}</select>
+      <input class="login-field" id="mpIcon" placeholder="Icon (emoji)" value="${editing?esc(p.icon):'🛍️'}" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Price ($)</div><input class="login-field" id="mpPrice" type="number" min="0" step="0.01" value="${editing?p.price:'25'}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Stock</div><input class="login-field" id="mpStock" type="number" min="0" step="1" value="${editing?p.stock:'20'}" style="margin-bottom:0"/></div>
+      </div>
+      <input class="login-field" id="mpSizes" placeholder="Sizes, comma-separated (optional, e.g. S,M,L)" value="${editing&&p.sizes?esc(p.sizes.join(',')):''}" style="margin-bottom:8px"/>
+      <input class="login-field" id="mpColors" placeholder="Colors, comma-separated (optional)" value="${editing&&p.colors?esc(p.colors.join(',')):''}" style="margin-bottom:10px"/>
+      <div style="display:flex;gap:8px">
+        <button class="modal-btn modal-confirm" onclick="saveMerchProductForm()">${editing?'Save changes':'Add product'}</button>
+        ${editing?'<button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="cancelMerchProductEdit()">Cancel</button>':''}
+      </div>
+    </div>
+
+    <button class="modal-btn" style="width:100%;margin-top:16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--red)" onclick="resetMerchToDemoDefaults()">↺ Reset to Demo Festival defaults</button>
+  `;
+}
+window.editMerchProductForm = id => { merchEditId = id; renderManageBody(); };
+window.cancelMerchProductEdit = () => { merchEditId = null; renderManageBody(); };
+
+function parseCommaList(val) {
+  const parts = val.split(',').map(s => s.trim()).filter(Boolean);
+  return parts.length ? parts : null;
+}
+function readMerchProductForm() {
+  const name = document.getElementById('mpName').value.trim();
+  const category = document.getElementById('mpCategory').value;
+  const icon = document.getElementById('mpIcon').value.trim() || '🛍️';
+  const price = parseFloat(document.getElementById('mpPrice').value);
+  const stock = parseInt(document.getElementById('mpStock').value);
+  const sizes = parseCommaList(document.getElementById('mpSizes').value);
+  const colors = parseCommaList(document.getElementById('mpColors').value);
+  if (!name) { toast('Enter a product name','w'); return null; }
+  if (isNaN(price) || isNaN(stock)) { toast('Enter valid price/stock numbers','w'); return null; }
+  return {name, category, icon, price, stock, sizes, colors};
+}
+window.saveMerchProductForm = () => {
+  const product = readMerchProductForm();
+  if (!product) return;
+  const newProducts = [...PRODUCTS];
+  if (merchEditId !== null) {
+    const i = newProducts.findIndex(x => x.id === merchEditId);
+    newProducts[i] = {...newProducts[i], ...product};
+  } else {
+    newProducts.push({id: 'm' + Date.now() + Math.random().toString(36).slice(2,6), ...product});
+  }
+  merchEditId = null;
+  saveMerchProducts(newProducts);
+};
+window.deleteMerchProduct = id => {
+  saveMerchProducts(PRODUCTS.filter(p => p.id !== id));
+};
+function saveMerchProducts(newProducts) {
+  update(ref(db, `groups/${eventGroup}/merchConfig`), {products: newProducts}).then(() => {
+    toast('✅ Merch catalog updated');
+  }).catch(() => toast('⚠️ Failed to save catalog','e'));
+}
+window.resetMerchToDemoDefaults = () => {
+  set(ref(db, `groups/${eventGroup}/merchConfig`), {products: DEFAULT_PRODUCTS}).then(() => {
+    merchEditId = null;
+    toast('↺ Reset to Demo Festival defaults');
+  }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── FOOD VENDOR EDITOR (per-event vendor list: add/edit/delete, menu as one-line-per-item) ──
+function menuToText(menu) {
+  return (menu||[]).map(m => `${m.item},${m.price}${m.dietary&&m.dietary.length?','+m.dietary.join('|'):''}`).join('\n');
+}
+function parseMenuText(text) {
+  return text.split('\n').map(l => l.trim()).filter(Boolean).map(line => {
+    const parts = line.split(',').map(s => s.trim());
+    const price = parseFloat(parts[1]);
+    const dietary = parts[2] ? parts[2].split('|').map(s => s.trim()).filter(Boolean) : [];
+    return {item: parts[0], price: isNaN(price) ? 0 : price, dietary};
+  }).filter(m => m.item);
+}
+function renderFoodMgmtTab() {
+  const vendorRows = FOOD_VENDORS.map(v => {
+    const closed = !!vendorStatus[v.id]?.closed;
+    return `<div style="display:flex;align-items:center;gap:6px;padding:8px 0;border-top:1px solid var(--border)">
+      <span style="font-size:18px">${v.icon}</span>
+      <span style="flex:1">
+        <div style="font-size:12px;font-weight:600">${esc(v.name)}${closed?' <span style="color:var(--red);font-size:10px;font-weight:700">CLOSED</span>':''}</div>
+        <div style="font-size:10px;color:var(--muted)">${esc(v.cuisine)} · ${v.menu.length} menu item${v.menu.length===1?'':'s'}${v.dietary.length?' · '+v.dietary.join('/'):''}</div>
+      </span>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="editFoodVendorForm('${v.id}')">Edit</button>
+      <button class="rep-btn" style="flex:none;padding:5px 8px;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="deleteFoodVendor('${v.id}')">Delete</button>
+    </div>`;
+  }).join('');
+
+  const editing = foodEditId !== null;
+  const v = editing ? FOOD_VENDORS.find(x => x.id === foodEditId) : null;
+  const cuisineOptions = CUISINES.map(c =>
+    `<option value="${c}" ${editing && v.cuisine===c ? 'selected' : ''}>${c}</option>`
+  ).join('');
+
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Vendors (${FOOD_VENDORS.length})</div>
+    ${vendorRows || '<div style="font-size:12px;color:var(--muted);padding:10px 0">No vendors configured</div>'}
+    <div style="margin-top:16px;padding:12px;background:var(--surface2);border:1px solid var(--border);border-radius:10px">
+      <div style="font-size:12px;font-weight:700;margin-bottom:8px">${editing?'Edit vendor':'+ Add vendor'}</div>
+      <input class="login-field" id="fvName" placeholder="Vendor name" value="${editing?esc(v.name):''}" style="margin-bottom:8px"/>
+      <select class="alert-select" id="fvCuisine" style="margin-bottom:8px">${cuisineOptions}</select>
+      <input class="login-field" id="fvIcon" placeholder="Icon (emoji)" value="${editing?esc(v.icon):'🍽️'}" style="margin-bottom:8px"/>
+      <div style="display:flex;gap:8px;margin-bottom:8px">
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">X position (0-1)</div><input class="login-field" id="fvX" type="number" min="0" max="1" step="0.01" value="${editing?v.x:'0.5'}" style="margin-bottom:0"/></div>
+        <div style="flex:1"><div style="font-size:10px;color:var(--muted);margin-bottom:4px">Y position (0-1)</div><input class="login-field" id="fvY" type="number" min="0" max="1" step="0.01" value="${editing?v.y:'0.5'}" style="margin-bottom:0"/></div>
+      </div>
+      <input class="login-field" id="fvDietary" placeholder="Dietary tags, comma-separated (optional, e.g. vegan,gluten-free)" value="${editing?esc(v.dietary.join(',')):''}" style="margin-bottom:8px"/>
+      <div style="font-size:10px;color:var(--muted);margin-bottom:4px">Menu — one item per line: Name,Price,dietary1|dietary2 (dietary optional)</div>
+      <textarea class="login-field" id="fvMenu" rows="4" style="margin-bottom:10px;resize:vertical;font-family:'Space Mono',monospace;font-size:11px" placeholder="Pad Thai,14,vegetarian">${editing?menuToText(v.menu):''}</textarea>
+      <div style="display:flex;gap:8px">
+        <button class="modal-btn modal-confirm" onclick="saveFoodVendorForm()">${editing?'Save changes':'Add vendor'}</button>
+        ${editing?'<button class="modal-btn" style="background:var(--surface2);color:var(--text)" onclick="cancelFoodVendorEdit()">Cancel</button>':''}
+      </div>
+    </div>
+
+    <button class="modal-btn" style="width:100%;margin-top:16px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);color:var(--red)" onclick="resetFoodToDemoDefaults()">↺ Reset to Demo Festival defaults</button>
+  `;
+}
+window.editFoodVendorForm = id => { foodEditId = id; renderManageBody(); };
+window.cancelFoodVendorEdit = () => { foodEditId = null; renderManageBody(); };
+
+function readFoodVendorForm() {
+  const name = document.getElementById('fvName').value.trim();
+  const cuisine = document.getElementById('fvCuisine').value;
+  const icon = document.getElementById('fvIcon').value.trim() || '🍽️';
+  const x = parseFloat(document.getElementById('fvX').value);
+  const y = parseFloat(document.getElementById('fvY').value);
+  const dietary = parseCommaList(document.getElementById('fvDietary').value) || [];
+  const menu = parseMenuText(document.getElementById('fvMenu').value);
+  if (!name) { toast('Enter a vendor name','w'); return null; }
+  if ([x,y].some(n => isNaN(n))) { toast('Enter valid position numbers','w'); return null; }
+  return {name, cuisine, icon, x, y, dietary, menu};
+}
+window.saveFoodVendorForm = () => {
+  const vendor = readFoodVendorForm();
+  if (!vendor) return;
+  const newVendors = [...FOOD_VENDORS];
+  if (foodEditId !== null) {
+    const i = newVendors.findIndex(x => x.id === foodEditId);
+    newVendors[i] = {...newVendors[i], ...vendor};
+  } else {
+    newVendors.push({id: 'v' + Date.now() + Math.random().toString(36).slice(2,6), ...vendor});
+  }
+  foodEditId = null;
+  saveFoodVendors(newVendors);
+};
+window.deleteFoodVendor = id => {
+  saveFoodVendors(FOOD_VENDORS.filter(v => v.id !== id));
+};
+function saveFoodVendors(newVendors) {
+  update(ref(db, `groups/${eventGroup}/foodConfig`), {vendors: newVendors}).then(() => {
+    toast('✅ Food vendors updated');
+  }).catch(() => toast('⚠️ Failed to save vendors','e'));
+}
+window.resetFoodToDemoDefaults = () => {
+  set(ref(db, `groups/${eventGroup}/foodConfig`), {vendors: DEFAULT_FOOD_VENDORS}).then(() => {
+    foodEditId = null;
+    toast('↺ Reset to Demo Festival defaults');
+  }).catch(() => toast('⚠️ Failed to reset','e'));
+};
+
+// ── CSV EXPORT (client-side only — no server round-trip needed for a plain data dump) ──
+function toCSV(headers, rows) {
+  const escCell = v => {
+    const s = v == null ? '' : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const lines = [headers.join(',')];
+  rows.forEach(r => lines.push(headers.map(h => escCell(r[h])).join(',')));
+  return lines.join('\r\n');
+}
+function downloadCSV(filename, csvText) {
+  const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+window.exportReportsCSV = () => {
+  const headers = ['type', 'location', 'count', 'priority', 'time', 'resolved', 'assigned'];
+  const rows = Object.values(reports).map(r => ({
+    type: (REPORT_TYPES[r.type] || {}).label || r.type,
+    location: r.loc || '',
+    count: r.count || 1,
+    priority: r.priority || '',
+    time: r.time ? new Date(r.time).toISOString() : '',
+    resolved: r.resolved ? 'yes' : 'no',
+    assigned: r.assigned || '',
+  }));
+  downloadCSV(`${eventGroup}-reports.csv`, toCSV(headers, rows));
+};
+window.exportOrdersCSV = () => {
+  const headers = ['kind', 'item', 'size', 'color', 'vendor', 'price', 'pickupCode', 'status', 'time'];
+  const merch = flattenOrders(allMerchOrders, 'merch').map(o => ({
+    kind: 'merch', item: o.name, size: o.size || '', color: o.color || '', vendor: '',
+    price: o.price, pickupCode: o.pickupCode, status: o.status, time: o.ts ? new Date(o.ts).toISOString() : '',
+  }));
+  const food = flattenOrders(allFoodOrders, 'food').map(o => ({
+    kind: 'food', item: o.item, size: '', color: '', vendor: o.vendorName || '',
+    price: o.price, pickupCode: o.pickupCode, status: o.status, time: o.ts ? new Date(o.ts).toISOString() : '',
+  }));
+  downloadCSV(`${eventGroup}-orders.csv`, toCSV(headers, [...merch, ...food]));
+};
+
+// ── ORDER FULFILLMENT (merch + food pickup codes — closes the loop between an attendee's
+// reservation/pre-order and a real person at the tent handing it over) ──
+function flattenOrders(ordersByUid, kind) {
+  const out = [];
+  Object.entries(ordersByUid).forEach(([uid, orders]) => {
+    Object.entries(orders || {}).forEach(([orderId, o]) => {
+      out.push({ ...o, uid, orderId, kind });
+    });
+  });
+  return out;
+}
+function renderOrdersTab() {
+  const merch = flattenOrders(allMerchOrders, 'merch').filter(o => o.status !== 'picked_up');
+  const food = flattenOrders(allFoodOrders, 'food'); // food orders stay listed through 'collected' — no active/archived split for these yet
+  let all = [...merch, ...food].sort((a, b) => (b.ts||0) - (a.ts||0));
+
+  const q = orderSearchQuery.trim().toUpperCase();
+  if (q) all = all.filter(o => (o.pickupCode||'').toUpperCase().includes(q));
+
+  // Food order status pipeline: Order Received → Preparing → Ready for Pickup → Collected.
+  // Orders from before this pipeline existed have no `status` at all and default to
+  // 'preparing' (matching what they always displayed), so old data still renders correctly.
+  const FOOD_STATUS_LABEL = { received: '🧾 Order received', preparing: '👨‍🍳 Preparing', ready: '🔔 Ready for pickup', collected: '✅ Collected' };
+  const rows = all.map(o => {
+    const label = o.kind === 'merch' ? `${esc(o.name)}${o.size?' · '+esc(o.size):''}${o.color?' · '+esc(o.color):''}` : `${esc(o.item)}${o.qty>1?' ×'+o.qty:''} — ${esc(o.vendorName||'')}`;
+    const foodStatus = o.status || 'preparing';
+    const statusLabel = o.kind === 'merch'
+      ? (o.status === 'picked_up' ? '✅ Picked up' : '⏳ Reserved')
+      : FOOD_STATUS_LABEL[foodStatus];
+    let actionBtn = '';
+    if (o.kind === 'merch' && o.status !== 'picked_up') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markOrderPickedUp('merch','${o.uid}','${o.orderId}')">✅ Mark picked up</button>`;
+    } else if (o.kind === 'food' && foodStatus === 'received') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markFoodOrderStatus('${o.uid}','${o.orderId}','preparing')">👨‍🍳 Start preparing</button>`;
+    } else if (o.kind === 'food' && foodStatus === 'preparing') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markFoodOrderStatus('${o.uid}','${o.orderId}','ready')">🔔 Mark ready</button>`;
+    } else if (o.kind === 'food' && foodStatus === 'ready') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markFoodOrderStatus('${o.uid}','${o.orderId}','collected')">✅ Mark collected</button>`;
+    }
+    return `<div style="padding:8px 0;border-top:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="font-size:16px">${o.kind==='merch'?'👕':'🍔'}</span>
+        <div style="flex:1">
+          <div style="font-size:12px;font-weight:600">${label}</div>
+          <div style="font-size:10px;color:var(--muted)">${statusLabel} · ${timeAgo(o.ts)}</div>
+        </div>
+        <div class="pickup-code" style="font-size:13px">${esc(o.pickupCode||'—')}</div>
+      </div>
+      ${actionBtn ? `<div style="margin-top:6px">${actionBtn}</div>` : ''}
+    </div>`;
+  }).join('');
+
+  return `
+    <input class="login-field" id="orderSearchInput" placeholder="Search by pickup code…" value="${esc(orderSearchQuery)}" oninput="setOrderSearch(this.value)" style="margin-bottom:10px;font-family:'Space Mono',monospace;letter-spacing:2px"/>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Orders (${all.length})</div>
+    ${rows || '<div style="font-size:12px;color:var(--muted);padding:10px 0">No orders match</div>'}
+  `;
+}
+window.setOrderSearch = val => { orderSearchQuery = val; renderManageBody(); };
+window.markOrderPickedUp = (kind, uid, orderId) => {
+  const path = kind === 'merch' ? 'merchOrders' : 'foodOrders';
+  const patch = kind === 'merch' ? { status: 'picked_up', pickedUpAt: Date.now() } : { pickedUpAt: Date.now() };
+  update(ref(db, `groups/${eventGroup}/${path}/${uid}/${orderId}`), patch)
+    .then(() => { toast('✅ Marked picked up'); renderManageBody(); })
+    .catch(() => toast('⚠️ Failed to update order','e'));
+};
+// Food order status pipeline (received → preparing → ready → collected) — the seam a future
+// Vendor App would call into directly instead of a staff member tapping these buttons.
+window.markFoodOrderStatus = (uid, orderId, status) => {
+  const patch = { status };
+  if (status === 'collected') patch.pickedUpAt = Date.now(); // kept alongside `status` for any code/report still reading the older pickedUpAt-only convention
+  const toastMsg = { preparing: '👨‍🍳 Marked preparing', ready: '🔔 Marked ready for pickup', collected: '✅ Marked collected' }[status] || 'Updated';
+  update(ref(db, `groups/${eventGroup}/foodOrders/${uid}/${orderId}`), patch)
+    .then(() => { toast(toastMsg); renderManageBody(); })
+    .catch(() => toast('⚠️ Failed to update order','e'));
+};
+
+// ── PRIVACY: managers never see an attendee's real name/contact info by default — every
+// attendee-facing identity shown to staff is a stable anonymous ID derived from their uid
+// (same person always maps to the same "#NNN", so staff can still spot repeat reporters,
+// just never learn who they actually are). ──────────────────────────────────────────────
+function anonymizeUid(uid) {
+  if (!uid) return 'Anonymous User';
+  let hash = 0;
+  for (let i = 0; i < uid.length; i++) hash = (hash * 31 + uid.charCodeAt(i)) >>> 0;
+  return 'Anonymous User #' + String(hash % 1000).padStart(3, '0');
+}
+
+// ── MODERATION (attendee-reported chat messages, staff-only visible per security rules) ──
+function renderModerationTab() {
+  const entries = Object.entries(flaggedMessages).sort((a, b) => (b[1].reportedAt||0) - (a[1].reportedAt||0));
+  const open = entries.filter(([,r]) => !r.resolved);
+  const resolved = entries.filter(([,r]) => r.resolved);
+  const row = ([id, r]) => `
+    <div style="padding:10px 0;border-top:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600">${anonymizeUid(r.uid)} <span style="color:var(--muted);font-weight:400">in ${esc(r.channelKey||'?')}</span></div>
+      <div style="font-size:13px;margin:4px 0;padding:8px;background:var(--surface2);border-radius:8px">${esc(r.text||'(image/attachment)')}</div>
+      <div style="font-size:10px;color:var(--muted)">Reported by ${anonymizeUid(r.reportedBy)} · ${timeAgo(r.reportedAt)}</div>
+      ${r.resolved ? '' : `<div style="display:flex;gap:8px;margin-top:6px">
+        <button class="rep-btn resolve-btn" style="flex:1" onclick="resolveFlaggedMessage('${id}')">Mark reviewed</button>
+        <button class="rep-btn" style="flex:1;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="dismissFlaggedMessage('${id}')">Dismiss</button>
+      </div>`}
+    </div>`;
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Needs review (${open.length})</div>
+    ${open.length ? open.map(row).join('') : '<div style="font-size:12px;color:var(--muted);padding:10px 0">No open reports</div>'}
+    ${resolved.length ? `<div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Reviewed (${resolved.length})</div>${resolved.map(row).join('')}` : ''}
+  `;
+}
+window.resolveFlaggedMessage = id => {
+  update(ref(db, `groups/${eventGroup}/flaggedMessages/${id}`), {resolved: true, resolvedAt: Date.now(), resolvedBy: staffName}).catch(() => toast('⚠️ Failed to update','e'));
+};
+window.dismissFlaggedMessage = id => {
+  set(ref(db, `groups/${eventGroup}/flaggedMessages/${id}`), null).catch(() => toast('⚠️ Failed to remove','e'));
+};
+
+function renderAnalyticsTab() {
+  const allReports = Object.values(reports);
+  const resolved = allReports.filter(r => r.resolved);
+  const byType = {};
+  allReports.forEach(r => { byType[r.type] = (byType[r.type]||0) + 1; });
+  const avgResolveMin = resolved.length
+    ? (resolved.reduce((s,r) => s + (r.resolvedAt - r.time), 0) / resolved.length / 60000).toFixed(1)
+    : null;
+  const typeRows = Object.entries(byType).sort((a,b) => b[1]-a[1]).map(([t,c]) => {
+    const info = REPORT_TYPES[t] || {label:t, icon:'📢'};
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
+      <span>${info.icon}</span><span style="flex:1">${info.label}</span><span style="font-family:'Space Mono',monospace;font-weight:700">${c}</span>
+    </div>`;
+  }).join('');
+  const total = Object.keys(attendees).length || 1;
+  const zoneCounts = ZONES.map(z => {
+    let count = 0;
+    Object.values(attendees).forEach(u => {
+      if (Math.abs((u.x ?? .5) - z.x) < z.w/2 + .03 && Math.abs((u.y ?? .5) - z.y) < z.h/2 + .03) count++;
+    });
+    return {label:z.label, icon:z.icon, count};
+  }).sort((a,b) => b.count - a.count);
+  const densityRows = zoneCounts.map(z => {
+    const frac = z.count / total;
+    const level = frac > .35 ? 'Busy' : frac > .12 ? 'Moderate' : 'Quiet';
+    const color = level==='Busy' ? 'var(--red)' : level==='Moderate' ? 'var(--amber)' : 'var(--green)';
+    return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px">
+      <span>${z.icon}</span><span style="flex:1">${z.label}</span><span style="color:${color};font-weight:700;font-size:10px">${level}</span><span style="font-family:'Space Mono',monospace;width:20px;text-align:right">${z.count}</span>
+    </div>`;
+  }).join('');
+  return `
+    <div style="font-size:11px;color:var(--muted);margin-bottom:6px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Reports</div>
+    <div style="display:flex;gap:10px;margin-bottom:10px">
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700">${allReports.length}</div><div style="font-size:10px;color:var(--muted)">Total</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--green)">${resolved.length}</div><div style="font-size:10px;color:var(--muted)">Resolved</div>
+      </div>
+      <div style="flex:1;background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center">
+        <div style="font-family:'Space Mono',monospace;font-size:18px;font-weight:700">${avgResolveMin!==null?avgResolveMin+'m':'—'}</div><div style="font-size:10px;color:var(--muted)">Avg resolve</div>
+      </div>
+    </div>
+    ${typeRows || '<div style="font-size:12px;color:var(--muted);padding:6px 0">No reports yet</div>'}
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Crowd by zone (${Object.keys(attendees).length} live)</div>
+    ${densityRows}
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 2px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Recent client errors (${Object.keys(clientErrors).length})</div>
+    ${renderClientErrorRows()}
+    <div style="font-size:11px;color:var(--muted);margin:16px 0 6px;text-transform:uppercase;font-family:'Space Mono',monospace;letter-spacing:.5px">Export</div>
+    <div style="display:flex;gap:8px">
+      <button class="rep-btn" style="flex:1;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="exportReportsCSV()">📄 Reports CSV</button>
+      <button class="rep-btn" style="flex:1;background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="exportOrdersCSV()">📄 Orders CSV</button>
+    </div>
+  `;
+}
+function renderClientErrorRows() {
+  const entries = Object.entries(clientErrors).sort((a, b) => (b[1].ts||0) - (a[1].ts||0)).slice(0, 20);
+  if (!entries.length) return '<div style="font-size:12px;color:var(--muted);padding:6px 0">No errors reported — good sign</div>';
+  return entries.map(([id, e]) => `
+    <div style="padding:6px 0;border-top:1px solid var(--border);font-size:11px">
+      <div style="color:var(--red);font-family:'Space Mono',monospace">${esc(e.message||'Unknown error')}</div>
+      <div style="color:var(--muted)">${timeAgo(e.ts)} · ${esc((e.userAgent||'').slice(0,60))}</div>
+    </div>`).join('');
+}
+
+function renderSponsorsTab() {
+  const list = Object.entries(sponsors);
+  return `
+    <input class="login-field" id="sponsorNameInput" placeholder="Sponsor name" maxlength="30" style="margin-bottom:8px"/>
+    <input class="login-field" id="sponsorTaglineInput" placeholder="Tagline (optional)" maxlength="50" style="margin-bottom:8px"/>
+    <select class="alert-select" id="sponsorTierSelect" style="margin-bottom:8px">
+      <option value="title">Title Sponsor</option>
+      <option value="gold">Gold</option>
+      <option value="partner">Partner</option>
+    </select>
+    <button class="modal-btn modal-confirm" style="width:100%;margin-bottom:16px" onclick="addSponsor()">+ Add sponsor</button>
+    ${list.length ? list.map(([id,s]) => `
+      <div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--border);font-size:12px">
+        <span style="flex:1">🏷️ ${esc(s.name)}${s.tagline?' — '+esc(s.tagline):''}</span>
+        <span style="font-size:10px;color:var(--muted);text-transform:uppercase">${s.tier}</span>
+        <span style="color:var(--red);cursor:pointer;font-weight:600" onclick="removeSponsor('${id}')">✕</span>
+      </div>`).join('') : '<div style="font-size:12px;color:var(--muted);padding:10px 0">No sponsors configured</div>'}
+  `;
+}
+window.addSponsor = () => {
+  const name = document.getElementById('sponsorNameInput').value.trim();
+  const tagline = document.getElementById('sponsorTaglineInput').value.trim();
+  const tier = document.getElementById('sponsorTierSelect').value;
+  if (!name) { toast('Enter sponsor name','w'); return; }
+  push(ref(db, `groups/${eventGroup}/sponsors`), {name, tagline, tier});
+  toast('🏷️ Sponsor added');
+  document.getElementById('sponsorNameInput').value = '';
+  document.getElementById('sponsorTaglineInput').value = '';
+};
+window.removeSponsor = id => update(ref(db, `groups/${eventGroup}/sponsors`), {[id]:null});
+
+// ── ALERT BROADCAST ───────────────────────────────────────────────────────────
+window.openAlertModal = () => {
+  alertType='hazard';alertSeverity='warning';
+  renderAlertTypeRow();renderAlertSevRow();renderAlertLocationSelect();renderActiveAlertsList();
+  document.getElementById('alertLabelInput').value='';
+  document.getElementById('alertModal').classList.add('open');
+};
+window.closeAlertModal = () => document.getElementById('alertModal').classList.remove('open');
+function renderAlertTypeRow(){
+  document.getElementById('alertTypeRow').innerHTML = ALERT_TYPES.map(t=>
+    `<div class="alert-type-chip${alertType===t.id?' sel':''}" onclick="setAlertType('${t.id}')">${t.label}</div>`
+  ).join('');
+}
+window.setAlertType = id => { alertType=id; renderAlertTypeRow(); renderAlertLocationSelect(); };
+function renderAlertSevRow(){
+  document.getElementById('alertSevRow').innerHTML = ['info','warning','severe'].map(s=>
+    `<div class="alert-sev-chip ${s}${alertSeverity===s?' sel':''}" onclick="setAlertSeverity('${s}')">${s[0].toUpperCase()+s.slice(1)}</div>`
+  ).join('');
+}
+window.setAlertSeverity = s => { alertSeverity=s; renderAlertSevRow(); };
+function renderAlertLocationSelect(){
+  const sel=document.getElementById('alertLocationSelect');
+  if(alertType==='closure'){
+    sel.style.display='block';
+    sel.innerHTML = PATHS.map((p,i)=>`<option value="${i}">${PATH_LABELS[i]}</option>`).join('');
+  } else if(alertType==='hazard'||alertType==='incident'){
+    sel.style.display='block';
+    sel.innerHTML = ZONES.map((z,i)=>`<option value="${i}">${z.label}</option>`).join('');
+  } else {
+    sel.style.display='none';
+  }
+}
+window.confirmBroadcastAlert = () => {
+  const label = document.getElementById('alertLabelInput').value.trim();
+  if(!label){ toast('Enter an alert message','w'); return; }
+  const data = {type:alertType, label, severity:alertSeverity, ts:Date.now(), active:true};
+  if(alertType==='hazard'||alertType==='incident'){
+    const z=ZONES[+document.getElementById('alertLocationSelect').value];
+    data.x=z.x;data.y=z.y;data.locLabel=z.label;
+  } else if(alertType==='closure'){
+    data.pathIndex=+document.getElementById('alertLocationSelect').value;
+    data.locLabel=PATH_LABELS[data.pathIndex];
+  }
+  push(ref(db,`groups/${eventGroup}/alerts`), data);
+  toast(`📢 ${ALERT_TYPES.find(t=>t.id===alertType).label} broadcast sent`);
+  closeAlertModal();
+};
+function renderActiveAlertsList(){
+  const list=document.getElementById('alertActiveList');
+  const active=Object.entries(alerts).filter(([,a])=>a.active);
+  if(!active.length){list.innerHTML=`<div style="font-size:11px;color:var(--muted);padding-top:10px">No active alerts</div>`;return;}
+  list.innerHTML = active.map(([id,a])=>{
+    const t=ALERT_TYPES.find(x=>x.id===a.type)||{icon:'📢'};
+    return `<div class="alert-active-row"><span>${t.icon}</span><span>${esc(a.label)}${a.locLabel?' — '+esc(a.locLabel):''}</span><span class="alert-active-clear" onclick="clearAlert('${id}')">Clear</span></div>`;
+  }).join('');
+}
+window.clearAlert = id => {
+  update(ref(db,`groups/${eventGroup}/alerts/${id}`),{active:false});
+  toast('Alert cleared');
+};
+
+let knownReportIds = new Set();
 function listenReports() {
   onValue(ref(db, `groups/${eventGroup}/reports`), snap => {
-    const data = snap.val() || {};
-    Object.entries(data).forEach(([id, r]) => {
-      if (!reports[id]) reports[id] = r;
-    });
+    const incoming = snap.val() || {};
+    Object.entries(incoming).forEach(([id, r]) => { r.id = id; });
+    // Only alert for reports that arrive AFTER the initial load — the first snapshot on
+    // connect can already contain many open reports, and those shouldn't all fire an alarm.
+    if (reportsLoaded) {
+      Object.entries(incoming).forEach(([id, r]) => {
+        if (knownReportIds.has(id) || r.resolved) return;
+        const t = REPORT_TYPES[r.type] || {};
+        if (t.urgent || r.priority === 'high') {
+          playUrgentReportAlert();
+          toast(`🚨 New urgent report: ${t.label || r.type} — ${r.loc || 'Venue'}`, 'w');
+        }
+      });
+    }
+    knownReportIds = new Set(Object.keys(incoming));
+    reports = incoming;
+    reportsLoaded = true;
     renderReportList();
     updateStats();
   });
 }
 
+// Web Audio beep — no external audio asset needed, works even if the tab has been idle.
+let alertAudioCtx = null;
+function playUrgentReportAlert() {
+  try {
+    alertAudioCtx = alertAudioCtx || new (window.AudioContext || window.webkitAudioContext)();
+    const ctx = alertAudioCtx;
+    [0, 0.18, 0.36].forEach(delay => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.001, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.2, ctx.currentTime + delay + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.15);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.16);
+    });
+  } catch (e) {}
+  flashTabTitle();
+}
+let titleFlashTimer = null;
+function flashTabTitle() {
+  const original = document.title.replace(/^🚨 /, '');
+  let on = false, count = 0;
+  clearInterval(titleFlashTimer);
+  titleFlashTimer = setInterval(() => {
+    document.title = on ? original : '🚨 New urgent report';
+    on = !on;
+    count++;
+    if (count > 8) { clearInterval(titleFlashTimer); document.title = original; }
+  }, 800);
+  window.addEventListener('focus', () => { clearInterval(titleFlashTimer); document.title = original; }, { once: true });
+}
+
 // ── STATS ─────────────────────────────────────────────────────────────────────
 function updateStats() {
   const openReps = Object.values(reports).filter(r=>!r.resolved);
-  document.getElementById('statAttendees').textContent = Object.keys(attendees).length || Math.floor(Math.random()*80+120);
+  const resolvedReps = Object.values(reports).filter(r=>r.resolved);
+  const panicking = Object.values(attendees).filter(u=>u.panic).length;
+  document.getElementById('statAttendees').textContent = Object.keys(attendees).length;
   document.getElementById('statOpen').textContent = openReps.length;
-  document.getElementById('statResolved').textContent = resolvedCount;
-  document.getElementById('statAvgTime').textContent = '4m';
+  document.getElementById('statResolved').textContent = resolvedReps.length;
+  document.getElementById('statAlerts').textContent = panicking;
+  document.getElementById('statAlerts').parentElement.parentElement.style.display = panicking > 0 ? 'flex' : 'none';
   document.getElementById('openCount').textContent = `${openReps.length} open`;
   document.getElementById('openCount').style.display = openReps.length > 0 ? 'block' : 'none';
 }
@@ -452,6 +1688,19 @@ window.setFilter = (f, el) => {
 // ── REPORT LIST ───────────────────────────────────────────────────────────────
 function renderReportList() {
   const list = document.getElementById('reportList');
+  if (!reportsLoaded) {
+    list.innerHTML = Array.from({length:4}).map(() => `
+      <div class="rep-card" style="pointer-events:none">
+        <div class="rep-top">
+          <div class="skel" style="width:40px;height:40px;border-radius:10px;flex-shrink:0"></div>
+          <div class="rep-info">
+            <div class="skel" style="width:60%;height:13px;margin-bottom:8px"></div>
+            <div class="skel" style="width:40%;height:11px"></div>
+          </div>
+        </div>
+      </div>`).join('');
+    return;
+  }
   let reps = Object.values(reports).sort((a,b) => {
     if (a.resolved !== b.resolved) return a.resolved ? 1 : -1;
     return b.time - a.time;
@@ -468,21 +1717,31 @@ function renderReportList() {
 
   list.innerHTML = reps.map(r => {
     const t = REPORT_TYPES[r.type] || {label:r.type,icon:'📢',color:'#888',urgent:false};
-    const urgent = (t.urgent || r.count >= 5) && !r.resolved;
+    const urgent = (t.urgent || r.count >= 5 || r.priority==='high') && !r.resolved;
     const ago = timeAgo(r.time);
     const countClass = r.count >= 5 ? 'rep-count many' : 'rep-count';
+    const prioColor = r.priority==='high'?'#ef4444':r.priority==='low'?'#10b981':'#f59e0b';
+    const prioBadge = r.priority?`<span style="font-size:9px;font-weight:700;padding:2px 6px;border-radius:10px;background:${prioColor}22;color:${prioColor};text-transform:uppercase;font-family:'Space Mono',monospace">${r.priority}</span>`:'';
+    const mediaLinks = [
+      r.photoUrl?`<a href="${r.photoUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-size:10px">📷 Photo</a>`:'',
+      r.videoUrl?`<a href="${r.videoUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-size:10px">🎥 Video</a>`:'',
+      r.voiceUrl?`<a href="${r.voiceUrl}" target="_blank" rel="noopener" style="color:var(--blue);text-decoration:none;font-size:10px">🎙️ Voice</a>`:'',
+    ].filter(Boolean).join(' ');
+    const noteHtml = r.note?`<div style="font-size:11px;color:var(--text);margin-top:6px;font-style:italic">"${esc(r.note)}"</div>`:'';
 
     return `<div class="rep-card${urgent?' urgent':''}${r.resolved?' resolved':''}" id="card-${r.id}">
       <div class="rep-top">
         <div class="rep-icon-wrap" style="background:${t.color}18">${t.icon}</div>
         <div class="rep-info">
-          <div class="rep-type" style="color:${t.color}">${t.label}${urgent?' 🚨':''}</div>
+          <div class="rep-type" style="color:${t.color}">${t.label}${urgent?' 🚨':''} ${prioBadge}</div>
           <div class="rep-loc">📍 ${r.loc||'Venue area'}</div>
           <div class="rep-meta">
             <span class="rep-time">${ago}</span>
             <span class="${countClass}">${r.count} report${r.count>1?'s':''}</span>
             ${r.assigned?`<span style="font-size:10px;color:var(--blue)">👷 ${r.assigned}</span>`:''}
           </div>
+          ${noteHtml}
+          ${mediaLinks?`<div style="display:flex;gap:10px;margin-top:6px">${mediaLinks}</div>`:''}
         </div>
       </div>
       ${r.resolved
@@ -490,12 +1749,14 @@ function renderReportList() {
         : `<div class="rep-actions">
             <button class="rep-btn assign-btn" onclick="openAssign('${r.id}')">👷 Assign staff</button>
             <button class="rep-btn resolve-btn" onclick="resolveReport('${r.id}')">✅ Mark resolved</button>
+            ${r.x!=null&&r.y!=null?`<button class="rep-btn" style="background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="locateReportOnMap('${r.id}')">📍 Locate</button>`:''}
            </div>`
       }
     </div>`;
   }).join('');
 }
 
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 function timeAgo(ts) {
   const diff = Math.floor((Date.now()-ts)/1000);
   if (diff < 60) return `${diff}s ago`;
@@ -506,11 +1767,7 @@ function timeAgo(ts) {
 // ── ACTIONS ───────────────────────────────────────────────────────────────────
 window.resolveReport = id => {
   if (!reports[id]) return;
-  reports[id].resolved = true;
-  reports[id].resolvedAt = Date.now();
-  resolvedCount++;
-  renderReportList();
-  updateStats();
+  update(ref(db, `groups/${eventGroup}/reports/${id}`), {resolved:true, resolvedAt:Date.now(), resolvedBy:staffName});
   toast(`✅ Report resolved`);
 };
 
@@ -520,21 +1777,22 @@ window.openAssign = id => {
   const r = reports[id];
   const t = REPORT_TYPES[r?.type] || {label:r?.type||'Issue'};
   document.getElementById('assignRepLabel').textContent = `${t.label} — ${r?.loc||'Venue'}`;
-  document.getElementById('staffList').innerHTML = STAFF.map(s => `
-    <div class="staff-item" id="staff-${s.id}" onclick="selectStaff('${s.id}')">
-      <div class="staff-avatar">${s.emoji}</div>
+  const roster = Object.entries(staffRoster);
+  document.getElementById('staffList').innerHTML = roster.length ? roster.map(([uid, s]) => `
+    <div class="staff-item" id="staff-${uid}" onclick="selectStaff('${uid}')">
+      <div class="staff-avatar">👷</div>
       <div>
-        <div class="staff-name">${s.name}</div>
-        <div class="staff-zone">${s.zone}</div>
+        <div class="staff-name">${esc(s.name)}${uid===staffUid?' (you)':''}</div>
+        <div class="staff-zone">Online now</div>
       </div>
-    </div>`).join('');
+    </div>`).join('') : '<div style="font-size:12px;color:var(--muted);padding:10px 0">No other staff currently online — only people actively signed into this dashboard can be assigned.</div>';
   document.getElementById('assignModal').classList.add('open');
 };
 
-window.selectStaff = id => {
-  selectedStaff = id;
+window.selectStaff = uid => {
+  selectedStaff = uid;
   document.querySelectorAll('.staff-item').forEach(el=>el.classList.remove('sel'));
-  document.getElementById('staff-'+id)?.classList.add('sel');
+  document.getElementById('staff-'+uid)?.classList.add('sel');
 };
 
 window.closeAssign = () => {
@@ -544,10 +1802,10 @@ window.closeAssign = () => {
 
 window.confirmAssign = () => {
   if (!selectedStaff || !assigningId) { toast('Select a staff member','w'); return; }
-  const s = STAFF.find(x=>x.id===selectedStaff);
-  if (reports[assigningId]) reports[assigningId].assigned = s.name;
+  const s = staffRoster[selectedStaff];
+  if (!s) { toast('That staff member is no longer online','w'); return; }
+  update(ref(db, `groups/${eventGroup}/reports/${assigningId}`), {assigned:s.name, assignedUid:selectedStaff});
   closeAssign();
-  renderReportList();
   toast(`👷 Assigned to ${s.name}`);
 };
 
@@ -560,6 +1818,18 @@ function resize() { W=canvas.offsetWidth; H=canvas.offsetHeight; canvas.width=W;
 window.addEventListener('resize', resize); resize();
 
 function px(rx,ry) { return { x:panX+rx*W*scale, y:panY+ry*H*scale }; }
+
+// Jumps the live map to a report's location — closes the Manage modal (which sits on top of
+// the map) and re-centers the view, matching px()'s own pan/scale math in reverse.
+window.locateReportOnMap = id => {
+  const r = reports[id];
+  if (!r || r.x == null || r.y == null) return;
+  closeManageModal();
+  panX = W/2 - r.x*W*scale;
+  panY = H/2 - r.y*H*scale;
+  locatedReportId = id;
+  locatedUntil = Date.now() + 4000;
+};
 
 function draw(ts) {
   ctx.clearRect(0,0,W,H);
@@ -596,11 +1866,37 @@ function draw(ts) {
     ctx.fillText(z.label,cx,cy+8);
   });
 
+  // Active hazard/closure alerts
+  Object.values(alerts).filter(a=>a.active).forEach(a=>{
+    if(a.type==='closure'&&a.pathIndex!=null&&PATHS[a.pathIndex]){
+      ctx.strokeStyle='rgba(239,68,68,.8)';ctx.lineWidth=4*scale;ctx.setLineDash([8,6]);ctx.lineCap='round';
+      ctx.beginPath();PATHS[a.pathIndex].forEach(([rx,ry],i)=>{const p=px(rx,ry);i===0?ctx.moveTo(p.x,p.y):ctx.lineTo(p.x,p.y);});ctx.stroke();ctx.setLineDash([]);
+    } else if((a.type==='hazard'||a.type==='incident')&&a.x!=null){
+      const p=px(a.x,a.y);
+      const pulse=(ts%900)/900;
+      const c=a.type==='incident'?'239,68,68':'245,158,11';
+      ctx.beginPath();ctx.arc(p.x,p.y,(12+pulse*14)*scale,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(${c},${.7-pulse*.7})`;ctx.lineWidth=2;ctx.stroke();
+      ctx.font=`${16*scale}px serif`;ctx.textAlign='center';ctx.textBaseline='middle';
+      ctx.fillText(a.type==='incident'?'🚨':'⚠️',p.x,p.y);
+    }
+  });
+
   // Attendees as small dots
   Object.values(attendees).forEach(u=>{
     const p=px(u.x||.5, u.y||.5);
-    ctx.fillStyle='rgba(255,255,255,.4)';
-    ctx.beginPath(); ctx.arc(p.x,p.y,4*scale,0,Math.PI*2); ctx.fill();
+    if(u.panic){
+      const pulse=(ts%800)/800;
+      ctx.beginPath(); ctx.arc(p.x,p.y,(10+pulse*14)*scale,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(239,68,68,${.7-pulse*.7})`; ctx.lineWidth=2.5; ctx.stroke();
+      ctx.fillStyle='#ef4444';
+      ctx.shadowColor='#ef4444'; ctx.shadowBlur=10;
+      ctx.beginPath(); ctx.arc(p.x,p.y,6*scale,0,Math.PI*2); ctx.fill();
+      ctx.shadowBlur=0;
+    } else {
+      ctx.fillStyle='rgba(255,255,255,.4)';
+      ctx.beginPath(); ctx.arc(p.x,p.y,4*scale,0,Math.PI*2); ctx.fill();
+    }
   });
 
   // Report pins
@@ -615,6 +1911,13 @@ function draw(ts) {
       const pulse=(now%1000)/1000;
       ctx.beginPath(); ctx.arc(p.x,p.y,(14+pulse*12)*scale,0,Math.PI*2);
       ctx.strokeStyle=`rgba(239,68,68,${.5-pulse*.5})`; ctx.lineWidth=2; ctx.stroke();
+    }
+
+    // Extra highlight ring when this pin was just jumped to via "Locate" on the report list
+    if(r.id===locatedReportId&&now<locatedUntil){
+      const pulse=(now%800)/800;
+      ctx.beginPath(); ctx.arc(p.x,p.y,(20+pulse*16)*scale,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(167,139,250,${.9-pulse*.7})`; ctx.lineWidth=3; ctx.stroke();
     }
 
     // Pin circle
@@ -657,14 +1960,6 @@ window.toast=(msg,type='')=>{
   setTimeout(()=>t.className='toast',3000);
 };
 
-// Auto-refresh stats every 30s
-setInterval(()=>{
-  Object.values(reports).filter(r=>!r.resolved).forEach(r=>{
-    if(Math.random()>.85) r.count++;
-  });
-  renderReportList();
-  updateStats();
-}, 30000);
 </script>
 </body>
 </html>

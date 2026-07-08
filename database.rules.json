@@ -1,0 +1,78 @@
+{
+  "rules": {
+    ".read": false,
+    ".write": false,
+
+    "groups": {
+      "$code": {
+        "staff": {
+          ".read": "auth != null",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid",
+            ".validate": "newData.val() === true"
+          }
+        },
+
+        "venueConfig":   { ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "scheduleConfig":{ ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "merchConfig":   { ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "foodConfig":    { ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "zoneStatus":    { ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "vendorStatus":  { ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "alerts":        { ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "announcements": { ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+        "sponsors":      { ".read": "auth != null", ".write": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true" },
+
+        "meta":        { ".read": "auth != null", ".write": "auth != null" },
+        "users":       { ".read": "auth != null", ".write": "auth != null" },
+        "chat":        { ".read": "auth != null", ".write": "auth != null" },
+        "reports":     { ".read": "auth != null", ".write": "auth != null" },
+        "eventRatings":{ ".read": "auth != null", ".write": "auth != null" },
+        "foodRatings": { ".read": "auth != null", ".write": "auth != null" },
+        "foodOrders":  { ".read": "auth != null", ".write": "auth != null" },
+        "merchOrders": { ".read": "auth != null", ".write": "auth != null" },
+        "merchStock":  { ".read": "auth != null", ".write": "auth != null" },
+        "xp":          { ".read": "auth != null", ".write": "auth != null" },
+        "meetingPoint":{ ".read": "auth != null", ".write": "auth != null" },
+
+        "pushTokens": {
+          "$uid": {
+            ".read": "auth != null && auth.uid === $uid",
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        },
+        "scheduleNotifySubs": {
+          "$entryId": {
+            "$uid": {
+              ".read": "auth != null && auth.uid === $uid",
+              ".write": "auth != null && auth.uid === $uid",
+              ".validate": "newData.val() === true"
+            }
+          }
+        },
+
+        "flaggedMessages": {
+          ".read": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true",
+          ".write": "auth != null"
+        },
+        "clientErrors": {
+          ".read": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true",
+          ".write": "auth != null"
+        },
+        "staffRoster": {
+          ".read": "auth != null && root.child('groups/'+$code+'/staff/'+auth.uid).val() === true",
+          "$uid": { ".write": "auth != null && auth.uid === $uid" }
+        },
+
+        "$other": { ".read": false, ".write": false }
+      }
+    },
+
+    "organizers": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}

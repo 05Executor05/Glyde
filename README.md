@@ -10,8 +10,11 @@ Glyde gives festival attendees real-time friend tracking, interactive venue maps
 
 | File | Description |
 |---|---|
-| `festival-nav.html` | Interactive venue map with friend tracking, POIs, navigation & issue reporting |
-| `groundmap-chat.html` | Full chat system — venue channels, group chat, and DMs |
+| `index.html` | Unified attendee app — live map, friend tracking, chat, and venue reporting (Firebase-backed) |
+| `manager.html` | Venue manager dashboard — live report feed, staff assignment, attendee/alert stats |
+| `festival-nav.html` | Early standalone map prototype (superseded by `index.html`) |
+| `groundmap-chat.html` | Early standalone chat prototype (superseded by `index.html`) |
+| `glyde-3d-map.html` | Early standalone 3D map prototype (superseded by `index.html`) |
 
 ## How to Run
 
@@ -19,14 +22,19 @@ Glyde gives festival attendees real-time friend tracking, interactive venue maps
 2. Open it directly in Chrome, Safari, or Firefox
 3. No install, no dependencies needed
 
+Live: https://05executor05.github.io/Glyde
+
 ## Built With
 
 - Vanilla HTML / CSS / JavaScript
+- Firebase Realtime Database (live location, chat presence, venue reports)
 - Canvas API (map rendering)
 - Space Grotesk + Space Mono fonts
 - Built entirely with Claude (Anthropic)
 
 ## Roadmap
+
+Building in phase order below, on top of the existing `index.html`/`manager.html` (vanilla HTML/JS + Firebase), not a from-scratch native rewrite — see [Status](#status) for what's already shipped per phase.
 
 Phase 0 – Foundation
 Objective:
@@ -332,6 +340,28 @@ Recommended Build Sequence
 •	Organizer Dashboard
 •	Polish
 
+## Status
+
+All 16 phases of the roadmap are complete. Highlights per phase:
+
+- **Phase 0 – Foundation:** design system, reusable modal component, profile persistence (localStorage, auto-resume, Leave Group), light/dark/high-contrast theming, offline/online + Firebase-write-failure toasts, lightweight analytics event logging.
+- **Phase 1 – Navigation:** canvas map with zoom/pan/recenter, compass, real GPS blue-dot, venue detail sheets, turn-by-turn nav line with distance/ETA, indoor floor switching, favorites, share destination.
+- **Phase 2 – Search & Discovery:** universal search, autocomplete, recent/popular searches, category filters, map layer toggles, voice search (where supported).
+- **Phase 3 – Friends:** friend list, live location sharing, navigate-to-friend, meeting points + invitations, arrival status, temporary sharing, privacy pause.
+- **Phase 4 – Chat:** DMs, group/venue channels, typing indicators, read receipts, emoji reactions, image sharing, live location sharing, reply/forward — all synced live via Firebase (not simulated locally).
+- **Phase 5 – Reports:** categorized reports with GPS, photo/video/voice attachments, priority levels, status tracking, live sync to the organizer dashboard.
+- **Phase 6 – Crowd Intelligence:** live-position-derived heatmap, queue estimates, density labels, hazard/closure/weather alerts, alternative routing hints.
+- **Phase 7 – Event Companion:** schedule, artist pages, bookmarks, reminder notifications, now-playing banner, stage occupancy.
+- **Phase 8 – Merchandise:** shop, categories, variants, live inventory, reservation + pickup code, order history, drop notifications.
+- **Phase 9 – Food:** vendor list, cuisine/dietary filters, menus, ratings, live queue estimates, pre-order, navigate-to-vendor.
+- **Phase 10 – Safety:** SOS/panic (visible to group + venue staff), emergency contacts, nearest medical/security/exit routing, incident broadcasts, share live location.
+- **Phase 11 – Accessibility:** accessible-only routing filter, high-contrast mode, large text, voice guidance, quiet zones.
+- **Phase 12 – Gamification:** badges, XP, daily quests, leaderboard, festival passport.
+- **Phase 13 – Memories:** visited-zone timeline, GPS-based distance walked, artists-seen (schedule cross-referenced), photos on the map, shareable recap card.
+- **Phase 14 – Organizer Dashboard:** announcements (with push notification), vendor/inventory management, map/zone open-closed management, analytics (report stats, resolution time), crowd monitoring, sponsor management — plus live reports/staff assignment from Phase 5.
+- **Phase 15 – Polish:** modal/button micro-animations, haptic feedback (Vibration API), skeleton loading, a persistent offline banner with message queueing/flush-on-reconnect, a battery saver mode (throttled GPS sync + render loop), a paused render loop when the tab is hidden, an accessibility aria-label audit, and a consolidated "More" menu to de-clutter the header.
+
+Where a roadmap item couldn't be backed by a real external service in this environment (weather, QR scanning, native wheelchair pathfinding, app store submission), it ships as an honestly-labeled simplified equivalent rather than fabricated data — e.g. organizer-broadcast weather alerts instead of a live weather API, a bold pickup code instead of an unscannable fake QR graphic, and PWA installability (manifest + icons + offline app shell) as the web equivalent of store readiness, since a wrapped native build is out of scope.
 
 ## Stack (Planned Production)
 
