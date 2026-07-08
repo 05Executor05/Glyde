@@ -670,6 +670,7 @@ let currentFilter = 'all';
 let assigningId = null;
 let selectedStaff = null;
 let scale = 1, panX = 0, panY = 0;
+let locatedReportId = null, locatedUntil = 0;
 let alerts = {};
 let alertType = 'hazard';
 let alertSeverity = 'warning';
@@ -1675,6 +1676,7 @@ function renderReportList() {
         : `<div class="rep-actions">
             <button class="rep-btn assign-btn" onclick="openAssign('${r.id}')">👷 Assign staff</button>
             <button class="rep-btn resolve-btn" onclick="resolveReport('${r.id}')">✅ Mark resolved</button>
+            ${r.x!=null&&r.y!=null?`<button class="rep-btn" style="background:var(--surface2);border-color:var(--border);color:var(--text)" onclick="locateReportOnMap('${r.id}')">📍 Locate</button>`:''}
            </div>`
       }
     </div>`;
@@ -1743,6 +1745,18 @@ function resize() { W=canvas.offsetWidth; H=canvas.offsetHeight; canvas.width=W;
 window.addEventListener('resize', resize); resize();
 
 function px(rx,ry) { return { x:panX+rx*W*scale, y:panY+ry*H*scale }; }
+
+// Jumps the live map to a report's location — closes the Manage modal (which sits on top of
+// the map) and re-centers the view, matching px()'s own pan/scale math in reverse.
+window.locateReportOnMap = id => {
+  const r = reports[id];
+  if (!r || r.x == null || r.y == null) return;
+  closeManageModal();
+  panX = W/2 - r.x*W*scale;
+  panY = H/2 - r.y*H*scale;
+  locatedReportId = id;
+  locatedUntil = Date.now() + 4000;
+};
 
 function draw(ts) {
   ctx.clearRect(0,0,W,H);
@@ -1824,6 +1838,13 @@ function draw(ts) {
       const pulse=(now%1000)/1000;
       ctx.beginPath(); ctx.arc(p.x,p.y,(14+pulse*12)*scale,0,Math.PI*2);
       ctx.strokeStyle=`rgba(239,68,68,${.5-pulse*.5})`; ctx.lineWidth=2; ctx.stroke();
+    }
+
+    // Extra highlight ring when this pin was just jumped to via "Locate" on the report list
+    if(r.id===locatedReportId&&now<locatedUntil){
+      const pulse=(now%800)/800;
+      ctx.beginPath(); ctx.arc(p.x,p.y,(20+pulse*16)*scale,0,Math.PI*2);
+      ctx.strokeStyle=`rgba(167,139,250,${.9-pulse*.7})`; ctx.lineWidth=3; ctx.stroke();
     }
 
     // Pin circle
