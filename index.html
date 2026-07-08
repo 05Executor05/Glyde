@@ -165,19 +165,36 @@ body {
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
 .dash-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:18px 14px;cursor:pointer;transition:all .15s;text-align:center;}
 .dash-card:hover{border-color:var(--accent);}
+.dash-card:active{transform:scale(.96);opacity:.85;}
 .dash-card-icon{font-size:26px;margin-bottom:8px;}
 .dash-card-label{font-size:13px;font-weight:600;}
 
 /* ── HOME / EVENTS / SHOP / PROFILE CARDS (shared idiom) ── */
 .home-section-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:18px 0 8px;font-family:'Space Mono',monospace;}
 .home-section-title:first-child{margin-top:0;}
-.event-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;}
+.event-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:10px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .15s;}
+.event-card:hover{border-color:var(--accent);}
+.event-card:active{transform:scale(.98);opacity:.85;}
 .event-card-icon{font-size:26px;flex-shrink:0;}
 .event-card-name{font-size:14px;font-weight:700;}
 .event-card-meta{font-size:11px;color:var(--muted);margin-top:2px;}
 .home-empty{font-size:12px;color:var(--muted);padding:14px 0;text-align:center;}
 .greeting{font-size:20px;font-weight:700;margin-bottom:14px;}
-.home-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;}
+.home-card{background:var(--surface2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px;transition:all .15s;}
+.home-card[onclick]{cursor:pointer;}
+.home-card[onclick]:hover{border-color:var(--accent);}
+.home-card[onclick]:active{transform:scale(.98);opacity:.85;}
+
+/* ── Tap feedback for other non-<button> clickable elements (real <button>s already get
+   this via the global button:active rule) — purely visual, no behavior change. ── */
+.more-menu-row:active,.layer-row:active,.search-result:active,.search-cat:active,.search-chip:active,
+.ch-item:active,.drawer-ch:active,.mchip:active,.reaction:active,.loc-pin:active,.ep:active,
+.theme-opt:active,.schedule-stage-tab:active,.merch-tab:active,.merch-cat-chip:active,
+.variant-chip:active,.cuisine-chip:active,.floor-chip:active,.vs-close:active,.layers-close:active,
+.friend-nav-btn:active,.contact-action-btn:active,.chat-hamburger:active,.drawer-close:active,
+.now-playing:active,.sched-star:active,.reply-cancel:active,.msg-action-btn:active,
+.alert-banner-close:active,.search-cancel:active,.vendor-card:active,.merch-product-card:active,
+.app-tab:active,.jcreate:active{transform:scale(.96);opacity:.8;}
 
 /* ── MORE MENU ── */
 .more-menu-row{display:flex;align-items:center;gap:12px;padding:12px 8px;border-radius:10px;cursor:pointer;font-size:14px;font-weight:600;transition:background .15s;}
@@ -743,7 +760,7 @@ canvas:active{cursor:grabbing;}
     <div class="modal-title" id="placeholderTitle">Coming Soon</div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:4px" id="placeholderDesc"></div>
     <div class="modal-actions">
-      <button class="modal-btn modal-confirm" style="background:var(--accent);color:#fff" onclick="document.getElementById('placeholderModal').classList.remove('open')">Close</button>
+      <button class="modal-btn modal-close-btn" onclick="closePlaceholder()">Close</button>
     </div>
   </div>
 </div>
@@ -767,7 +784,7 @@ canvas:active{cursor:grabbing;}
   <!-- EVENTS -->
   <div class="app-screen" id="screen-events">
     <div class="app-screen-scroll" id="eventsBody"></div>
-    <button class="fab" onclick="openJoinOverlay()" aria-label="Join event">+</button>
+    <button class="fab" onclick="openJoinOverlay()" aria-label="Join event" title="Join event">+</button>
   </div>
 
   <!-- CHATS -->
@@ -803,8 +820,8 @@ canvas:active{cursor:grabbing;}
 
 <!-- ── HEADER ── -->
 <div class="header">
-  <button class="profile-btn" onclick="headerBackAction()" id="headerBackBtn" aria-label="Back">←</button>
-  <button class="profile-btn" onclick="goHomeFromEvent()" aria-label="Home">🏠</button>
+  <button class="profile-btn" onclick="headerBackAction()" id="headerBackBtn" aria-label="Back" title="Back">←</button>
+  <button class="profile-btn" onclick="goHomeFromEvent()" aria-label="Home" title="Home">🏠</button>
   <div class="logo">Glyde<span>.app</span></div>
   <div class="hdr-mid" id="grpLabel">—</div>
   <button class="install-btn" id="installBtn" onclick="installApp()">⬇ Install</button>
@@ -812,10 +829,10 @@ canvas:active{cursor:grabbing;}
     <div class="ldot" id="ldot" style="background:var(--amber)"></div>
     <span id="llbl" style="color:var(--amber)">CONNECTING</span>
   </div>
-  <button class="profile-btn" onclick="openFriends()" aria-label="Friends">👥</button>
-  <button class="profile-btn" onclick="openSchedule()" aria-label="Event schedule">📅</button>
-  <button class="profile-btn" onclick="openProfile()" aria-label="Your profile">👤</button>
-  <button class="profile-btn" onclick="openMoreMenu()" aria-label="More">⋯</button>
+  <button class="profile-btn" onclick="openFriends()" aria-label="Friends" title="Friends">👥</button>
+  <button class="profile-btn" onclick="openSchedule()" aria-label="Event schedule" title="Event schedule">📅</button>
+  <button class="profile-btn" onclick="openProfile()" aria-label="Your profile" title="Your profile">👤</button>
+  <button class="profile-btn" onclick="openMoreMenu()" aria-label="More" title="More">⋯</button>
 </div>
 
 <!-- EVENT DASHBOARD -->
@@ -832,11 +849,11 @@ canvas:active{cursor:grabbing;}
   <div class="map-wrap">
     <canvas id="mapCanvas"></canvas>
     <div class="map-controls">
-      <button class="mbtn" onclick="openSearch()" aria-label="Search">🔍</button>
-      <button class="mbtn" onclick="toggleLayers()" aria-label="Map layers">🎚️</button>
-      <button class="mbtn" onclick="doZoom(1.25)" aria-label="Zoom in">+</button>
-      <button class="mbtn" onclick="doZoom(.8)" aria-label="Zoom out">−</button>
-      <button class="mbtn" onclick="resetView()" aria-label="Recenter">◎</button>
+      <button class="mbtn" onclick="openSearch()" aria-label="Search" title="Search">🔍</button>
+      <button class="mbtn" onclick="toggleLayers()" aria-label="Map layers" title="Map layers">🎚️</button>
+      <button class="mbtn" onclick="doZoom(1.25)" aria-label="Zoom in" title="Zoom in">+</button>
+      <button class="mbtn" onclick="doZoom(.8)" aria-label="Zoom out" title="Zoom out">−</button>
+      <button class="mbtn" onclick="resetView()" aria-label="Recenter" title="Recenter">◎</button>
     </div>
     <div class="layers-popover" id="layersPopover">
       <div class="layers-hdr">
@@ -911,10 +928,10 @@ canvas:active{cursor:grabbing;}
         <div class="input-row">
           <textarea class="msg-input" id="msgInput" placeholder="Message…" rows="1" onkeydown="handleKey(event)" oninput="handleInputChange(this)"></textarea>
           <div style="display:flex;align-items:center;gap:3px">
-            <button class="ibtn" onclick="toggleEmoji()" aria-label="Insert emoji">😊</button>
-            <button class="ibtn" onclick="pickImage()" aria-label="Send image">🖼️</button>
-            <button class="ibtn" onclick="shareLocation()" aria-label="Share location">📍</button>
-            <button class="sbtn" id="sendBtn" onclick="sendMessage()" disabled aria-label="Send message">↑</button>
+            <button class="ibtn" onclick="toggleEmoji()" aria-label="Insert emoji" title="Insert emoji">😊</button>
+            <button class="ibtn" onclick="pickImage()" aria-label="Send image" title="Send image">🖼️</button>
+            <button class="ibtn" onclick="shareLocation()" aria-label="Share location" title="Share location">📍</button>
+            <button class="sbtn" id="sendBtn" onclick="sendMessage()" disabled aria-label="Send message" title="Send message">↑</button>
           </div>
         </div>
         <button class="loc-share-btn" onclick="shareLocation()">📍 Share my location</button>
@@ -1106,7 +1123,7 @@ canvas:active{cursor:grabbing;}
     <div class="search-input-wrap">
       <span>🔍</span>
       <input class="search-input" id="searchInput" placeholder="Search stages, food, restrooms…" oninput="runSearch(this.value)" onkeydown="if(event.key==='Enter')runSearch(this.value)"/>
-      <button class="search-mic" id="searchMic" onclick="toggleVoiceSearch()" style="display:none" aria-label="Voice search">🎤</button>
+      <button class="search-mic" id="searchMic" onclick="toggleVoiceSearch()" style="display:none" aria-label="Voice search" title="Voice search">🎤</button>
     </div>
     <div class="search-cancel" onclick="closeSearch()">Cancel</div>
   </div>
@@ -3505,7 +3522,7 @@ function renderFriendsList(){
         <div class="friend-name">${esc(f.name)}${arrived?' ✅':''}</div>
         <div class="friend-meta">${statusTag}${f.battery!=null?` · 🔋${f.battery}%`:''}${uid?` · ${d}`:''}</div>
       </div>
-      ${uid?`<button class="friend-nav-btn" onclick="navTo('${uid}')" aria-label="Navigate to ${esc(f.name)}">🧭</button>`:''}
+      ${uid?`<button class="friend-nav-btn" onclick="navTo('${uid}')" aria-label="Navigate to ${esc(f.name)}" title="Navigate to ${esc(f.name)}">🧭</button>`:''}
     </div>`;
   }).join('');
 }
@@ -4096,9 +4113,9 @@ function renderContacts(){
     <div class="contact-card">
       <div class="contact-info"><div class="contact-name">${esc(c.name)}</div><div class="contact-phone">${esc(c.phone)}</div></div>
       <div class="contact-actions">
-        <a class="contact-action-btn" href="tel:${esc(c.phone)}" aria-label="Call ${esc(c.name)}">📞</a>
-        <div class="contact-action-btn" onclick="sendLocationToContact(${i})" aria-label="Send location to ${esc(c.name)}">📍</div>
-        <div class="contact-remove" onclick="removeContact(${i})" aria-label="Remove ${esc(c.name)}">✕</div>
+        <a class="contact-action-btn" href="tel:${esc(c.phone)}" aria-label="Call ${esc(c.name)}" title="Call ${esc(c.name)}">📞</a>
+        <div class="contact-action-btn" onclick="sendLocationToContact(${i})" aria-label="Send location to ${esc(c.name)}" title="Send location to ${esc(c.name)}">📍</div>
+        <div class="contact-remove" onclick="removeContact(${i})" aria-label="Remove ${esc(c.name)}" title="Remove ${esc(c.name)}">✕</div>
       </div>
     </div>`).join('');
 }
@@ -4359,6 +4376,7 @@ window.openPlaceholder=(title,desc)=>{
   document.getElementById('placeholderDesc').textContent=desc||'This feature is coming in a future release.';
   document.getElementById('placeholderModal').classList.add('open');
 };
+window.closePlaceholder=()=>document.getElementById('placeholderModal').classList.remove('open');
 
 // ── APP SHELL NAVIGATION (outer — tabs vary by role, see renderAppNav) ───────────────────
 window.switchAppScreen=screen=>{
@@ -4475,12 +4493,13 @@ function renderHomeScreen(){
     ${chatHtml}
 
     <div class="home-section-title">Festival Passport</div>
-    <div class="home-card" style="display:flex;align-items:center;gap:14px">
+    <div class="home-card" style="display:flex;align-items:center;gap:14px;cursor:pointer" onclick="openGamify()">
       <div style="font-size:30px">🎫</div>
       <div style="flex:1">
         <div style="font-weight:700">${myXP} Lifetime XP</div>
         <div style="font-size:11px;color:var(--muted)">Level ${level} · ${myBadges.size} badge${myBadges.size===1?'':'s'}</div>
       </div>
+      <div style="color:var(--muted)">›</div>
     </div>
 
     <div class="home-section-title">Featured Merchandise</div>
@@ -4508,7 +4527,7 @@ function renderManagerHomeScreen(){
   const recent=events.filter(e=>e.code!==myGroup).sort((a,b)=>b.lastOpenedTs-a.lastOpenedTs).slice(0,5);
 
   const activeCardHtml=currentEvent?`
-    <div class="home-card">
+    <div class="home-card" style="cursor:pointer" onclick="enterEventContext()">
       <div style="display:flex;align-items:center;gap:12px">
         <div style="font-size:30px">🎪</div>
         <div style="flex:1">
@@ -4516,7 +4535,7 @@ function renderManagerHomeScreen(){
           <div style="font-size:11px;color:var(--muted)">Code: ${esc(currentEvent.code)} · Active Venue</div>
         </div>
       </div>
-      <button class="vs-btn vs-btn-primary" style="width:100%;margin-top:12px" onclick="enterEventContext()">Open Operations Dashboard →</button>
+      <button class="vs-btn vs-btn-primary" style="width:100%;margin-top:12px" onclick="event.stopPropagation();enterEventContext()">Open Operations Dashboard →</button>
     </div>`:`
     <div class="home-card" style="text-align:center">
       <div style="font-size:30px">🎪</div>
@@ -4528,8 +4547,8 @@ function renderManagerHomeScreen(){
       </div>
     </div>`;
 
-  const statCard=(icon,label,val)=>`
-    <div class="dash-card" style="text-align:center;cursor:default">
+  const statCard=(icon,label,val,action)=>`
+    <div class="dash-card" style="text-align:center" onclick="${action}">
       <div class="dash-card-icon">${icon}</div>
       <div style="font-size:20px;font-weight:700">${val}</div>
       <div class="dash-card-label">${label}</div>
@@ -4553,10 +4572,10 @@ function renderManagerHomeScreen(){
 
     <div class="home-section-title">Quick Stats</div>
     <div class="dash-grid">
-      ${statCard('🚨','Pending Reports',3)}
-      ${statCard('⚠️','Open Incidents',1)}
-      ${statCard('👮','Staff Online',6)}
-      ${statCard('🟢','Venue Status','Normal')}
+      ${statCard('🚨','Pending Reports',3,"openManagerStat('pendingReports')")}
+      ${statCard('⚠️','Open Incidents',1,"openManagerStat('openIncidents')")}
+      ${statCard('👮','Staff Online',6,"openManagerStat('staffOnline')")}
+      ${statCard('🟢','Venue Status','Normal',"openManagerStat('venueStatus')")}
     </div>
 
     <div class="home-section-title">Quick Actions</div>
@@ -4571,6 +4590,14 @@ function renderManagerHomeScreen(){
     ${recentHtml}
   `;
 }
+// Quick Stats cards on Manager Home — each routes to the real screen that explains the
+// number, or a placeholder where no such screen exists yet.
+window.openManagerStat=kind=>{
+  if(kind==='pendingReports'){ managerReportsTab='pending'; switchAppScreen('reports'); return; }
+  if(kind==='openIncidents'){ openPlaceholder('Incidents','A dedicated incidents log — coming soon.'); return; }
+  if(kind==='staffOnline'){ openPlaceholder('Staff','Staff roster and live locations — coming soon.'); return; }
+  if(kind==='venueStatus'){ switchAppScreen('mgmtdash'); return; }
+};
 window.homeJoinEvent=()=>{
   const code=document.getElementById('homeCodeInput').value.trim().toUpperCase();
   if(code.length<4){ toast('Enter an event code','w'); return; }
@@ -4724,19 +4751,19 @@ window.mockNavigateToReport=()=>{
 // ── MANAGER OPERATIONS DASHBOARD TAB (mock data — no backend analytics yet) ─────────────
 function renderManagerDashboardScreen(){
   const stats=[
-    {icon:'👥',label:'Attendance',val:'4,281'},
-    {icon:'🚨',label:'Open Reports',val:4},
-    {icon:'⏱️',label:'Avg Resolution Time',val:'12 min'},
-    {icon:'📈',label:'Crowd Density',val:'Moderate'},
-    {icon:'🍔',label:'Food Queue Avg',val:'8 min'},
-    {icon:'🏥',label:'Medical Incidents',val:2},
-    {icon:'📢',label:'Announcements Sent',val:5},
+    {icon:'👥',label:'Attendance',val:'4,281',action:"openPlaceholder('Attendance','Live attendance tracking — coming soon.')"},
+    {icon:'🚨',label:'Open Reports',val:4,action:"managerReportsTab='pending';switchAppScreen('reports')"},
+    {icon:'⏱️',label:'Avg Resolution Time',val:'12 min',action:"openPlaceholder('Avg Resolution Time','Historical resolution-time analytics — coming soon.')"},
+    {icon:'📈',label:'Crowd Density',val:'Moderate',action:"openPlaceholder('Crowd Density','Live crowd density and heatmap analytics — coming soon.')"},
+    {icon:'🍔',label:'Food Queue Avg',val:'8 min',action:"openPlaceholder('Food Queue Avg','Live vendor queue analytics — coming soon.')"},
+    {icon:'🏥',label:'Medical Incidents',val:2,action:"openPlaceholder('Medical Incidents','Medical incident log — coming soon.')"},
+    {icon:'📢',label:'Announcements Sent',val:5,action:"openPlaceholder('Announcements Sent','Announcement history — coming soon.')"},
   ];
   document.getElementById('mgmtdashBody').innerHTML=`
     <div class="home-section-title">Operations Dashboard</div>
     <div class="dash-grid">
       ${stats.map(s=>`
-        <div class="dash-card" style="text-align:center;cursor:default">
+        <div class="dash-card" style="text-align:center" onclick="${s.action}">
           <div class="dash-card-icon">${s.icon}</div>
           <div style="font-size:18px;font-weight:700">${s.val}</div>
           <div class="dash-card-label">${s.label}</div>
@@ -4791,14 +4818,17 @@ function renderProfileScreen(){
       <div style="font-size:11px;color:var(--muted)">Level ${level} · ${myXP} Lifetime XP</div>
     </div>
     <div class="home-section-title">Badges</div>
-    <div class="home-card">${myBadges.size?`${myBadges.size} badge${myBadges.size===1?'':'s'} earned — see Festival Passport for details`:'No badges yet'}</div>
+    <div class="home-card" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;gap:10px" onclick="openGamify()">
+      <span>${myBadges.size?`${myBadges.size} badge${myBadges.size===1?'':'s'} earned — see Festival Passport for details`:'No badges yet — see Festival Passport'}</span>
+      <span style="color:var(--muted)">›</span>
+    </div>
     <div class="home-section-title">Friends</div>
     <div class="event-card" onclick="requireEvent('Join an event to see friends')&&openFriends()">
       <div class="event-card-icon">👥</div>
       <div style="flex:1"><div class="event-card-name">Friends</div><div class="event-card-meta">Open</div></div>
     </div>
     <div class="home-section-title">Statistics</div>
-    <div class="home-card">
+    <div class="home-card" style="cursor:pointer" onclick="openMemories()">
       <div class="modal-row"><div class="modal-row-label">Distance walked</div><div class="modal-row-val">${memStats.distance}km</div></div>
       <div class="modal-row"><div class="modal-row-label">Zones visited</div><div class="modal-row-val">${memStats.zones}</div></div>
       <div class="modal-row"><div class="modal-row-label">Artists seen</div><div class="modal-row-val">${memStats.artists}</div></div>
@@ -4975,6 +5005,31 @@ function handleBackPress(){
   toast('Press back again to exit');
   pushBackGuard();
 }
+
+// ── SWIPE-TO-GO-BACK (left-edge swipe) ────────────────────────────────────────
+// Mirrors the hardware/gesture back button exactly by calling the same handleBackPress()
+// used above — same screen-by-screen unwind, same nav-stack bookkeeping. Only armed when the
+// touch *starts* within a thin strip at the left edge (like iOS/Android edge-swipe-back), so it
+// never competes with normal horizontal scrolling (chip rows, tabs, etc. all sit well clear of
+// the true edge). The map canvas is excluded outright since dragging from its edge to pan/zoom
+// is a legitimate gesture there.
+(function initSwipeBack(){
+  const EDGE_PX=20, MIN_DX=60, MAX_DY=50;
+  let startX=null,startY=null,eligible=false;
+  document.addEventListener('touchstart',e=>{
+    if(e.touches.length!==1){ eligible=false; return; }
+    const t=e.touches[0];
+    eligible=t.clientX<=EDGE_PX&&!(e.target&&e.target.closest&&e.target.closest('#mapCanvas'));
+    startX=t.clientX;startY=t.clientY;
+  },{passive:true});
+  document.addEventListener('touchend',e=>{
+    if(!eligible||startX==null)return;
+    const t=e.changedTouches[0];
+    const dx=t.clientX-startX,dy=Math.abs(t.clientY-startY);
+    eligible=false;
+    if(dx>MIN_DX&&dy<MAX_DY) handleBackPress();
+  },{passive:true});
+})();
 </script>
 </body>
 </html>
