@@ -453,6 +453,7 @@ const REPORT_TYPES = {
   medical: {label:'Medical Alert', icon:'🏥', color:'#ef4444', urgent:true},
   litter:  {label:'Litter Issue',  icon:'🗑️', color:'#8b5cf6', urgent:false},
   security:{label:'Security Alert',icon:'🛡️', color:'#f472b6', urgent:true},
+  sos:     {label:'SOS Alert',     icon:'🆘', color:'#ef4444', urgent:true},
 };
 
 // Mirrors index.html's DEFAULT_ZONES/DEFAULT_PATHS/DEFAULT_PATH_LABELS for "Glyde Demo
@@ -1341,24 +1342,31 @@ function flattenOrders(ordersByUid, kind) {
 }
 function renderOrdersTab() {
   const merch = flattenOrders(allMerchOrders, 'merch').filter(o => o.status !== 'picked_up');
-  const food = flattenOrders(allFoodOrders, 'food'); // no separate "picked up" status exists for food
+  const food = flattenOrders(allFoodOrders, 'food'); // food orders stay listed through 'collected' — no active/archived split for these yet
   let all = [...merch, ...food].sort((a, b) => (b.ts||0) - (a.ts||0));
 
   const q = orderSearchQuery.trim().toUpperCase();
   if (q) all = all.filter(o => (o.pickupCode||'').toUpperCase().includes(q));
 
+  // Food order status pipeline: Order Received → Preparing → Ready for Pickup → Collected.
+  // Orders from before this pipeline existed have no `status` at all and default to
+  // 'preparing' (matching what they always displayed), so old data still renders correctly.
+  const FOOD_STATUS_LABEL = { received: '🧾 Order received', preparing: '👨‍🍳 Preparing', ready: '🔔 Ready for pickup', collected: '✅ Collected' };
   const rows = all.map(o => {
-    const label = o.kind === 'merch' ? `${esc(o.name)}${o.size?' · '+esc(o.size):''}${o.color?' · '+esc(o.color):''}` : `${esc(o.item)} — ${esc(o.vendorName||'')}`;
+    const label = o.kind === 'merch' ? `${esc(o.name)}${o.size?' · '+esc(o.size):''}${o.color?' · '+esc(o.color):''}` : `${esc(o.item)}${o.qty>1?' ×'+o.qty:''} — ${esc(o.vendorName||'')}`;
+    const foodStatus = o.status || 'preparing';
     const statusLabel = o.kind === 'merch'
       ? (o.status === 'picked_up' ? '✅ Picked up' : '⏳ Reserved')
-      : (o.status === 'ready' ? (o.pickedUpAt ? '✅ Picked up' : '🔔 Ready for pickup') : '👨‍🍳 Preparing');
+      : FOOD_STATUS_LABEL[foodStatus];
     let actionBtn = '';
     if (o.kind === 'merch' && o.status !== 'picked_up') {
       actionBtn = `<button class="rep-btn resolve-btn" onclick="markOrderPickedUp('merch','${o.uid}','${o.orderId}')">✅ Mark picked up</button>`;
-    } else if (o.kind === 'food' && o.status !== 'ready') {
-      actionBtn = `<button class="rep-btn resolve-btn" onclick="markFoodOrderReady('${o.uid}','${o.orderId}')">🔔 Mark ready</button>`;
-    } else if (o.kind === 'food' && o.status === 'ready' && !o.pickedUpAt) {
-      actionBtn = `<button class="rep-btn resolve-btn" onclick="markOrderPickedUp('food','${o.uid}','${o.orderId}')">✅ Mark picked up</button>`;
+    } else if (o.kind === 'food' && foodStatus === 'received') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markFoodOrderStatus('${o.uid}','${o.orderId}','preparing')">👨‍🍳 Start preparing</button>`;
+    } else if (o.kind === 'food' && foodStatus === 'preparing') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markFoodOrderStatus('${o.uid}','${o.orderId}','ready')">🔔 Mark ready</button>`;
+    } else if (o.kind === 'food' && foodStatus === 'ready') {
+      actionBtn = `<button class="rep-btn resolve-btn" onclick="markFoodOrderStatus('${o.uid}','${o.orderId}','collected')">✅ Mark collected</button>`;
     }
     return `<div style="padding:8px 0;border-top:1px solid var(--border)">
       <div style="display:flex;align-items:center;gap:8px">
@@ -1387,11 +1395,27 @@ window.markOrderPickedUp = (kind, uid, orderId) => {
     .then(() => { toast('✅ Marked picked up'); renderManageBody(); })
     .catch(() => toast('⚠️ Failed to update order','e'));
 };
-window.markFoodOrderReady = (uid, orderId) => {
-  update(ref(db, `groups/${eventGroup}/foodOrders/${uid}/${orderId}`), { status: 'ready' })
-    .then(() => { toast('🔔 Marked ready for pickup'); renderManageBody(); })
+// Food order status pipeline (received → preparing → ready → collected) — the seam a future
+// Vendor App would call into directly instead of a staff member tapping these buttons.
+window.markFoodOrderStatus = (uid, orderId, status) => {
+  const patch = { status };
+  if (status === 'collected') patch.pickedUpAt = Date.now(); // kept alongside `status` for any code/report still reading the older pickedUpAt-only convention
+  const toastMsg = { preparing: '👨‍🍳 Marked preparing', ready: '🔔 Marked ready for pickup', collected: '✅ Marked collected' }[status] || 'Updated';
+  update(ref(db, `groups/${eventGroup}/foodOrders/${uid}/${orderId}`), patch)
+    .then(() => { toast(toastMsg); renderManageBody(); })
     .catch(() => toast('⚠️ Failed to update order','e'));
 };
+
+// ── PRIVACY: managers never see an attendee's real name/contact info by default — every
+// attendee-facing identity shown to staff is a stable anonymous ID derived from their uid
+// (same person always maps to the same "#NNN", so staff can still spot repeat reporters,
+// just never learn who they actually are). ──────────────────────────────────────────────
+function anonymizeUid(uid) {
+  if (!uid) return 'Anonymous User';
+  let hash = 0;
+  for (let i = 0; i < uid.length; i++) hash = (hash * 31 + uid.charCodeAt(i)) >>> 0;
+  return 'Anonymous User #' + String(hash % 1000).padStart(3, '0');
+}
 
 // ── MODERATION (attendee-reported chat messages, staff-only visible per security rules) ──
 function renderModerationTab() {
@@ -1400,9 +1424,9 @@ function renderModerationTab() {
   const resolved = entries.filter(([,r]) => r.resolved);
   const row = ([id, r]) => `
     <div style="padding:10px 0;border-top:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:600">${esc(r.author||'Unknown')} <span style="color:var(--muted);font-weight:400">in ${esc(r.channelKey||'?')}</span></div>
+      <div style="font-size:12px;font-weight:600">${anonymizeUid(r.uid)} <span style="color:var(--muted);font-weight:400">in ${esc(r.channelKey||'?')}</span></div>
       <div style="font-size:13px;margin:4px 0;padding:8px;background:var(--surface2);border-radius:8px">${esc(r.text||'(image/attachment)')}</div>
-      <div style="font-size:10px;color:var(--muted)">Reported by ${esc(r.reportedByName||'someone')} · ${timeAgo(r.reportedAt)}</div>
+      <div style="font-size:10px;color:var(--muted)">Reported by ${anonymizeUid(r.reportedBy)} · ${timeAgo(r.reportedAt)}</div>
       ${r.resolved ? '' : `<div style="display:flex;gap:8px;margin-top:6px">
         <button class="rep-btn resolve-btn" style="flex:1" onclick="resolveFlaggedMessage('${id}')">Mark reviewed</button>
         <button class="rep-btn" style="flex:1;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.4);color:var(--red)" onclick="dismissFlaggedMessage('${id}')">Dismiss</button>

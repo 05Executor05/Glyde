@@ -29,7 +29,7 @@
   --orange:#fb923c;
   --yellow:#facc15;
   --text:#f0efff;
-  --muted:#6060a0;
+  --muted:#9494cc;
 }
 
 body.theme-light {
@@ -68,6 +68,8 @@ body {
   background:var(--bg);color:var(--text);
   height:100dvh;display:flex;flex-direction:column;
   overflow:hidden;user-select:none;
+  line-height:1.45;
+  -webkit-font-smoothing:antialiased;
 }
 
 /* ── JOIN OVERLAY ── */
@@ -98,7 +100,8 @@ body {
 .role-card-icon{font-size:38px;margin-bottom:8px;}
 .role-card-title{font-size:18px;font-weight:700;margin-bottom:8px;}
 .role-card-desc{font-size:12px;color:var(--muted);margin-bottom:16px;line-height:1.5;}
-.fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;align-self:flex-start;font-family:'Space Mono',monospace;}
+.fl{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px;align-self:flex-start;font-family:'Space Mono',monospace;}
+input::placeholder,textarea::placeholder{color:var(--muted);opacity:1;}
 .fi{width:100%;max-width:320px;padding:13px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:15px;outline:none;margin-bottom:16px;}
 .fi:focus{border-color:var(--accent);}
 .fi-code{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;letter-spacing:6px;text-align:center;}
@@ -112,17 +115,14 @@ body {
 /* ── HEADER ── */
 .header{
   display:flex;align-items:center;justify-content:space-between;
-  padding:11px 16px;
-  background:rgba(11,11,20,0.97);
+  padding:12px 14px;
+  gap:10px;
+  background:var(--surface);
   border-bottom:1px solid var(--border);
   flex-shrink:0;z-index:100;
 }
-.logo{font-family:'Space Mono',monospace;font-size:16px;font-weight:700;color:var(--neon);}
-.logo span{color:var(--muted);}
-.hdr-mid{font-size:12px;font-weight:600;color:var(--muted);}
-.install-btn{display:none;align-items:center;gap:5px;font-size:11px;font-weight:700;color:var(--neon);background:rgba(124,58,237,.14);border:1px solid rgba(124,58,237,.4);border-radius:20px;padding:5px 11px;cursor:pointer;font-family:'Space Grotesk',sans-serif;transition:all .15s;}
-.install-btn:hover{background:rgba(124,58,237,.25);}
-.install-btn.show{display:flex;}
+.hdr-mid{flex:1;min-width:0;font-size:17px;font-weight:700;color:var(--text);letter-spacing:.1px;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:0 4px;transition:opacity .15s;}
+.hdr-mid:active{opacity:.7;}
 .profile-btn{width:32px;height:32px;background:var(--surface2);border:1px solid var(--border);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:15px;cursor:pointer;transition:all .15s;flex-shrink:0;}
 .profile-btn:hover{border-color:var(--neon);}
 .live-pill{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:700;font-family:'Space Mono',monospace;}
@@ -160,7 +160,7 @@ body {
 .app-screen-scroll{flex:1;overflow-y:auto;padding:16px;padding-bottom:90px;}
 .fab{position:absolute;right:20px;bottom:86px;width:56px;height:56px;border-radius:50%;background:var(--accent);color:#fff;border:none;font-size:26px;font-weight:700;box-shadow:0 6px 18px rgba(124,58,237,.5);cursor:pointer;}
 .app-nav{
-  display:flex;background:rgba(11,11,20,0.97);border-top:1px solid var(--border);
+  display:flex;background:var(--surface);border-top:1px solid var(--border);
   flex-shrink:0;z-index:100;padding-bottom:env(safe-area-inset-bottom,0px);
 }
 .app-tab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 0 8px;cursor:pointer;font-size:10px;font-weight:600;color:var(--muted);transition:color .15s;gap:4px;position:relative;}
@@ -351,6 +351,19 @@ canvas:active{cursor:grabbing;}
 .pickup-code{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--neon);letter-spacing:4px;text-align:center;margin:10px 0;}
 .order-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:8px;}
 .order-status{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:rgba(245,158,11,.15);color:var(--amber);}
+.order-status.st-received{background:rgba(96,165,250,.15);color:#60a5fa;}
+.order-status.st-preparing{background:rgba(245,158,11,.15);color:var(--amber);}
+.order-status.st-ready{background:rgba(16,185,129,.15);color:var(--green);}
+.order-status.st-collected{background:var(--border);color:var(--muted);}
+.cart-bar{display:flex;justify-content:space-between;align-items:center;background:rgba(124,58,237,.12);border:1px solid var(--accent);border-radius:12px;padding:11px 14px;margin-bottom:12px;cursor:pointer;font-size:12px;font-weight:700;color:var(--neon);transition:all .15s;}
+.cart-bar:active{opacity:.8;}
+.cart-line{display:flex;align-items:center;gap:10px;padding:10px 0;border-top:1px solid var(--border);}
+.cart-line-qty{display:flex;align-items:center;gap:6px;}
+.cart-qty-btn{width:24px;height:24px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.payment-option{display:flex;align-items:center;gap:12px;background:var(--surface2);border:2px solid var(--border);border-radius:12px;padding:14px;margin-bottom:10px;cursor:pointer;transition:all .15s;}
+.payment-option.sel{border-color:var(--accent);background:rgba(124,58,237,.1);}
+.payment-option.disabled{opacity:.5;cursor:not-allowed;}
+.payment-option-icon{font-size:22px;}
 
 /* ── FOOD & DRINKS ── */
 .vendor-card{background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;cursor:pointer;transition:all .15s;}
@@ -414,7 +427,7 @@ canvas:active{cursor:grabbing;}
 .recap-name{font-size:20px;font-weight:700;color:var(--neon);margin-bottom:16px;}
 .recap-stats{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;}
 .recap-stat-val{font-size:22px;font-weight:700;font-family:'Space Mono',monospace;}
-.recap-stat-label{font-size:10px;color:var(--muted);margin-top:2px;}
+.recap-stat-label{font-size:11px;color:var(--muted);margin-top:2px;font-weight:600;}
 .recap-artists{font-size:11px;color:var(--text);margin-bottom:16px;line-height:1.6;}
 
 /* ── SAFETY ── */
@@ -573,6 +586,8 @@ canvas:active{cursor:grabbing;}
 
 /* Location pin message */
 .loc-pin{background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:10px 12px;display:inline-flex;align-items:center;gap:10px;cursor:pointer;margin-top:4px;transition:all .15s;}
+.sos-alert{background:rgba(239,68,68,.12);border:1px solid var(--red);border-radius:10px;padding:10px 12px;display:inline-flex;align-items:flex-start;gap:10px;cursor:pointer;margin-top:4px;transition:all .15s;max-width:260px;}
+.sos-alert:active{opacity:.85;}
 .loc-pin:hover{border-color:var(--neon);}
 
 .typing-bar{padding:3px 16px 6px;font-size:11px;color:var(--muted);font-style:italic;min-height:22px;}
@@ -586,6 +601,8 @@ canvas:active{cursor:grabbing;}
 .msg-action-btn{font-size:11px;color:var(--muted);cursor:pointer;opacity:.6;transition:opacity .15s;}
 .msg-action-btn:hover{opacity:1;color:var(--neon);}
 .msg-img{max-width:220px;max-height:220px;border-radius:12px;margin-top:4px;display:block;object-fit:cover;}
+.msg-img-hidden{max-width:220px;padding:16px;border-radius:12px;margin-top:4px;background:var(--surface2);border:1px dashed var(--border);color:var(--muted);font-size:12px;font-weight:600;text-align:center;}
+.msg-img-pending-tag{font-size:10px;color:var(--amber);margin-top:3px;font-weight:700;}
 .msg-seen{font-size:9px;color:var(--muted);margin-left:6px;}
 .tdot span{display:inline-block;width:4px;height:4px;background:var(--muted);border-radius:50%;animation:tdot 1.2s infinite;margin-right:2px;}
 .tdot span:nth-child(2){animation-delay:.2s;}
@@ -593,7 +610,7 @@ canvas:active{cursor:grabbing;}
 @keyframes tdot{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-4px)}}
 
 /* Input */
-.chat-input-area{padding:10px 14px 12px;border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.chat-input-area{padding:10px 14px calc(12px + env(safe-area-inset-bottom,0px));border-top:1px solid var(--border);background:var(--surface);flex-shrink:0;}
 .input-row{display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;padding:4px 6px 4px 14px;transition:border-color .2s;}
 .input-row:focus-within{border-color:var(--accent);}
 .msg-input{flex:1;background:none;border:none;outline:none;color:var(--text);font-family:'Space Grotesk',sans-serif;font-size:14px;padding:7px 0;resize:none;height:36px;max-height:100px;overflow-y:auto;line-height:1.4;}
@@ -823,20 +840,18 @@ canvas:active{cursor:grabbing;}
 <!-- ── EVENT SHELL (existing per-event UI — map/chat/reports/friends/etc — shown only while an event is open) ── -->
 <div id="eventShell">
 
-<!-- ── HEADER ── -->
+<!-- ── HEADER (Home / venue name (primary focus, tap to return to dashboard) / LIVE / Friends /
+     Schedule / More — Profile and Install are one tap away inside More, not competing for
+     top-bar space) ── -->
 <div class="header">
-  <button class="profile-btn" onclick="headerBackAction()" id="headerBackBtn" aria-label="Back" title="Back">←</button>
   <button class="profile-btn" onclick="goHomeFromEvent()" aria-label="Home" title="Home">🏠</button>
-  <div class="logo">Glyde<span>.app</span></div>
-  <div class="hdr-mid" id="grpLabel">—</div>
-  <button class="install-btn" id="installBtn" onclick="installApp()">⬇ Install</button>
+  <div class="hdr-mid" id="grpLabel" onclick="backToDashboard()" title="Back to dashboard" role="button">—</div>
   <div class="live-pill">
     <div class="ldot" id="ldot" style="background:var(--amber)"></div>
     <span id="llbl" style="color:var(--amber)">CONNECTING</span>
   </div>
   <button class="profile-btn" onclick="openFriends()" aria-label="Friends" title="Friends">👥</button>
   <button class="profile-btn" onclick="openSchedule()" aria-label="Event schedule" title="Event schedule">📅</button>
-  <button class="profile-btn" onclick="openProfile()" aria-label="Your profile" title="Your profile">👤</button>
   <button class="profile-btn" onclick="openMoreMenu()" aria-label="More" title="More">⋯</button>
 </div>
 
@@ -1043,6 +1058,8 @@ canvas:active{cursor:grabbing;}
     <div class="more-menu-row" onclick="closeMoreMenu();openGamify()"><span>🎫</span><span>Festival Passport</span></div>
     <div class="more-menu-row" onclick="closeMoreMenu();openFood()"><span>🍔</span><span>Food &amp; Drinks</span></div>
     <div class="more-menu-row" onclick="closeMoreMenu();openMerch()"><span>🛍️</span><span>Merchandise</span></div>
+    <div class="more-menu-row" onclick="closeMoreMenu();openProfile()"><span>👤</span><span>Your Profile</span></div>
+    <div class="more-menu-row" id="moreMenuInstallRow" style="display:none" onclick="closeMoreMenu();installApp()"><span>⬇️</span><span>Install App</span></div>
     <div class="modal-actions" style="margin-top:8px">
       <button class="modal-btn modal-close-btn" onclick="closeMoreMenu()">Close</button>
     </div>
@@ -1594,6 +1611,36 @@ let foodTab='vendors';
 let foodCuisineFilter=null;
 let foodDietaryFilter=null;
 let openVendorId=null;
+// ── FOOD ORDER FLOW: Browse → Cart → Checkout → Payment → Confirmation → Status ──────────
+let foodCart=[]; // {vendorId,vendorName,itemIdx,item,price,qty}
+let foodPaymentMethod=null; // 'online' | 'cash'
+let lastFoodOrderReceipt=null; // set right after checkout, shown on the Confirmation screen
+// Configurable per-vendor Cash-on-Pickup GPS radius — default 100m, not hardcoded at the call
+// site so a future Manager "Venue Settings" control can override it per vendor.
+const DEFAULT_CASH_PICKUP_RADIUS_M=100;
+function cashPickupRadiusFor(vendorId){
+  const v=FOOD_VENDORS.find(x=>x.id===vendorId);
+  return v?.cashPickupRadiusM||DEFAULT_CASH_PICKUP_RADIUS_M;
+}
+// The venue's map (ZONES/FOOD_VENDORS x,y) is a normalized virtual layout with no real-world
+// lat/lng of its own — vendors don't carry real coordinates today. Rather than fabricate a
+// second, disconnected "fake GPS" system, derive a real-world position for each vendor from its
+// virtual map position around one venue anchor, scaled so the venue's full span is a realistic
+// ~330m across. This is what real device GPS (myRealLat/myRealLng) is actually compared against
+// below — once an organizer can set a vendor's true lat/lng (future Manager Venue Settings), a
+// vendor.lat/vendor.lng override here takes priority automatically, no other code changes needed.
+const VENUE_ANCHOR_LAT=40.7128,VENUE_ANCHOR_LNG=-74.0060,VENUE_DEGREES_PER_UNIT=0.0015;
+function vendorLatLng(v){
+  return {
+    lat:v.lat??(VENUE_ANCHOR_LAT+(v.y-0.5)*VENUE_DEGREES_PER_UNIT),
+    lng:v.lng??(VENUE_ANCHOR_LNG+(v.x-0.5)*VENUE_DEGREES_PER_UNIT),
+  };
+}
+function distanceToVendorMeters(v){
+  if(myRealLat==null||myRealLng==null)return null;
+  const {lat,lng}=vendorLatLng(v);
+  return haversineMeters(myRealLat,myRealLng,lat,lng);
+}
 
 // ── GAMIFICATION ──────────────────────────────────────────────────────────────
 const BADGES=[
@@ -1620,6 +1667,7 @@ let questsClaimed=new Set();
 let ratedVendorIds=new Set();
 let reportsSentCount=0;
 let merchReservedCount=0;
+let messagesSentCount=0;
 let gamifyTab='passport';
 let leaderboard={};
 let gamifyListenerAttached=false;
@@ -1641,6 +1689,21 @@ function saveMemories(){
   try{
     localStorage.setItem('glyde_memories',JSON.stringify({visitedZonesLog,totalDistanceMeters,myPhotos,artistsSeen:[...artistsSeen]}));
   }catch(e){}
+}
+// Every participant's Memories > Photos should show every APPROVED photo shared in the event,
+// not just the ones they personally took — this is the single ingestion point, called whenever
+// a channel's message list updates (attachChannelListener), so it naturally re-evaluates
+// pending→approved/flagged transitions as the moderation pipeline resolves them.
+function ingestApprovedPhotos(messageList){
+  let added=false;
+  messageList.forEach(m=>{
+    if(m.type!=='image')return;
+    if((m.moderation||'approved')!=='approved')return;
+    if(myPhotos.some(p=>p.msgId===m.id))return;
+    myPhotos.push({url:m.url,ts:m.ts,zoneLabel:m.zoneLabel||'Unknown location',msgId:m.id,author:m.author});
+    added=true;
+  });
+  if(added) saveMemories();
 }
 function haversineMeters(lat1,lng1,lat2,lng2){
   const R=6371000,toRad=d=>d*Math.PI/180;
@@ -1677,8 +1740,9 @@ function renderTimelineTab(){
 }
 function renderPhotosTab(){
   if(!myPhotos.length){document.getElementById('memBody').innerHTML='<div class="search-empty">No photos shared yet — send one in chat!</div>';return;}
-  document.getElementById('memBody').innerHTML=`<div class="photo-grid">${myPhotos.map(p=>`
-    <div class="photo-tile"><img src="${p.url}" loading="lazy"/><div class="photo-tile-meta">📍 ${esc(p.zoneLabel)} · ${fmtClock(p.ts)}</div></div>
+  const sorted=[...myPhotos].sort((a,b)=>b.ts-a.ts);
+  document.getElementById('memBody').innerHTML=`<div class="photo-grid">${sorted.map(p=>`
+    <div class="photo-tile"><img src="${p.url}" loading="lazy"/><div class="photo-tile-meta">📍 ${esc(p.zoneLabel)} · ${fmtClock(p.ts)}${p.author?' · '+esc(p.author):''}</div></div>
   `).join('')}</div>`;
 }
 function renderRecapTab(){
@@ -1692,6 +1756,9 @@ function renderRecapTab(){
         <div><div class="recap-stat-val">${distKm}km</div><div class="recap-stat-label">Distance walked</div></div>
         <div><div class="recap-stat-val">${visitedZones.size}</div><div class="recap-stat-label">Zones visited</div></div>
         <div><div class="recap-stat-val">${artists.length}</div><div class="recap-stat-label">Artists seen</div></div>
+        <div><div class="recap-stat-val">${myPhotos.length}</div><div class="recap-stat-label">Photos shared</div></div>
+        <div><div class="recap-stat-val">${messagesSentCount}</div><div class="recap-stat-label">Messages sent</div></div>
+        <div><div class="recap-stat-val">${reportsSentCount}</div><div class="recap-stat-label">Reports submitted</div></div>
         <div><div class="recap-stat-val">${myXP}</div><div class="recap-stat-label">XP earned</div></div>
       </div>
       ${artists.length?`<div class="recap-artists">🎤 ${artists.map(esc).join(' · ')}</div>`:''}
@@ -1700,7 +1767,7 @@ function renderRecapTab(){
 }
 window.shareRecap=()=>{
   const distKm=(totalDistanceMeters/1000).toFixed(1);
-  const text=`🎪 My Glyde festival recap: walked ${distKm}km, visited ${visitedZones.size} zones, saw ${artistsSeen.size} artists, and earned ${myXP} XP! 🎫`;
+  const text=`🎪 My Glyde festival recap: walked ${distKm}km, visited ${visitedZones.size} zones, saw ${artistsSeen.size} artists, shared ${myPhotos.length} photos, and earned ${myXP} XP! 🎫`;
   if(navigator.share) navigator.share({title:'My Festival Recap',text}).catch(()=>{});
   else { navigator.clipboard.writeText(text).catch(()=>{}); toast('📋 Recap copied to clipboard!'); }
   logEvent('recap_share',{});
@@ -1715,6 +1782,7 @@ try{
   ratedVendorIds=new Set(saved.ratedVendorIds||[]);
   reportsSentCount=saved.reportsSentCount||0;
   merchReservedCount=saved.merchReservedCount||0;
+  messagesSentCount=saved.messagesSentCount||0;
   questsClaimed=new Set(saved.questsClaimed||[]);
 }catch(e){}
 function saveGamifyState(){
@@ -1722,7 +1790,7 @@ function saveGamifyState(){
     localStorage.setItem('glyde_gamify',JSON.stringify({
       xp:myXP,badges:[...myBadges],visitedZones:[...visitedZones],
       chattedChannels:[...chattedChannels],openedSchedule,ratedVendorIds:[...ratedVendorIds],
-      reportsSentCount,merchReservedCount,questsClaimed:[...questsClaimed]
+      reportsSentCount,merchReservedCount,messagesSentCount,questsClaimed:[...questsClaimed]
     }));
   }catch(e){}
 }
@@ -2268,13 +2336,9 @@ window.backToDashboard=()=>{
   document.getElementById('screen-dashboard').classList.add('active');
   currentTab='dashboard';
 };
-window.headerBackAction=()=>{
-  if(currentTab==='dashboard') exitEventContext();
-  else backToDashboard();
-};
 // One-tap shortcut back to Home from anywhere inside an event, regardless of how deep
-// (map/chat/report or the dashboard itself) — distinct from the back arrow, which only
-// steps up one level at a time.
+// (map/chat/report or the dashboard itself). The venue name in the header (tap → backToDashboard)
+// and the hardware/swipe back gesture (handleBackPress, below) cover the step-by-step case.
 window.goHomeFromEvent=()=>{
   exitEventContext();
 };
@@ -2875,12 +2939,29 @@ window.closeFood=()=>document.getElementById('foodPanel').classList.remove('open
 window.setFoodTab=tab=>{foodTab=tab;openVendorId=null;renderFoodPanel();};
 
 function renderFoodPanel(){
-  document.getElementById('foodTabVendors').classList.toggle('sel',foodTab==='vendors');
+  // Cart/Checkout/Confirmation are sub-views reached via buttons (like vendor detail already is),
+  // not their own tab pills — the tab row only ever reflects Vendors vs Orders.
+  document.getElementById('foodTabVendors').classList.toggle('sel',foodTab==='vendors'||foodTab==='cart'||foodTab==='checkout'||foodTab==='confirmation');
   document.getElementById('foodTabOrders').classList.toggle('sel',foodTab==='orders');
   if(foodTab==='orders'){renderFoodOrders();return;}
+  if(foodTab==='cart'){renderCart();return;}
+  if(foodTab==='checkout'){renderCheckout();return;}
+  if(foodTab==='confirmation'){renderOrderConfirmation();return;}
   if(openVendorId){renderVendorDetail(openVendorId);return;}
   renderVendorList();
 }
+function cartBarHtml(){
+  if(!foodCart.length)return'';
+  const count=foodCart.reduce((s,c)=>s+c.qty,0);
+  const total=foodCart.reduce((s,c)=>s+c.qty*c.price,0);
+  return `<div class="cart-bar" onclick="setFoodTabKeepCart('cart')">
+    <span>🛒 ${count} item${count===1?'':'s'} in cart</span>
+    <span style="font-weight:700">$${total.toFixed(2)} · View Cart →</span>
+  </div>`;
+}
+// Same as setFoodTab but doesn't clear the cart/selected vendor — used by the cart bar so
+// jumping into the cart from mid-browse doesn't lose your place.
+window.setFoodTabKeepCart=tab=>{foodTab=tab;renderFoodPanel();};
 function avgRating(id){
   const r=foodRatings[id]||{};
   const vals=Object.values(r);
@@ -2915,7 +2996,7 @@ function renderVendorList(){
       ${v.dietary.length?`<div class="vendor-dietary-row">${v.dietary.map(d=>`<span class="dietary-chip">${d}</span>`).join('')}</div>`:''}
     </div>`;
   }).join('');
-  document.getElementById('foodBody').innerHTML=cuisineRow+dietaryRow+(cards||'<div class="search-empty">No vendors match those filters</div>');
+  document.getElementById('foodBody').innerHTML=cartBarHtml()+cuisineRow+dietaryRow+(cards||'<div class="search-empty">No vendors match those filters</div>');
 }
 window.setCuisineFilter=c=>{foodCuisineFilter=foodCuisineFilter===c?null:c;renderVendorList();};
 window.setDietaryFilter=d=>{foodDietaryFilter=foodDietaryFilter===d?null:d;renderVendorList();};
@@ -2929,16 +3010,16 @@ function renderVendorDetail(id){
     <div class="menu-item-row">
       <div class="menu-item-name">${esc(m.item)}${m.dietary.length?` <span style="color:var(--muted);font-size:9px">(${m.dietary.join(', ')})</span>`:''}</div>
       <div class="menu-item-price">$${m.price}</div>
-      ${closed?'':`<div class="menu-item-add" onclick="preOrderItem('${id}',${i})">+</div>`}
+      ${closed?'':`<div class="menu-item-add" onclick="addToCart('${id}',${i})" title="Add to cart">+</div>`}
     </div>`).join('');
-  document.getElementById('foodBody').innerHTML=`
+  document.getElementById('foodBody').innerHTML=cartBarHtml()+`
     <div style="text-align:center;font-size:48px;margin-bottom:4px">${v.icon}</div>
     <div style="text-align:center;font-size:16px;font-weight:700">${esc(v.name)}</div>
     ${closed?'<div style="text-align:center;color:var(--red);font-size:12px;font-weight:700;margin-bottom:6px">Closed by organizer — pre-orders unavailable</div>':''}
     <div style="text-align:center;margin-bottom:10px">${starsHtml(avgRating(id))}</div>
     <div class="star-picker" id="ratePicker">${[1,2,3,4,5].map(n=>`<span class="${n<=myRating?'on':''}" onclick="rateVendor('${id}',${n})">★</span>`).join('')}</div>
     <button class="vs-btn vs-btn-primary" style="width:100%;margin-bottom:10px" onclick="navToVendor('${id}')">🧭 Navigate here</button>
-    <div class="variant-label">Menu${closed?'':' — tap + to pre-order'}</div>
+    <div class="variant-label">Menu${closed?'':' — tap + to add to cart'}</div>
     ${menuHtml}
     <div style="margin-top:10px"><span class="msg-action-btn" onclick="backToVendorList()">‹ Back to vendors</span></div>`;
 }
@@ -2966,6 +3047,20 @@ window.navToVendor=id=>{
   speakGuidance(`Navigating to ${v.name}`);
   closeFood();
 };
+window.navToSosAlert=el=>{
+  const x=parseFloat(el.dataset.x),y=parseFloat(el.dataset.y);
+  if(isNaN(x)||isNaN(y))return;
+  navUid=null;navZoneIdx=null;navCustom={x,y};
+  document.getElementById('navCard').classList.add('on');
+  document.getElementById('navAv').textContent='🚨';
+  document.getElementById('navAv').style.borderColor='var(--red)';
+  document.getElementById('navAv').style.background='rgba(239,68,68,.2)';
+  document.getElementById('navNm').textContent='SOS Alert';
+  document.getElementById('navNm').style.color='var(--red)';
+  toast('Navigating to SOS location');
+  speakGuidance('Navigating to the SOS alert location');
+  switchTab('map');
+};
 window.preOrderItem=async(vendorId,itemIdx)=>{
   if(!myGroup)return;
   if(vendorStatus[vendorId]?.closed){ toast('🚫 This vendor is closed','w'); return; }
@@ -2987,21 +3082,178 @@ window.preOrderItem=async(vendorId,itemIdx)=>{
   haptic(20);
   foodTab='orders';openVendorId=null;renderFoodPanel();
 };
+
+// ── FOOD ORDER FLOW: Browse → Cart → Checkout → Payment → Confirmation → Status ──────────
+window.addToCart=(vendorId,itemIdx)=>{
+  if(vendorStatus[vendorId]?.closed){ toast('🚫 This vendor is closed','w'); return; }
+  const v=FOOD_VENDORS.find(x=>x.id===vendorId);const item=v.menu[itemIdx];
+  const existing=foodCart.find(c=>c.vendorId===vendorId&&c.itemIdx===itemIdx);
+  if(existing) existing.qty++;
+  else foodCart.push({vendorId,vendorName:v.name,itemIdx,item:item.item,price:item.price,qty:1});
+  toast(`🛒 Added ${item.item} to cart`);
+  haptic(10);
+  renderFoodPanel();
+};
+window.changeCartQty=(idx,delta)=>{
+  const line=foodCart[idx];if(!line)return;
+  line.qty+=delta;
+  if(line.qty<=0) foodCart.splice(idx,1);
+  renderCart();
+};
+window.removeFromCart=idx=>{ foodCart.splice(idx,1); renderCart(); };
+window.clearCart=()=>{ foodCart=[]; renderCart(); };
+function cartTotal(){ return foodCart.reduce((s,c)=>s+c.qty*c.price,0); }
+function renderCart(){
+  if(!foodCart.length){
+    document.getElementById('foodBody').innerHTML=`<div class="search-empty">Your cart is empty — browse vendors to add items</div>
+      <button class="vs-btn" style="width:100%;margin-top:10px" onclick="setFoodTabKeepCart('vendors')">‹ Browse vendors</button>`;
+    return;
+  }
+  // Cart can span multiple vendors (a real festival visit often does) — grouping isn't required
+  // for checkout since each line already carries its own vendorId/vendorName.
+  const linesHtml=foodCart.map((c,i)=>`
+    <div class="cart-line">
+      <div style="flex:1">
+        <div style="font-weight:700;font-size:13px">${esc(c.item)}</div>
+        <div style="font-size:11px;color:var(--muted)">${esc(c.vendorName)} · $${c.price} each</div>
+      </div>
+      <div class="cart-line-qty">
+        <div class="cart-qty-btn" onclick="changeCartQty(${i},-1)">−</div>
+        <div style="min-width:18px;text-align:center;font-weight:700">${c.qty}</div>
+        <div class="cart-qty-btn" onclick="changeCartQty(${i},1)">+</div>
+      </div>
+      <div style="font-weight:700;width:52px;text-align:right">$${(c.qty*c.price).toFixed(2)}</div>
+      <div class="contact-remove" onclick="removeFromCart(${i})" title="Remove">✕</div>
+    </div>`).join('');
+  document.getElementById('foodBody').innerHTML=`
+    <div class="variant-label">Your Cart</div>
+    ${linesHtml}
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;margin-top:14px;padding-top:10px;border-top:1px solid var(--border)">
+      <span>Total</span><span>$${cartTotal().toFixed(2)}</span>
+    </div>
+    <button class="vs-btn vs-btn-primary" style="width:100%;margin-top:12px" onclick="setFoodTabKeepCart('checkout')">Proceed to Checkout →</button>
+    <button class="vs-btn" style="width:100%;margin-top:8px" onclick="setFoodTabKeepCart('vendors')">‹ Add more items</button>
+  `;
+}
+window.selectPaymentMethod=method=>{ foodPaymentMethod=method; renderCheckout(); };
+let lastCashPickupHint='';
+// Reads the hint renderCheckout() last computed rather than re-serializing it into an inline
+// onclick string — keeps this quote/emoji-safe the same way the rest of the app reads dynamic
+// values from data rather than interpolating them into onclick attributes.
+window.cashPaymentOptionTap=eligible=>{
+  if(eligible) selectPaymentMethod('cash');
+  else toast('📍 '+lastCashPickupHint,'w');
+};
+function renderCheckout(){
+  if(!foodCart.length){ setFoodTabKeepCart('vendors'); return; }
+  const linesHtml=foodCart.map(c=>`
+    <div class="cart-line" style="padding:6px 0">
+      <div style="flex:1;font-size:12px">${c.qty}× ${esc(c.item)} <span style="color:var(--muted)">(${esc(c.vendorName)})</span></div>
+      <div style="font-weight:700;font-size:12px">$${(c.qty*c.price).toFixed(2)}</div>
+    </div>`).join('');
+  // Cash on Pickup requires being within every cart vendor's own configured radius — a cart
+  // spanning multiple vendors only qualifies once you're near all of them.
+  const distances=foodCart.map(c=>({vendorName:c.vendorName,vendorId:c.vendorId,radius:cashPickupRadiusFor(c.vendorId),dist:distanceToVendorMeters(FOOD_VENDORS.find(v=>v.id===c.vendorId))}));
+  const gpsUnavailable=distances.some(d=>d.dist==null);
+  const farthestOutOfRange=distances.filter(d=>d.dist!=null).find(d=>d.dist>d.radius);
+  const cashEligible=!gpsUnavailable&&!farthestOutOfRange;
+  let cashHint;
+  if(gpsUnavailable) cashHint='Waiting for your location…';
+  else if(farthestOutOfRange) cashHint=`Cash on Pickup is available only when you are within ${farthestOutOfRange.radius}m of ${farthestOutOfRange.vendorName} (currently ${Math.round(farthestOutOfRange.dist)}m away).`;
+  else cashHint='You are within range — Cash on Pickup is available.';
+  lastCashPickupHint=cashHint;
+  document.getElementById('foodBody').innerHTML=`
+    <div class="variant-label">Order Summary</div>
+    ${linesHtml}
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:15px;margin:10px 0 16px;padding-top:10px;border-top:1px solid var(--border)">
+      <span>Total</span><span>$${cartTotal().toFixed(2)}</span>
+    </div>
+    <div class="variant-label">Payment Method</div>
+    <div class="payment-option${foodPaymentMethod==='online'?' sel':''}" onclick="selectPaymentMethod('online')">
+      <div class="payment-option-icon">💳</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:13px">Pay Online</div><div style="font-size:11px;color:var(--muted)">${STRIPE_CONFIGURED?'Secure checkout':'Placeholder — real payment processing coming soon'}</div></div>
+    </div>
+    <div class="payment-option${foodPaymentMethod==='cash'?' sel':''}${cashEligible?'':' disabled'}" onclick="cashPaymentOptionTap(${cashEligible})">
+      <div class="payment-option-icon">💵</div>
+      <div style="flex:1"><div style="font-weight:700;font-size:13px">Cash on Pickup</div><div style="font-size:11px;color:${cashEligible?'var(--green)':'var(--muted)'}">${esc(cashHint)}</div></div>
+    </div>
+    <button class="vs-btn vs-btn-primary" style="width:100%;margin-top:14px" ${foodPaymentMethod?'':'disabled'} onclick="placeFoodOrder()">Place Order →</button>
+    <button class="vs-btn" style="width:100%;margin-top:8px" onclick="setFoodTabKeepCart('cart')">‹ Back to cart</button>
+  `;
+}
+window.placeFoodOrder=async()=>{
+  if(!myGroup||!foodCart.length||!foodPaymentMethod)return;
+  if(foodPaymentMethod==='online'&&STRIPE_CONFIGURED&&foodCart.length===1){
+    try{
+      toast('Redirecting to checkout…');
+      await startCheckout({code:myGroup,kind:'food',vendorId:foodCart[0].vendorId,itemIdx:foodCart[0].itemIdx});
+    }catch(e){ toast('⚠️ Checkout failed','e'); }
+    return;
+  }
+  // Placeholder online payment (no processor configured, or a multi-item cart real Stripe
+  // Checkout doesn't support yet) and Cash on Pickup both create the order the same way —
+  // only the stored paymentMethod differs, ready for a real payment gateway to slot in later.
+  const pickupCode=Math.random().toString(36).slice(2,8).toUpperCase();
+  const orderGroupId='og_'+Date.now().toString(36);
+  const ts=Date.now();
+  const method=foodPaymentMethod;
+  const items=[...foodCart];
+  await Promise.all(items.map(c=>push(ref(db,`groups/${myGroup}/foodOrders/${myId}`),{
+    vendorId:c.vendorId,vendorName:c.vendorName,item:c.item,price:c.price,qty:c.qty,ts,pickupCode,orderGroupId,
+    paymentMethod:method,status:'received'
+  })));
+  logEvent('food_checkout',{itemCount:items.length,total:cartTotal(),paymentMethod:method});
+  haptic(20);
+  lastFoodOrderReceipt={items,total:cartTotal(),pickupCode,paymentMethod:method,ts};
+  foodCart=[];foodPaymentMethod=null;
+  foodTab='confirmation';renderFoodPanel();
+};
+function renderOrderConfirmation(){
+  const r=lastFoodOrderReceipt;
+  if(!r){ setFoodTabKeepCart('orders'); return; }
+  const linesHtml=r.items.map(c=>`<div class="cart-line" style="padding:5px 0"><div style="flex:1;font-size:12px">${c.qty}× ${esc(c.item)}</div><div style="font-size:12px;font-weight:700">$${(c.qty*c.price).toFixed(2)}</div></div>`).join('');
+  document.getElementById('foodBody').innerHTML=`
+    <div style="text-align:center;font-size:44px;margin-bottom:6px">✅</div>
+    <div style="text-align:center;font-size:16px;font-weight:700;margin-bottom:2px">Order Confirmed</div>
+    <div style="text-align:center;font-size:12px;color:var(--muted);margin-bottom:14px">${r.paymentMethod==='cash'?'💵 Cash on Pickup':'💳 Paid Online'}</div>
+    ${linesHtml}
+    <div style="display:flex;justify-content:space-between;font-weight:700;font-size:14px;margin:10px 0 16px;padding-top:10px;border-top:1px solid var(--border)">
+      <span>Total</span><span>$${r.total.toFixed(2)}</span>
+    </div>
+    <div class="pickup-code">${r.pickupCode}</div>
+    <div style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:14px">Show this code when you collect your order</div>
+    <button class="vs-btn vs-btn-primary" style="width:100%" onclick="setFoodTabKeepCart('orders')">View Order Status →</button>
+  `;
+}
+// Order Received / Preparing / Ready for Pickup / Collected — the 4 statuses a future Vendor
+// App will drive. Orders placed before this field existed have no `status` at all and are
+// treated as 'preparing' (their historical default), so old data still displays sensibly.
+const FOOD_ORDER_STATUS_LABELS={
+  received:{label:'Order Received',icon:'🧾',cls:'st-received'},
+  preparing:{label:'Preparing',icon:'👨‍🍳',cls:'st-preparing'},
+  ready:{label:'Ready for Pickup',icon:'✅',cls:'st-ready'},
+  collected:{label:'Collected',icon:'📦',cls:'st-collected'},
+};
 function renderFoodOrders(){
   if(!foodOrders.length){
     document.getElementById('foodBody').innerHTML=`<div class="search-empty">No orders yet — browse vendors!</div>`;
     return;
   }
-  document.getElementById('foodBody').innerHTML=foodOrders.map(o=>`
+  document.getElementById('foodBody').innerHTML=foodOrders.map(o=>{
+    const st=FOOD_ORDER_STATUS_LABELS[o.status]||FOOD_ORDER_STATUS_LABELS.preparing;
+    const payTag=o.paymentMethod?`<span style="color:var(--muted)"> · ${o.paymentMethod==='cash'?'💵 Cash on Pickup':'💳 Paid Online'}</span>`:'';
+    return `
     <div class="order-card">
       <div style="display:flex;justify-content:space-between;align-items:center">
-        <div style="font-weight:700;font-size:13px">${esc(o.item)}</div>
-        <div class="order-status">${o.status==='ready'?'✅ Ready':'👨‍🍳 Preparing'}</div>
+        <div style="font-weight:700;font-size:13px">${o.qty>1?o.qty+'× ':''}${esc(o.item)}</div>
+        <div class="order-status ${st.cls}">${st.icon} ${st.label}</div>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(o.vendorName)} · $${o.price}</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px">${esc(o.vendorName)} · $${(o.price*(o.qty||1)).toFixed(2)}${payTag}</div>
       <div class="pickup-code">${o.pickupCode}</div>
-      <div style="font-size:10px;color:var(--muted);text-align:center">Show this code when you collect your order</div>
-    </div>`).join('');
+      <div style="font-size:10px;color:var(--muted);text-align:center;margin-bottom:8px">Show this code when you collect your order</div>
+      ${o.status!=='collected'?`<button class="vs-btn vs-btn-primary" style="width:100%" onclick="navToVendor('${o.vendorId}')">🧭 Navigate to ${esc(o.vendorName)}</button>`:''}
+    </div>`;
+  }).join('');
 }
 
 // ── MERCHANDISE ────────────────────────────────────────────────────────────────
@@ -3576,13 +3828,15 @@ function dmKey(uid){return 'dm-'+[myId,uid].sort().join('_');}
 function fmtTime(ts){const d=new Date(ts||Date.now());return `${d.getHours()}:${String(d.getMinutes()).padStart(2,'0')}`;}
 
 function postMessage(channelKey,data){
-  if(!myGroup)return;
+  if(!myGroup)return null;
   if(!navigator.onLine){
     offlineQueue.push({channelKey,data});
     toast('📴 Offline — message queued','w');
-    return;
+    return null;
   }
-  push(ref(db,`groups/${myGroup}/chat/${channelKey}/messages`),data).catch(fbFail);
+  const p=push(ref(db,`groups/${myGroup}/chat/${channelKey}/messages`),data);
+  p.catch(fbFail);
+  return p; // callers that need the new message's key (e.g. image moderation) can await this
 }
 function attachChannelListener(key){
   if(listenedChannels.has(key)||!myGroup)return;
@@ -3590,6 +3844,7 @@ function attachChannelListener(key){
   onValue(ref(db,`groups/${myGroup}/chat/${key}/messages`),snap=>{
     const data=snap.val()||{};
     const list=Object.entries(data).map(([id,m])=>({...m,id})).sort((a,b)=>(a.ts||0)-(b.ts||0));
+    ingestApprovedPhotos(list);
     const seenBefore=lastMsgCount[key]||0;
     const isActive=currentChannel===key&&currentTab==='chat';
     CHANNELS[key].messages=list;
@@ -3747,13 +4002,44 @@ function renderChat(){
         </div></div>`;
       return;
     }
+    if(msg.type==='sos'){
+      // data-attributes, not string interpolation, feed the click handler — same
+      // quote/emoji-safe convention used throughout the app for dynamic onclick values.
+      html+=`<div class="msg-group${own?' own':''}">
+        <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
+        <div class="msg-body">
+          <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${esc(msg.author)}</span><span class="msg-time">${fmtTime(msg.ts)}</span></div>
+          <div class="sos-alert" data-x="${msg.x}" data-y="${msg.y}" onclick="navToSosAlert(this)">
+            <div style="font-size:22px">🚨</div>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:var(--red)">SOS ALERT</div>
+              <div style="font-size:11px;color:var(--text);margin-top:2px">An attendee requires assistance.</div>
+              <div style="font-size:11px;color:var(--muted);margin-top:2px">Approximate Location: ${esc(msg.locLabel||'Unknown location')}</div>
+              <div style="font-size:11px;color:var(--neon);font-weight:700;margin-top:4px">🧭 Tap to Navigate</div>
+            </div>
+          </div>
+        </div></div>`;
+      return;
+    }
     if(msg.type==='image'){
       const modActions=own?'':`<span class="msg-action-btn" onclick="reportMessage('${msg.id}','${currentChannel}')" title="Report">🚩</span><span class="msg-action-btn" onclick="toggleBlockUser('${msg.uid}','${esc(msg.author||'this user')}')" title="Block user">🚫</span>`;
+      // Backward-compatible default: images posted before the moderation field existed render
+      // as approved. Flagged images stay hidden from everyone (including the uploader) until a
+      // moderator approves them; pending images are visible only to the uploader in the meantime.
+      const modStatus=msg.moderation||'approved';
+      let imgBlock;
+      if(modStatus==='flagged'){
+        imgBlock=`<div class="msg-img-hidden">🚫 Image flagged for review — hidden until approved</div>`;
+      }else if(modStatus==='pending'&&!own){
+        imgBlock=`<div class="msg-img-hidden">🕓 Image pending review</div>`;
+      }else{
+        imgBlock=`<img class="msg-img" src="${msg.url}" loading="lazy"/>${modStatus==='pending'?'<div class="msg-img-pending-tag">🕓 Pending review — only visible to you until approved</div>':''}`;
+      }
       html+=`<div class="msg-group${own?' own':''}">
         <div class="msg-av" style="background:${msg.color}22;border-color:${msg.color}">${msg.emoji}</div>
         <div class="msg-body">
           <div class="msg-hdr"><span class="msg-author" style="color:${msg.color}">${esc(msg.author)}</span><span class="msg-time">${fmtTime(msg.ts)}</span>${modActions}</div>
-          <img class="msg-img" src="${msg.url}" loading="lazy"/>
+          ${imgBlock}
         </div></div>`;
       return;
     }
@@ -3805,6 +4091,7 @@ window.sendMessage=()=>{
   document.getElementById('sendBtn').disabled=true;
   cancelReply();
   clearTimeout(typingTmr);setTyping(false);
+  messagesSentCount++;saveGamifyState();
   if(!chattedChannels.has(currentChannel)){
     chattedChannels.add(currentChannel);saveGamifyState();
     awardXP(5,'New chat channel');
@@ -3902,13 +4189,50 @@ window.handleImageChosen=async input=>{
     await uploadBytes(sRef,file);
     const url=await getDownloadURL(sRef);
     const ts=Date.now();
-    postMessage(currentChannel,{type:'image',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts,url});
     const {z}=nearestZone(myX,myY);
-    myPhotos.push({url,ts,zoneLabel:z.label});
-    saveMemories();
+    const chan=currentChannel;
+    // moderation:'pending' — the image is visible to the uploader only (with a "Pending review"
+    // tag) and hidden from everyone else until the moderation pipeline below writes back
+    // 'approved' or 'flagged' (see runModerationPipeline / moderateImageProvider).
+    const pushResult=await postMessage(chan,{type:'image',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts,url,zoneLabel:z.label,moderation:'pending'});
+    // Deliberately not pushed into myPhotos here — the channel listener (attachChannelListener)
+    // ingests every APPROVED image message it sees, uploader included, into Memories > Photos.
+    // That's the single source of truth so every participant who was in the event when a photo
+    // was shared gets it in their own Memories, not just whoever took it.
+    if(pushResult?.key) runModerationPipeline(chan,pushResult.key,url).catch(()=>{});
   }catch(e){
     toast('⚠️ Image upload failed','e');
   }
+};
+
+// ── IMAGE MODERATION PIPELINE (scaffold) ──────────────────────────────────────
+// No moderation model lives here — moderateImageProvider() is the single seam a real service
+// (OpenAI Moderation, Google Cloud Vision SafeSearch, AWS Rekognition, Azure AI Vision) plugs
+// into. Every uploaded image is written with moderation:'pending' and rendered as hidden to
+// everyone but the uploader (see the message-render branch in renderChat/appendMessages) until
+// this pipeline writes back 'approved' or 'flagged'. Flagged images stay hidden from everyone,
+// uploader included, until a moderator explicitly approves them (approveModeratedImage below —
+// a stand-in for a future Manager-side moderation queue).
+async function moderateImageProvider(url){
+  // STUB — replace this body with a real provider call. Whatever provider is wired in must
+  // resolve to this same shape so nothing else in the pipeline has to change:
+  //   { status: 'approved'|'flagged', categories: string[], provider: string }
+  // Real providers would check for: nudity, pornography, illegal drugs, weapons, graphic violence.
+  await new Promise(r=>setTimeout(r,600));
+  return {status:'approved',categories:[],provider:'stub'};
+}
+async function runModerationPipeline(channelKey,msgKey,url){
+  const result=await moderateImageProvider(url);
+  if(!myGroup)return;
+  const path=`groups/${myGroup}/chat/${channelKey}/messages/${msgKey}`;
+  await update(ref(db,path),{moderation:result.status,moderationCategories:result.categories||[]}).catch(()=>{});
+  if(result.status==='flagged') logEvent('image_flagged',{channel:channelKey,categories:result.categories||[]});
+}
+// Manager-side approval hook (no UI wired up yet — a future Manager "Flagged Content" queue
+// would call this after human review, same as the moderation pipeline does automatically).
+window.approveModeratedImage=(channelKey,msgKey)=>{
+  if(!myGroup)return;
+  update(ref(db,`groups/${myGroup}/chat/${channelKey}/messages/${msgKey}`),{moderation:'approved'}).catch(()=>{});
 };
 
 // Emoji picker
@@ -4092,7 +4416,17 @@ window.triggerPanic=()=>{
   if(myGroup) update(ref(db,`groups/${myGroup}/users/${myId}`),{panic:panicOn}).catch(fbFail);
   logEvent('panic_toggle',{on:panicOn});
   haptic(panicOn?[30,50,30,50,30]:15);
-  if(panicOn) toast('🆘 Your location shared with your group');
+  if(panicOn&&myGroup){
+    toast('🆘 Your location shared with your group');
+    const {z}=nearestZone(myX,myY);
+    // Post a high-priority alert straight into the venue's main chat — every attendee AND
+    // any manager currently in that channel sees it live, same as any other message.
+    postMessage('venue-main',{type:'sos',author:myName||'You',uid:myId,emoji:myEmoji,color:myColor,ts:Date.now(),locLabel:z.label,x:z.x,y:z.y});
+    // Also files into the same real, shared report system every other report type uses —
+    // this is what makes it show up in the Manager Reports dashboard (manager.html's Orders
+    // tab already renders any REPORT_TYPES entry; 'sos' was added there for this).
+    fileReport('sos','SOS Alert',{priority:'high'});
+  }
 };
 window.copyCode=()=>{
   navigator.clipboard.writeText(`Join my group on Glyde! Code: ${myGroup}`).catch(()=>{});
@@ -4187,11 +4521,11 @@ let deferredInstallPrompt=null;
 window.addEventListener('beforeinstallprompt',e=>{
   e.preventDefault();
   deferredInstallPrompt=e;
-  document.getElementById('installBtn').classList.add('show');
+  document.getElementById('moreMenuInstallRow').style.display='flex';
 });
 window.installApp=async()=>{
   if(!deferredInstallPrompt)return;
-  document.getElementById('installBtn').classList.remove('show');
+  document.getElementById('moreMenuInstallRow').style.display='none';
   deferredInstallPrompt.prompt();
   const {outcome}=await deferredInstallPrompt.userChoice;
   if(outcome==='accepted') toast('📲 Glyde installed!');
@@ -4199,7 +4533,7 @@ window.installApp=async()=>{
   deferredInstallPrompt=null;
 };
 window.addEventListener('appinstalled',()=>{
-  document.getElementById('installBtn').classList.remove('show');
+  document.getElementById('moreMenuInstallRow').style.display='none';
   deferredInstallPrompt=null;
 });
 
@@ -4760,9 +5094,39 @@ const MOCK_MANAGER_REPORTS=[
   {id:5,category:'Facilities',priority:'Low',time:'1 hr ago',reporter:'Attendee #305',location:'Food Court',status:'resolved'},
 ];
 let managerReportsTab='pending';
+// ── LIVE SOS REPORTS: the rest of this screen is mock data, but SOS alerts are real — they
+// reuse the exact same groups/{code}/reports node every other report type already writes to
+// (fileReport), so a manager sees a triggered SOS the moment it's filed, cross-device, no
+// separate plumbing needed. No reporter identity is ever stored on a report to begin with
+// (privacy by default), so these show an honest "N attendees" count instead of a name. ──
+let realReportsRaw={};
+let sosReportsListenerAttached=false;
+function attachSosReportsListener(){
+  if(sosReportsListenerAttached||!myGroup)return;
+  sosReportsListenerAttached=true;
+  onValue(ref(db,`groups/${myGroup}/reports`),snap=>{
+    realReportsRaw=snap.val()||{};
+    if(document.getElementById('screen-reports')?.classList.contains('active')) renderManagerReportsScreen();
+  });
+}
+function timeAgo(ts){
+  const diff=Math.floor((Date.now()-(ts||0))/1000);
+  if(diff<60)return `${diff}s ago`;
+  if(diff<3600)return `${Math.floor(diff/60)} min ago`;
+  return `${Math.floor(diff/3600)} hr ago`;
+}
+function realSosReportCards(){
+  return Object.entries(realReportsRaw).filter(([,r])=>r.type==='sos').map(([key,r])=>({
+    id:'real:'+key,category:'SOS Alert',priority:'High',time:timeAgo(r.time),
+    reporter:r.count>1?`${r.count} attendees`:'Anonymous attendee',
+    location:r.loc||'Unknown location',status:r.resolved?'resolved':'pending',
+  }));
+}
 function renderManagerReportsScreen(){
+  attachSosReportsListener();
   const tabs=[{id:'pending',label:'Pending'},{id:'in_progress',label:'In Progress'},{id:'resolved',label:'Resolved'}];
-  const filtered=MOCK_MANAGER_REPORTS.filter(r=>r.status===managerReportsTab);
+  const allReports=[...realSosReportCards(),...MOCK_MANAGER_REPORTS];
+  const filtered=allReports.filter(r=>r.status===managerReportsTab);
   const priorityColor=p=>p==='High'?'var(--red)':p==='Medium'?'var(--amber)':'var(--muted)';
   const cardsHtml=filtered.length?filtered.map(r=>`
     <div class="home-card">
@@ -4775,9 +5139,9 @@ function renderManagerReportsScreen(){
       </div>
       <div style="font-size:11px;color:var(--muted);margin-top:8px">${esc(r.time)} · Reported by ${esc(r.reporter)}</div>
       <div style="display:flex;gap:8px;margin-top:12px">
-        ${r.status==='pending'?`<button class="vs-btn vs-btn-primary" style="flex:1" onclick="mockAssignReport(${r.id})">Assign</button>`:''}
-        ${r.status!=='resolved'?`<button class="vs-btn" style="flex:1" onclick="mockResolveReport(${r.id})">Resolve</button>`:''}
-        <button class="vs-btn" style="flex:1" onclick="mockNavigateToReport(${r.id})">📍 Navigate</button>
+        ${r.status==='pending'?`<button class="vs-btn vs-btn-primary" style="flex:1" onclick="assignReportCard('${r.id}')">Assign</button>`:''}
+        ${r.status!=='resolved'?`<button class="vs-btn" style="flex:1" onclick="resolveReportCard('${r.id}')">Resolve</button>`:''}
+        <button class="vs-btn" style="flex:1" onclick="navigateToReportCard('${r.id}')">📍 Navigate</button>
       </div>
     </div>`).join(''):'<div class="home-empty">No reports in this category</div>';
   document.getElementById('reportsBody').innerHTML=`
@@ -4789,15 +5153,35 @@ function renderManagerReportsScreen(){
   `;
 }
 window.setManagerReportsTab=id=>{ managerReportsTab=id; renderManagerReportsScreen(); };
-window.mockAssignReport=id=>{
-  const r=MOCK_MANAGER_REPORTS.find(x=>x.id===id);
+// Report card ids are either a real Firebase report key (prefixed 'real:', currently only SOS
+// alerts) or a small integer from the mock array — every action below branches on that prefix
+// so the same card UI works for both without the mock placeholders needing to know real ones exist.
+window.assignReportCard=id=>{
+  if(id.startsWith('real:')){ toast('👷 Assigning staff to real reports is coming soon'); return; }
+  const r=MOCK_MANAGER_REPORTS.find(x=>x.id===parseInt(id,10));
   if(r){ r.status='in_progress'; toast('✅ Report assigned (placeholder — no backend yet)'); renderManagerReportsScreen(); }
 };
-window.mockResolveReport=id=>{
-  const r=MOCK_MANAGER_REPORTS.find(x=>x.id===id);
+window.resolveReportCard=id=>{
+  if(id.startsWith('real:')){
+    const key=id.slice('real:'.length);
+    update(ref(db,`groups/${myGroup}/reports/${key}`),{resolved:true}).catch(()=>toast('⚠️ Failed to update report','e'));
+    return;
+  }
+  const r=MOCK_MANAGER_REPORTS.find(x=>x.id===parseInt(id,10));
   if(r){ r.status='resolved'; toast('✅ Report marked resolved (placeholder — no backend yet)'); renderManagerReportsScreen(); }
 };
-window.mockNavigateToReport=()=>{
+window.navigateToReportCard=id=>{
+  if(id.startsWith('real:')){
+    const key=id.slice('real:'.length);
+    const r=realReportsRaw[key];
+    if(r&&r.x!=null&&r.y!=null){
+      navUid=null;navZoneIdx=null;navCustom={x:r.x,y:r.y};
+      enterEventContext();switchTab('map');
+      document.getElementById('navCard').classList.add('on');
+      toast('Navigating to the report location');
+    }
+    return;
+  }
   toast('📍 Navigate to report — coming soon');
 };
 
