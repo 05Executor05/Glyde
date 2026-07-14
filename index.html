@@ -2285,6 +2285,8 @@ let navZoneIdx=null;
 let navCustom=null;
 let navArrived=false; // one-shot latch so "You have arrived" only ever announces once per nav session
 let insideA11yAlerts=new Set(); // geofence membership — only announce on enter, not while still inside
+const _a11yActiveIdsScratch=[]; // reused every frame instead of allocating a new array/Set each time
+const EMPTY_ARR=Object.freeze([]); // shared no-op return value — avoids allocating a new [] every frame when there's nothing active
 let openZoneIdx=null;
 let meetingPoint=null;
 let arrivedState={};
@@ -2840,24 +2842,31 @@ function draw(ts){
       announceA11y(`✅ You've arrived at ${nm}`,`You have arrived at ${nm}.`,{hapticPattern:[20,40,20,40,60]});
     }
   }
+  // Computed once per frame (not once per usage) — reused below both for proximity checks and
+  // for drawing the markers, and skipped entirely when there's nothing to compute.
+  const _drawActiveAlerts=a11yAlerts.length?activeA11yAlerts():EMPTY_ARR;
   // Accessibility alert proximity warnings — geofence enter/exit so each alert only announces
   // once per approach, not on every frame while the attendee is still standing inside it.
-  const _activeAlertIds=new Set();
-  activeA11yAlerts().forEach(a=>{
-    _activeAlertIds.add(a.id);
-    const d=Math.hypot(a.x-myX,a.y-myY)*1000;
-    const inside=d<45;
-    if(inside&&!insideA11yAlerts.has(a.id)){
-      insideA11yAlerts.add(a.id);
-      const t=a11yAlertTypeInfo(a.type);
-      announceA11y(`${t.icon} Caution: ${a.title}`,a11yAlertSpokenMsg(a,Math.round(d)),{type:'w',hapticPattern:[30,50,30]});
-    } else if(!inside&&insideA11yAlerts.has(a.id)){
-      insideA11yAlerts.delete(a.id);
-    }
-  });
-  // An alert that expired or was removed shouldn't keep its "already announced" state forever —
-  // if it ever comes back (e.g. a new alert reuses timing), it should be able to announce again.
-  [...insideA11yAlerts].forEach(id=>{ if(!_activeAlertIds.has(id)) insideA11yAlerts.delete(id); });
+  // Skips entirely (no allocation at all, not even the active-alerts array) on the overwhelming
+  // majority of frames where no alerts are active and no one is currently inside one.
+  if(a11yAlerts.length||insideA11yAlerts.size){
+    _a11yActiveIdsScratch.length=0;
+    _drawActiveAlerts.forEach(a=>{
+      _a11yActiveIdsScratch.push(a.id);
+      const d=Math.hypot(a.x-myX,a.y-myY)*1000;
+      const inside=d<45;
+      if(inside&&!insideA11yAlerts.has(a.id)){
+        insideA11yAlerts.add(a.id);
+        const t=a11yAlertTypeInfo(a.type);
+        announceA11y(`${t.icon} Caution: ${a.title}`,a11yAlertSpokenMsg(a,Math.round(d)),{type:'w',hapticPattern:[30,50,30]});
+      } else if(!inside&&insideA11yAlerts.has(a.id)){
+        insideA11yAlerts.delete(a.id);
+      }
+    });
+    // An alert that expired or was removed shouldn't keep its "already announced" state forever —
+    // if it ever comes back (e.g. a new alert reuses timing), it should be able to announce again.
+    if(insideA11yAlerts.size) insideA11yAlerts.forEach(id=>{ if(!_a11yActiveIdsScratch.includes(id)) insideA11yAlerts.delete(id); });
+  }
   // Crowd heatmap (derived from live attendee positions)
   if(showHeatmap){
     ctx.globalCompositeOperation='lighter';
@@ -2910,7 +2919,7 @@ function draw(ts){
   // Accessibility alerts — temporary manager-placed markers (obstacles, closures, loud/quiet
   // zones, assistance points); pulsing ring makes them visible without needing to tap anything,
   // and proximity announcements (below) cover attendees who can't see the map at all.
-  activeA11yAlerts().forEach(a=>{
+  _drawActiveAlerts.forEach(a=>{
     const t=a11yAlertTypeInfo(a.type);
     const p=px(a.x,a.y);
     const pulse=(ts%1600)/1600;
@@ -4939,8 +4948,15 @@ window.haptic=haptic;
 // pass (re-run whenever the DOM changes, since almost every screen here is built via innerHTML)
 // makes every onclick-bearing element focusable and Enter/Space-activatable, matching native
 // <button> semantics everywhere in the app at once.
+const A11Y_CLICKABLE_SEL='[onclick]:not([tabindex]):not(button):not(a):not(input):not(select):not(textarea)';
 function makeKeyboardAccessible(root){
-  (root||document).querySelectorAll('[onclick]:not([tabindex]):not(button):not(a):not(input):not(select):not(textarea)').forEach(el=>{
+  const scope=root||document.body;
+  if(scope.nodeType!==1)return;
+  if(scope.matches&&scope.matches(A11Y_CLICKABLE_SEL)){
+    scope.setAttribute('tabindex','0');
+    if(!scope.hasAttribute('role')) scope.setAttribute('role','button');
+  }
+  scope.querySelectorAll(A11Y_CLICKABLE_SEL).forEach(el=>{
     el.setAttribute('tabindex','0');
     if(!el.hasAttribute('role')) el.setAttribute('role','button');
   });
@@ -4951,10 +4967,21 @@ document.addEventListener('keydown',e=>{
     e.target.click();
   }
 });
+// Scoped to only the subtrees that actually changed (most re-renders replace one small panel's
+// innerHTML, e.g. the chat message list or typing indicator) instead of re-scanning the whole
+// page on every DOM mutation — a full-body sweep only happens on the rare re-render large enough
+// to touch many top-level nodes at once (or the very first paint).
 let _a11yObserverTmr=null;
-new MutationObserver(()=>{
+const _a11yPendingRoots=new Set();
+new MutationObserver(muts=>{
+  for(const m of muts) for(const n of m.addedNodes) if(n.nodeType===1) _a11yPendingRoots.add(n);
   clearTimeout(_a11yObserverTmr);
-  _a11yObserverTmr=setTimeout(()=>makeKeyboardAccessible(document.body),150);
+  _a11yObserverTmr=setTimeout(()=>{
+    const roots=[..._a11yPendingRoots];
+    _a11yPendingRoots.clear();
+    if(roots.length>40){ makeKeyboardAccessible(document.body); return; }
+    roots.forEach(r=>{ if(document.body.contains(r)) makeKeyboardAccessible(r); });
+  },150);
 }).observe(document.body,{childList:true,subtree:true});
 makeKeyboardAccessible(document.body);
 
