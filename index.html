@@ -2399,10 +2399,10 @@ async function enterApp(name,code){
   document.getElementById('groupCodeDisplay').textContent=code;
   document.getElementById('profName').textContent=`${myEmoji} ${myName}`;
   document.getElementById('profGroup').textContent=code;
-  await loadVenueConfig(code);
-  await loadScheduleConfig(code);
-  await loadMerchConfig(code);
-  await loadFoodConfig(code);
+  // These four are fully independent (different Firebase paths, no cross-dependency) — loading
+  // them one at a time stacked four network round-trips in a row on every event join for no
+  // reason; running them concurrently cuts that to the cost of the single slowest one.
+  await Promise.all([loadVenueConfig(code),loadScheduleConfig(code),loadMerchConfig(code),loadFoodConfig(code)]);
   attachA11yAlertsListener();
   attachFoodListener();
   initPushNotifications().catch(()=>{});
@@ -2670,6 +2670,11 @@ window.switchTab=tab=>{
     // triggered one, e.g. the mobile keyboard opening for the search box). Re-measure now, every
     // time the map screen actually becomes visible, so it's never left stuck at 0×0.
     resize();
+    // renderMapBar()/renderNowPlaying() are otherwise skipped while off the Map tab (see their
+    // own guards) to avoid rebuilding on every peer/schedule tick when nothing is showing them —
+    // refresh once here so neither is stale the moment the user switches back to this screen.
+    renderMapBar();
+    renderNowPlaying();
   }
   if(tab==='chat'){
     unreadCounts[currentChannel]=0;
@@ -2696,6 +2701,42 @@ window.goHomeFromEvent=()=>{
 };
 
 // ── GPS ───────────────────────────────────────────────────────────────────────
+// Runs whenever my live position actually changes (from the GPS callback below) rather than on
+// every animation frame — arrival/proximity only need re-evaluating when position moves, and
+// must keep working even when the user isn't looking at the Map screen (the whole point of
+// spoken navigation and accessibility alerts is that they work without visual attention on it).
+function checkNavAndAlertProximity(){
+  let navPos=null;
+  if(navUid&&peers[navUid]) navPos={x:peers[navUid].x,y:peers[navUid].y};
+  else if(navZoneIdx!=null&&ZONES[navZoneIdx]) navPos={x:ZONES[navZoneIdx].x,y:ZONES[navZoneIdx].y};
+  else if(navCustom) navPos=navCustom;
+  if(navPos&&!navArrived){
+    const dx=navPos.x-myX,dy=navPos.y-myY;
+    if(Math.sqrt(dx*dx+dy*dy)<ARRIVAL_THRESHOLD){
+      navArrived=true;
+      const nm=document.getElementById('navNm').textContent;
+      announceA11y(`✅ You've arrived at ${nm}`,`You have arrived at ${nm}.`,{hapticPattern:[20,40,20,40,60]});
+    }
+  }
+  if(a11yAlerts.length||insideA11yAlerts.size){
+    _a11yActiveIdsScratch.length=0;
+    (a11yAlerts.length?activeA11yAlerts():EMPTY_ARR).forEach(a=>{
+      _a11yActiveIdsScratch.push(a.id);
+      const d=Math.hypot(a.x-myX,a.y-myY)*1000;
+      const inside=d<45;
+      if(inside&&!insideA11yAlerts.has(a.id)){
+        insideA11yAlerts.add(a.id);
+        const t=a11yAlertTypeInfo(a.type);
+        announceA11y(`${t.icon} Caution: ${a.title}`,a11yAlertSpokenMsg(a,Math.round(d)),{type:'w',hapticPattern:[30,50,30]});
+      } else if(!inside&&insideA11yAlerts.has(a.id)){
+        insideA11yAlerts.delete(a.id);
+      }
+    });
+    // An alert that expired or was removed shouldn't keep its "already announced" state forever —
+    // if it ever comes back (e.g. a new alert reuses timing), it should be able to announce again.
+    if(insideA11yAlerts.size) insideA11yAlerts.forEach(id=>{ if(!_a11yActiveIdsScratch.includes(id)) insideA11yAlerts.delete(id); });
+  }
+}
 function startGPS(){
   if(!navigator.geolocation){setStatus(false);return;}
   navigator.geolocation.watchPosition(pos=>{
@@ -2712,6 +2753,7 @@ function startGPS(){
     const seed=parseInt(myId.slice(2,4),36)/36;
     myX=.28+seed*.44+Math.sin(Date.now()/9000)*.025;
     myY=.38+seed*.28+Math.cos(Date.now()/8000)*.025;
+    checkNavAndAlertProximity();
   },()=>setStatus(false),{enableHighAccuracy:true,maximumAge:4000,timeout:10000});
 }
 function setStatus(live){
@@ -2790,6 +2832,7 @@ function listenMeetingPoint(){
 
 // ── MAP CANVAS ────────────────────────────────────────────────────────────────
 const canvas=document.getElementById('mapCanvas'),ctx=canvas.getContext('2d');
+const eventShellEl=document.getElementById('eventShell');
 let W,H;
 function resize(){W=canvas.offsetWidth;H=canvas.offsetHeight;canvas.width=W;canvas.height=H;}
 window.addEventListener('resize',resize);resize();
@@ -2797,7 +2840,13 @@ function px(rx,ry){return{x:panX+rx*W*scale,y:panY+ry*H*scale};}
 
 let lastDrawTs=0;
 function draw(ts){
-  if(document.hidden){ requestAnimationFrame(draw); return; }
+  // The canvas is only ever visible on the Map tab, inside the event shell — but this rAF loop
+  // used to keep doing its full render (gradients, shadowBlur, every zone/peer/path/marker) on
+  // every single frame forever regardless of which screen was actually showing, which is a
+  // significant chunk of "app feels slow/glitchy" on Chat, Food, Profile, anywhere else. The
+  // loop itself must keep running (so it's instantly ready the moment the user returns to Map),
+  // but does no work at all otherwise.
+  if(document.hidden||currentTab!=='map'||eventShellEl.style.display!=='flex'){ requestAnimationFrame(draw); return; }
   if(batterySaver&&ts-lastDrawTs<100){ requestAnimationFrame(draw); return; }
   lastDrawTs=ts;
   ctx.clearRect(0,0,W,H);
@@ -2836,37 +2885,11 @@ function draw(ts){
     const dx=navPos.x-myX,dy=navPos.y-myY;
     document.getElementById('arrowSvg').style.transform=`rotate(${Math.atan2(dy,dx)*180/Math.PI+90}deg)`;
     document.getElementById('navDst').textContent=Math.round(Math.sqrt(dx*dx+dy*dy)*1000)+'m';
-    if(!navArrived&&Math.sqrt(dx*dx+dy*dy)<ARRIVAL_THRESHOLD){
-      navArrived=true;
-      const nm=document.getElementById('navNm').textContent;
-      announceA11y(`✅ You've arrived at ${nm}`,`You have arrived at ${nm}.`,{hapticPattern:[20,40,20,40,60]});
-    }
   }
-  // Computed once per frame (not once per usage) — reused below both for proximity checks and
-  // for drawing the markers, and skipped entirely when there's nothing to compute.
+  // Arrival/proximity announcements are computed in checkNavAndAlertProximity(), driven by real
+  // GPS position updates rather than every animation frame — see that function for why. This is
+  // just the drawing list, recomputed here since draw() may be skipping frames that check runs on.
   const _drawActiveAlerts=a11yAlerts.length?activeA11yAlerts():EMPTY_ARR;
-  // Accessibility alert proximity warnings — geofence enter/exit so each alert only announces
-  // once per approach, not on every frame while the attendee is still standing inside it.
-  // Skips entirely (no allocation at all, not even the active-alerts array) on the overwhelming
-  // majority of frames where no alerts are active and no one is currently inside one.
-  if(a11yAlerts.length||insideA11yAlerts.size){
-    _a11yActiveIdsScratch.length=0;
-    _drawActiveAlerts.forEach(a=>{
-      _a11yActiveIdsScratch.push(a.id);
-      const d=Math.hypot(a.x-myX,a.y-myY)*1000;
-      const inside=d<45;
-      if(inside&&!insideA11yAlerts.has(a.id)){
-        insideA11yAlerts.add(a.id);
-        const t=a11yAlertTypeInfo(a.type);
-        announceA11y(`${t.icon} Caution: ${a.title}`,a11yAlertSpokenMsg(a,Math.round(d)),{type:'w',hapticPattern:[30,50,30]});
-      } else if(!inside&&insideA11yAlerts.has(a.id)){
-        insideA11yAlerts.delete(a.id);
-      }
-    });
-    // An alert that expired or was removed shouldn't keep its "already announced" state forever —
-    // if it ever comes back (e.g. a new alert reuses timing), it should be able to announce again.
-    if(insideA11yAlerts.size) insideA11yAlerts.forEach(id=>{ if(!_a11yActiveIdsScratch.includes(id)) insideA11yAlerts.delete(id); });
-  }
   // Crowd heatmap (derived from live attendee positions)
   if(showHeatmap){
     ctx.globalCompositeOperation='lighter';
@@ -3878,6 +3901,9 @@ function nextPerformer(zoneIdx){
 function saveBookmarks(){try{localStorage.setItem('glyde_bookmarks',JSON.stringify([...scheduleBookmarks]));}catch(e){}}
 
 function renderNowPlaying(){
+  // The pill only ever shows on the Map screen — the 30s interval below otherwise does this
+  // work forever in the background regardless of what's on screen.
+  if(currentTab!=='map'||eventShellEl.style.display!=='flex')return;
   const el=document.getElementById('nowPlaying');
   const cur=currentPerformer(0)||currentPerformer(1)||currentPerformer(2);
   if(!cur){el.classList.remove('on');return;}
@@ -4235,6 +4261,10 @@ function renderFriendsList(){
 
 // ── MAP BAR ───────────────────────────────────────────────────────────────────
 function renderMapBar(){
+  // Only ever visible on the Map tab — skip the rebuild otherwise (this gets called on every
+  // peer position tick via listenGroup(), which is most of the time). switchTab('map') refreshes
+  // it once on the way in, so it's never stale when it becomes visible again.
+  if(currentTab!=='map'||eventShellEl.style.display!=='flex')return;
   const myChip=`<div class="mychip"><div class="ch-em">${myEmoji}</div><div><div class="ch-nm" style="color:var(--green)">${myName||'You'}</div><div class="ch-st" style="color:var(--green)">YOU</div></div></div>`;
   const favChips=[...favorites].map(idx=>{
     const z=ZONES[idx];if(!z)return'';
@@ -4349,6 +4379,10 @@ function renderSidebar(){
 }
 
 function renderMobBar(){
+  // The channel drawer is a slide-out panel most of the session leaves closed — skip rebuilding
+  // its (potentially long) channel list on every chat message/peer update while it's hidden.
+  // openDrawer() below marks itself open before calling this, so opening still renders fresh.
+  if(!document.getElementById('drawer').classList.contains('open'))return;
   let html='';
   const sections=buildChatSections();
   sections.forEach((sec,si)=>{
@@ -4374,9 +4408,9 @@ function renderMobBar(){
 }
 
 window.openDrawer=()=>{
-  renderMobBar();
   document.getElementById('drawer').classList.add('open');
   document.getElementById('drawerOverlay').classList.add('open');
+  renderMobBar();
 };
 window.closeDrawer=()=>{
   document.getElementById('drawer').classList.remove('open');
@@ -4547,6 +4581,9 @@ function setTyping(isTyping){
   else set(r,null).catch(()=>{});
 }
 function renderTypingBar(){
+  // Only visible on the Chat screen — the setInterval below otherwise runs this forever from
+  // the moment the page loads, well before ever joining an event, regardless of what's shown.
+  if(currentTab!=='chat'||!eventShellEl||eventShellEl.style.display!=='flex')return;
   const data=typingByChannel[currentChannel]||{};
   const names=Object.entries(data).filter(([uid,t])=>uid!==myId&&Date.now()-(t.ts||0)<4000).map(([,t])=>t.name);
   document.getElementById('typingBar').innerHTML=names.length?
